@@ -804,14 +804,14 @@ export default function TripApp({ shared = false }: { shared?: boolean }) {
                       <article className="stat">
                         <span>Need to pay</span>
                         <strong>
-                          {fmt(Math.max(0, -(personal?.balance || 0)))}
+                          {fmt(sum!.transfers.filter(t=>t.from===me).reduce((s,t)=>s+t.amount,0))}
                         </strong>
-                        <small>Current net balance</small>
+                        <small>Total outstanding to each person</small>
                       </article>
                       <article className="stat">
                         <span>Need to receive</span>
                         <strong>
-                          {fmt(Math.max(0, personal?.balance || 0))}
+                          {fmt(sum!.transfers.filter(t=>t.to===me).reduce((s,t)=>s+t.amount,0))}
                         </strong>
                         <small>After actual repayments</small>
                       </article>
@@ -1369,9 +1369,9 @@ export default function TripApp({ shared = false }: { shared?: boolean }) {
                         </button>
                       </div>
                       <p className="muted">
-                        Net transfers across the whole event. Date filters and
-                        month changes never clear debt. These are suggested
-                        transfers, not proof of payment.
+                        Debts stay with the actual payer. Only amounts owed
+                        between the same two people are offset. Record a repayment
+                        after money has been paid; changing dates never clears debt.
                       </p>
                       {sum!.transfers.map((p, i) => (
                         <div className="transfer" key={i}>

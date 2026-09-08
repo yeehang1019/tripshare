@@ -43,6 +43,14 @@ export default function ExpenseEditor({
     c = calculate(b, e.settlement);
   } catch (err) {
     error = (err as Error).message;
+    if (error === "Calculated total does not match receipt total") {
+      try {
+        c = calculate({ ...b, receipt: null }, e.settlement);
+        error = `Calculated ${money(c.cashTotal,b.currency)} · Receipt ${money(b.receipt!,b.currency)} · Difference ${money(c.cashTotal-b.receipt!,b.currency)}. Check item prices and tax/service selections.`;
+      } catch (previewError) {
+        error += `. ${(previewError as Error).message}`;
+      }
+    }
   }
   const name = (id: string) => e.people.find((p) => p.id === id)?.name || id;
   const setPeople = (i: number, people: string[]) =>
@@ -353,7 +361,8 @@ export default function ExpenseEditor({
             <Field label="Tax %">
               <input
                 type="number"
-                value={b.tax}
+                value={b.tax || ""}
+                placeholder="0"
                 min="0"
                 max="100"
                 onChange={(v) => update({ tax: Number(v.target.value) })}
@@ -362,7 +371,8 @@ export default function ExpenseEditor({
             <Field label="Service %">
               <input
                 type="number"
-                value={b.service}
+                value={b.service || ""}
+                placeholder="0"
                 min="0"
                 max="100"
                 onChange={(v) => update({ service: Number(v.target.value) })}
@@ -553,6 +563,7 @@ export default function ExpenseEditor({
           disabled={
             busy ||
             !c ||
+            !!error ||
             !b.merchant.trim() ||
             (b.mode === "itemized" && b.receipt === null) ||
             (edit && !confirmed)
@@ -595,7 +606,7 @@ export default function ExpenseEditor({
               <span>Tax</span>
               <b>{money(c.tax, b.currency)}</b>
             </div>
-            {b.receipt !== null && (
+            {b.receipt !== null && !error && (
               <p className="success-text">✓ Receipt matched</p>
             )}
             <p className="muted">
