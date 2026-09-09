@@ -265,6 +265,19 @@ export async function POST(r: Request) {
         before = { ...p };
         p.deleted = true;
         after = { ...p };
+      } else if (b.action === "planBasics") {
+        before={destination:data.destination,start:data.start,end:data.end};
+        const x=b.entity;
+        if(typeof x.destination!=='string'||x.destination.length>200||!/^\d{4}-\d{2}-\d{2}$/.test(x.start)||!/^\d{4}-\d{2}-\d{2}$/.test(x.end)||x.end<x.start||Date.parse(x.end)-Date.parse(x.start)>366*86400000)throw Error('Choose valid trip dates (up to one year)');
+        Object.assign(data,{destination:x.destination,start:x.start,end:x.end});after=b.entity;
+      } else if (b.action === "planChecklist") {
+        if(!Array.isArray(b.entity.tasks))throw Error('Invalid checklist');
+        before=data.checklist||[];data.checklist=b.entity.tasks;after=data.checklist;
+      } else if (b.action === "planOrder") {
+        const ids=b.entity.ids;
+        if(!Array.isArray(ids)||new Set(ids).size!==ids.length||ids.some((id:string)=>!data.activities.some(a=>a.id===id)))throw Error('Invalid itinerary order');
+        before=data.activities.map(a=>({id:a.id,order:a.order}));
+        data.activities=data.activities.map(a=>ids.includes(a.id)?{...a,order:ids.indexOf(a.id)}:a);after=data.activities.map(a=>({id:a.id,order:a.order}));
       } else if (b.action === "activity") {
         before = data.activities.find((x) => x.id === entity) || null;
         data.activities = before

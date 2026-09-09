@@ -40,6 +40,7 @@ import {
 } from "@/lib/ledger";
 import { Pick, Field, Amount, Check, People } from "./trip-controls";
 import ExpenseEditor from "./expense-editor";
+import TripPlanner from "./trip-planner";
 type RecordT = {
   id: string;
   data: Event;
@@ -101,12 +102,13 @@ export default function TripApp({ shared = false }: { shared?: boolean }) {
       description: string;
       run: () => void;
     } | null>(null);
-  const rec = records.find((x) => x.id === id) || records[0],
+  const [plannerDirty,setPlannerDirty]=useState(false);
+ const rec = records.find((x) => x.id === id) || records[0],
     e = rec?.data;
   const can = (p: Permission) => !shared && !!rec?.permissions.includes(p);
   const editing = useRef(false),
     accessLoaded = useRef(false);
-  editing.current = !!(bill || activity || settings || payment);
+  editing.current = !!(bill || activity || settings || payment || plannerDirty);
   const token = useRef(""),
     pinRef = useRef("");
   pinRef.current = pin;
@@ -160,6 +162,7 @@ export default function TripApp({ shared = false }: { shared?: boolean }) {
     setMerchant("");
     setBill(null);
     setActivity(null);
+setPlannerDirty(false);
     setSettings(null);
     setAccessInfo({ grants: [], shares: [] });
     accessLoaded.current = false;
@@ -236,6 +239,7 @@ export default function TripApp({ shared = false }: { shared?: boolean }) {
         run: () => {
           setBill(null);
           setActivity(null);
+setPlannerDirty(false);
           setPayment(null);
           setSettings(null);
           setId(id);
@@ -566,13 +570,14 @@ export default function TripApp({ shared = false }: { shared?: boolean }) {
               <Tabs
                 value={tab}
                 onValueChange={(v) => {
-                  if (bill || activity || settings || payment) {
+                  if (bill || activity || settings || payment || plannerDirty) {
                     setConfirm({
                       title: "Leave unsaved input?",
                       description: "Your unsaved changes will be discarded.",
                       run: () => {
                         setBill(null);
                         setActivity(null);
+setPlannerDirty(false);
                         setPayment(null);
                         setSettings(null);
                         setTab(v);
@@ -991,265 +996,13 @@ export default function TripApp({ shared = false }: { shared?: boolean }) {
                     }}
                   />
                 )}
-                {tab === "Trip Plan" && (
-                  <>
-                    <div className="section-title">
-                      <h2>Trip Plan · Day by day</h2>
-                      <div className="checks">
-                        <button
-                          className="secondary"
-                          onClick={() =>
-                            whatsapp(
-                              e.name +
-                                "\n\n" +
-                                e.activities
-                                  .slice()
-                                  .sort((a, b) =>
-                                    (a.date + a.time).localeCompare(
-                                      b.date + b.time,
-                                    ),
-                                  )
-                                  .map(
-                                    (a) =>
-                                      `${a.date} ${a.time} · ${a.name}${a.location ? " · " + a.location : ""}`,
-                                  )
-                                  .join("\n"),
-                            )
-                          }
-                        >
-                          Share plan
-                        </button>
-                        {can("plan") && (
-                          <button
-                            className="primary"
-                            onClick={() => {
-                              setDraftRevision(rec.revision);
-                              setActivity({
-                                id: crypto.randomUUID(),
-                                date: e.start || today(),
-                                time: "",
-                                name: "",
-                                location: "",
-                                url: "",
-                                notes: "",
-                                budget: 0,
-                                category: "Activity",
-                                people: e.people
-                                  .filter((p) => p.active)
-                                  .map((p) => p.id),
-                              });
-                            }}
-                          >
-                            + Add activity
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                    {activity && (
-                      <section className="panel">
-                        <h2>
-                          {e.activities.some((a) => a.id === activity.id)
-                            ? "Edit activity"
-                            : "New activity"}
-                        </h2>
-                        <div className="fields">
-                          {(
-                            ["name", "date", "time", "location", "url"] as const
-                          ).map((k) => (
-                            <Field
-                              key={k}
-                              label={k === "url" ? "Booking / Maps link" : k}
-                            >
-                              <input
-                                type={
-                                  k === "date"
-                                    ? "date"
-                                    : k === "time"
-                                      ? "time"
-                                      : "text"
-                                }
-                                value={activity[k]}
-                                onChange={(v) =>
-                                  setActivity({
-                                    ...activity,
-                                    [k]: v.target.value,
-                                  })
-                                }
-                              />
-                            </Field>
-                          ))}
-                          <Field label="Category">
-                            <Pick
-                              label="Category"
-                              value={activity.category}
-                              options={categories}
-                              onChange={(category) =>
-                                setActivity({ ...activity, category })
-                              }
-                            />
-                          </Field>
-                          <Field label={`Estimated cost (${e.settlement})`}>
-                            <Amount
-                              value={activity.budget}
-                              currency={e.settlement}
-                              onChange={(v) =>
-                                setActivity({ ...activity, budget: v || 0 })
-                              }
-                            />
-                          </Field>
-                        </div>
-                        <People
-                          people={e.people}
-                          selected={activity.people}
-                          onChange={(people) =>
-                            setActivity({ ...activity, people })
-                          }
-                        />
-                        <Field label="Notes">
-                          <textarea
-                            value={activity.notes}
-                            onChange={(v) =>
-                              setActivity({
-                                ...activity,
-                                notes: v.target.value,
-                              })
-                            }
-                          />
-                        </Field>
-                        <div className="checks">
-                          <button
-                            className="primary"
-                            disabled={busy}
-                            onClick={async () => {
-                              if (
-                                await send("activity", {
-                                  entity: activity,
-                                  revision: draftRevision,
-                                })
-                              ) {
-                                setActivity(null);
-                                setNotice("Itinerary saved.");
-                              }
-                            }}
-                          >
-                            Save activity
-                          </button>
-                          <button
-                            className="secondary"
-                            onClick={() => setActivity(null)}
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </section>
-                    )}
-                    {e.activities
-                      .slice()
-                      .sort((a, b) =>
-                        (a.date + a.time).localeCompare(b.date + b.time),
-                      )
-                      .map((a) => {
-                        const bills = e.expenses.filter(
-                          (b) => !b.deleted && b.activity === a.id,
-                        );
-                        return (
-                          <section className="panel itinerary-card" key={a.id}>
-                            <div className="itinerary-time">
-                              <b>{a.date}</b>
-                              <span>{a.time || "Flexible time"}</span>
-                            </div>
-                            <div>
-                              <h2>{a.name}</h2>
-                              <p className="muted">{a.location}</p>
-                              <p>{a.notes}</p>
-                              <p className="muted">
-                                Planned {fmt(a.budget)} · Actual{" "}
-                                {fmt(
-                                  bills.reduce(
-                                    (s, b) =>
-                                      s + calculate(b, e.settlement).total,
-                                    0,
-                                  ),
-                                )}{" "}
-                                · {a.people.map(name).join(", ")}
-                              </p>
-                              <div className="checks">
-                                {a.location && (
-                                  <a
-                                    className="secondary"
-                                    href={
-                                      "https://www.google.com/maps/search/?api=1&query=" +
-                                      encodeURIComponent(a.location)
-                                    }
-                                    target="_blank"
-                                    rel="noreferrer"
-                                  >
-                                    Directions
-                                  </a>
-                                )}
-                                {a.url && (
-                                  <a
-                                    className="secondary"
-                                    href={a.url}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                  >
-                                    Booking / link
-                                  </a>
-                                )}
-                                {can("addExpense") && (
-                                  <button
-                                    className="secondary"
-                                    onClick={() => add("simple", a)}
-                                  >
-                                    Add expense
-                                  </button>
-                                )}
-                                {can("plan") && (
-                                  <>
-                                    <button
-                                      className="text-button"
-                                      onClick={() => {
-                                        setActivity(structuredClone(a));
-                                        setDraftRevision(rec.revision);
-                                      }}
-                                    >
-                                      Edit
-                                    </button>
-                                    <button
-                                      className="text-button danger-text"
-                                      onClick={() =>
-                                        ask(
-                                          "Remove activity?",
-                                          "Linked expenses will stay in the ledger.",
-                                          "deleteActivity",
-                                          a.id,
-                                        )
-                                      }
-                                    >
-                                      Remove
-                                    </button>
-                                  </>
-                                )}
-                              </div>
-                              {bills.length > 0 && (
-                                <details>
-                                  <summary>Linked expenses</summary>
-                                  {expenseRows(bills)}
-                                </details>
-                              )}
-                            </div>
-                          </section>
-                        );
-                      })}
-                    {!e.activities.length && !activity && (
-                      <section className="panel empty">
-                        <CalendarDays />
-                        <h3>Room for an adventure.</h3>
-                        <p>Add your first itinerary item.</p>
-                      </section>
-                    )}
-                  </>
+                {tab === "Trip Plan" && e.kind === "trip" && (
+                  <TripPlanner key={rec.id} event={e} busy={busy} canPlan={can("plan")} canExpense={can("addExpense")} draft={activity} setDraft={setActivity} onDirty={setPlannerDirty}
+                    onBegin={()=>setDraftRevision(rec.revision)}
+                    onSave={async entity=>!!(await send("activity",{entity,revision:draftRevision}))}
+                    onAction={(action,entity)=>send(action,{entity})}
+                    onDelete={id=>ask("Remove this plan?","Linked expenses remain in your ledger.","deleteActivity",id)}
+                    onExpense={a=>add("simple",a)} onShare={whatsapp}/>
                 )}
                 {["Expenses", "My spending"].includes(tab) && (
                   <>

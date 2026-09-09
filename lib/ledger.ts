@@ -47,6 +47,19 @@ export type Payment = {
   deleted: boolean;
 };
 export type Activity = {
+  type?: 'Activity'|'Food'|'Transport'|'Hotel'|'Flight'|'Free time'|'Note'|'Insurance';
+  status?: 'Idea'|'Planning'|'Booked'|'Cancelled';
+  endDate?: string;
+  endTime?: string;
+  from?: string;
+  to?: string;
+  reference?: string;
+  rooms?: number;
+  roomNotes?: string;
+  phone?: string;
+  cancelBy?: string;
+  organizer?: string;
+  order?: number;
   id: string;
   date: string;
   time: string;
@@ -68,6 +81,8 @@ export type Audit = {
   after: unknown;
 };
 export type Event = {
+  destination?: string;
+  checklist?: {id:string;name:string;done:boolean;person:string;due:string}[];
   schema: 2;
   name: string;
   kind: "trip" | "daily";
@@ -553,6 +568,13 @@ export function validateEvent(e: Event) {
     );
   }
   for (const a of e.activities) {
+    check(!a.type || ['Activity','Food','Transport','Hotel','Flight','Free time','Note','Insurance'].includes(a.type),'Invalid plan type');
+    check(!a.status || ['Idea','Planning','Booked','Cancelled'].includes(a.status),'Invalid booking status');
+    check(!a.endDate || (/^\d{4}-\d{2}-\d{2}$/.test(a.endDate) && a.endDate>=a.date),'End date must follow start date');
+    check(a.type!=='Hotel'||!a.endDate||a.endDate>a.date,'Check-out must be after check-in');
+    check(!a.organizer||ids.includes(a.organizer),'Unknown booking organizer');
+    check(a.order===undefined||Number.isFinite(a.order),'Invalid itinerary order');
+    check(a.rooms===undefined||(Number.isInteger(a.rooms)&&a.rooms>=0&&a.rooms<=100),'Check room count');
     check(
       !!a.name.trim() && /^\d{4}-\d{2}-\d{2}$/.test(a.date),
       "Check activity name and date",
@@ -567,6 +589,10 @@ export function validateEvent(e: Event) {
       "Unknown activity participant",
     );
   }
+  check((e.checklist||[]).length<=500,'Checklist limit reached');
+  for(const t of e.checklist||[])check(!!t.id&&typeof t.name==='string'&&!!t.name.trim()&&typeof t.done==='boolean'&&(!t.person||ids.includes(t.person))&&(!t.due||/^\d{4}-\d{2}-\d{2}$/.test(t.due)),'Check checklist task');
+  check(new Set((e.checklist||[]).map(t=>t.id)).size===(e.checklist||[]).length,'Duplicate checklist tasks');
+  check(new Set(e.activities.map(a=>a.id)).size===e.activities.length,'Duplicate itinerary items');
   check(
     new Set(e.expenses.map((x) => x.id)).size === e.expenses.length &&
       new Set(e.payments.map((x) => x.id)).size === e.payments.length,
@@ -609,7 +635,7 @@ export function allowed(
     );
   if (["payment", "undoPayment"].includes(action))
     return perms.includes("settle");
-  if (["activity", "deleteActivity"].includes(action))
+  if (["activity", "deleteActivity", "planChecklist", "planBasics", "planOrder"].includes(action))
     return perms.includes("plan");
   if (["person", "group"].includes(action)) return perms.includes("members");
   return false;
