@@ -637,6 +637,6 @@ export function allowed(
     return perms.includes("settle");
   if (["activity", "deleteActivity", "planChecklist", "planBasics", "planOrder"].includes(action))
     return perms.includes("plan");
-  if (["person", "group"].includes(action)) return perms.includes("members");
+  if (["person", "group", "deleteGroup"].includes(action)) return perms.includes("members");
   return false;
 }

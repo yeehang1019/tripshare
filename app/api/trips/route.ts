@@ -183,6 +183,8 @@ export async function POST(r: Request) {
       return response({ token });
     }
     const data = normalize(JSON.parse(row.data));
+    if (b.action === 'deleteEvent' && !a.owner)
+      return response({error:'Only the owner can delete this event'},403);
     if (row.revision !== b.revision)
       return response(
         {
@@ -191,6 +193,17 @@ export async function POST(r: Request) {
         },
         409,
       );
+    if (b.action === 'deleteEvent') {
+      if (b.confirmName !== data.name) throw Error('Event name confirmation does not match');
+      const results=await db.batch([
+        db.prepare('DELETE FROM shares WHERE trip=? AND EXISTS (SELECT 1 FROM trips WHERE id=? AND revision=?)').bind(row.id,row.id,b.revision),
+        db.prepare('DELETE FROM grants WHERE trip=? AND EXISTS (SELECT 1 FROM trips WHERE id=? AND revision=?)').bind(row.id,row.id,b.revision),
+        db.prepare('DELETE FROM members WHERE trip=? AND EXISTS (SELECT 1 FROM trips WHERE id=? AND revision=?)').bind(row.id,row.id,b.revision),
+        db.prepare('DELETE FROM trips WHERE id=? AND revision=?').bind(row.id,b.revision),
+      ]);
+      if(!results[3].meta.changes)return response({error:'This event changed. Refresh and review before deleting.'},409);
+      return response({ok:true});
+    }
     let before: unknown = null,
       after: unknown = null,
       entity = String(b.entity?.id || b.entityId || row.id);
@@ -293,6 +306,10 @@ export async function POST(r: Request) {
           ? data.people.map((x) => (x.id === entity ? b.entity : x))
           : [...data.people, b.entity];
         after = b.entity;
+      } else if (b.action === "deleteGroup") {
+        before=data.groups.find(g=>g.id===entity)||null;
+        if(!before)throw Error('Group not found');
+        data.groups=data.groups.filter(g=>g.id!==entity);
       } else if (b.action === "group") {
         if (
           !b.entity.name ||

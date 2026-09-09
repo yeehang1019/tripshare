@@ -445,7 +445,9 @@ setPlannerDirty(false);
           </span>
           <button
             className="icon-button"
-            aria-label="Refresh"
+            aria-label="Refresh saved data"
+            title="Reload saved expenses, plans and repayments. Unsaved input is kept."
+            disabled={busy}
             onClick={() => load()}
           >
             <RefreshCw size={18} />
@@ -1384,13 +1386,15 @@ setPlannerDirty(false);
                           </>
                         )}
                         {e.groups.map((g) => (
-                          <p className="muted" key={g.id}>
-                            {g.name}: {g.people.map(name).join(", ")}
-                          </p>
+                          <div className="split-row" key={g.id}>
+                            <span>{g.name}: {g.people.map(name).join(", ")}</span>
+                            {can('members')&&<button className="text-button danger-text" disabled={busy} onClick={()=>ask('Delete '+g.name+'?','This removes the saved group shortcut. Existing expenses and participants stay unchanged.','deleteGroup',g.id)}>Delete group</button>}
+                          </div>
                         ))}
                       </div>
                       <div className="panel">
                         <h2>Event & exports</h2>
+                        {rec.owner&&<button className="secondary danger-text" disabled={busy} onClick={()=>{const eventId=rec.id,revision=rec.revision,eventName=e.name;setConfirm({title:`Delete ${eventName}?`,description:'Permanently delete this Trip / Daily Group, including all expenses, repayment history, itinerary, bookings and checklist. Sharing links and admin access will also be removed. Export a backup below first if you want to keep a copy. This cannot be undone.',run:async()=>{if(await send('deleteEvent',{id:eventId,revision,confirmName:eventName})){setId('');setTab('Dashboard');setBill(null);setActivity(null);setPayment(null);setSettings(null);setPlannerDirty(false);setCreating(false);setNotice(eventName+' deleted.')}}})}}>Delete {e.kind==='trip'?'Trip':'Daily Group'}</button>}
                         {rec.owner && (
                           <button
                             className="secondary"

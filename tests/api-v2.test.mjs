@@ -6,6 +6,19 @@ import {readFileSync,readdirSync} from 'node:fs';
 import ts from 'typescript';
 import * as ledger from '../lib/ledger.ts';
 
+test('Only owner can delete event; stale deletion preserves shares; successful deletion removes access',async()=>{
+ const h=await harness(),e=ledger.normalize({name:'Delete Test',people:['YH','ET'],bills:[],payments:[]}),{id}=await h.post({action:'create',data:e});
+ await h.post({action:'grant',id,email:'admin@example.com',permissions:[...ledger.permissionKeys]});
+ const share=await h.post({action:'share',id});
+ assert.equal((await h.post({action:'deleteEvent',id,revision:0,confirmName:e.name},'admin@example.com')).status,403);
+ assert.equal((await h.post({action:'deleteEvent',id,revision:9,confirmName:e.name})).status,409);
+ assert.equal((await h.read(share.token)).status,200);
+ assert.equal((await h.post({action:'deleteEvent',id,revision:0,confirmName:'wrong'})).status,400);
+ assert.equal((await h.post({action:'deleteEvent',id,revision:0,confirmName:e.name})).status,200);
+ assert.equal((await h.get('owner@example.com')).trips.length,0);assert.equal((await h.get('admin@example.com')).trips.length,0);assert.equal((await h.read(share.token)).status,404);
+ for(const table of ['trips','grants','members','shares'])assert.equal(h.sqlite.prepare('SELECT count(*) AS n FROM '+table).get().n,0);h.sqlite.close();
+});
+
 test('Trip planning persists bookings, dates and tasks; viewers cannot edit and stale writes fail',async()=>{
  const h=await harness(),e=ledger.normalize({name:'Thailand',people:['YH','ET'],bills:[],payments:[]});const {id}=await h.post({action:'create',data:e});
  await h.post({action:'grant',id,email:'planner@example.com',permissions:['plan']});
