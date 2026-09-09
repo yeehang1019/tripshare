@@ -231,17 +231,21 @@ setPlannerDirty(false);
     setDraftRevision(rec.revision);
     setTab("Add expense");
   }
+  function clearUnsavedInput() {
+    setBill(null);
+    setActivity(null);
+    setPlannerDirty(false);
+    setPayment(null);
+    setSettings(null);
+    setCreating(false);
+  }
   function choose(id: string) {
     if (editing.current) {
       setConfirm({
         title: "Leave unsaved input?",
         description: "Changes that have not been saved will be discarded.",
         run: () => {
-          setBill(null);
-          setActivity(null);
-setPlannerDirty(false);
-          setPayment(null);
-          setSettings(null);
+          clearUnsavedInput();
           setId(id);
           setTab("Dashboard");
         },
@@ -577,11 +581,7 @@ setPlannerDirty(false);
                       title: "Leave unsaved input?",
                       description: "Your unsaved changes will be discarded.",
                       run: () => {
-                        setBill(null);
-                        setActivity(null);
-setPlannerDirty(false);
-                        setPayment(null);
-                        setSettings(null);
+                        clearUnsavedInput();
                         setTab(v);
                       },
                     });
