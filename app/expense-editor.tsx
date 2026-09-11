@@ -55,6 +55,19 @@ export default function ExpenseEditor({
   const name = (id: string) => e.people.find((p) => p.id === id)?.name || id;
   const setPeople = (i: number, people: string[]) =>
     item(i, { people, weights: people.map(() => 1), split: "equal" });
+  const discountItemIds = b.discountItems?.length
+    ? b.discountItems
+    : b.items.map((x) => x.id);
+  const setDiscountItem = (id: string, selected: boolean) => {
+    const next = selected
+      ? [...new Set([...discountItemIds, id])]
+      : discountItemIds.filter((x) => x !== id);
+    if (!next.length) return;
+    update({
+      discountItems:
+        next.length === b.items.length ? [] : next,
+    });
+  };
   return (
     <div className="entry-grid">
       <section className="panel">
@@ -247,7 +260,12 @@ export default function ExpenseEditor({
                 <button
                   className="text-button danger-text"
                   onClick={() =>
-                    update({ items: b.items.filter((_, j) => j !== i) })
+                    update({
+                      items: b.items.filter((_, j) => j !== i),
+                      discountItems: b.discountItems?.filter(
+                        (id) => id !== it.id,
+                      ),
+                    })
                   }
                 >
                   Remove item
@@ -401,14 +419,40 @@ export default function ExpenseEditor({
               />
             </Field>
           </div>
+          {b.discount > 0 && b.mode === "itemized" && b.items.length > 1 && (
+            <div className="discount-items">
+              <p><b>Apply bill discount to</b></p>
+              <div className="checks">
+                {b.items.map((it, i) => (
+                  <Check
+                    key={it.id}
+                    label={`Item ${i + 1}${it.name ? ` · ${it.name}` : ""}`}
+                    checked={discountItemIds.includes(it.id)}
+                    onChange={(selected) => setDiscountItem(it.id, selected)}
+                  />
+                ))}
+              </div>
+              <button
+                className="text-button"
+                onClick={() => update({ discountItems: [] })}
+              >
+                Apply to all items
+              </button>
+              <p className="muted">
+                The discount is shared between selected items according to
+                their prices.
+              </p>
+            </div>
+          )}
           <Check
             label="Tax includes service charge"
             checked={b.taxService}
             onChange={(taxService) => update({ taxService })}
           />
           <p className="muted">
-            Bill discount is applied before charges. Voucher is applied
-            afterwards. Receipt rounding is separate from cent allocation.
+            Bill discount is allocated by item price before charges. Voucher
+            is applied afterwards. Receipt rounding is separate from cent
+            allocation.
           </p>
           {b.voucher > 0 && (
             <>

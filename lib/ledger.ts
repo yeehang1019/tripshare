@@ -24,6 +24,7 @@ export type Expense = {
   service: number;
   taxService: boolean;
   discount: number;
+  discountItems?: string[];
   voucher: number;
   voucherPeople: string[];
   voucherOwner: string;
@@ -201,6 +202,7 @@ export function normalize(raw: any): Event {
       service: b.service,
       taxService: b.taxService,
       discount: b.discount,
+      discountItems: [],
       voucher: b.voucher,
       voucherPeople: [],
       voucherOwner: "",
@@ -249,6 +251,7 @@ export function blankExpense(e: Event, person: string): Expense {
     service: 0,
     taxService: false,
     discount: 0,
+    discountItems: [],
     voucher: 0,
     voucherPeople: [],
     voucherOwner: "",
@@ -303,11 +306,23 @@ export function calculate(b: Expense, settlement: string) {
     );
     return i.amount - i.discount;
   });
+  const selectedDiscountItems = b.discountItems?.length
+      ? new Set(b.discountItems)
+      : null,
+    itemIds = new Set(b.items.map((i) => i.id));
   check(
-    b.discount <= base.reduce((a, v) => a + v, 0),
-    "Bill discount exceeds subtotal",
+    !selectedDiscountItems ||
+      [...selectedDiscountItems].every((id) => itemIds.has(id)),
+    "Discount contains an item that no longer exists",
   );
-  const discount = allocate(b.discount, base),
+  const discountWeights = base.map((v, i) =>
+    !selectedDiscountItems || selectedDiscountItems.has(b.items[i].id) ? v : 0,
+  );
+  check(
+    b.discount <= discountWeights.reduce((a, v) => a + v, 0),
+    "Bill discount exceeds selected items",
+  );
+  const discount = allocate(b.discount, discountWeights),
     net = base.map((v, i) => v - discount[i]);
   const service = net.map((v, i) =>
       b.items[i].service ? Math.round((v * b.service) / 100) : 0,
@@ -342,7 +357,13 @@ export function calculate(b: Expense, settlement: string) {
     }
     const values = allocate(gross[n], weights);
     i.people.forEach((p, k) => (shares[p] = (shares[p] || 0) + values[k]));
-    return { name: i.name, total: gross[n], people: i.people, values };
+    return {
+      name: i.name,
+      total: gross[n],
+      discount: i.discount + discount[n],
+      people: i.people,
+      values,
+    };
   });
   const ids = Object.keys(shares);
   const round = allocate(
