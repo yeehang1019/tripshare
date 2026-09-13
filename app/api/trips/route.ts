@@ -5,6 +5,8 @@ import {
   permissionKeys,
   allowed,
   ledger,
+  attachPaymentAllocations,
+  paymentAllocations,
   Event,
   Expense,
   Permission,
@@ -183,6 +185,7 @@ export async function POST(r: Request) {
       return response({ token });
     }
     const data = normalize(JSON.parse(row.data));
+    attachPaymentAllocations(data);
     if (b.action === 'deleteEvent' && !a.owner)
       return response({error:'Only the owner can delete this event'},403);
     if (row.revision !== b.revision)
@@ -270,6 +273,7 @@ export async function POST(r: Request) {
             ?.amount || 0;
         if (p.amount > outstanding)
           throw Error("Repayment exceeds the amount owed to this person");
+        p.allocations = paymentAllocations(data, p.from, p.to, p.amount);
         data.payments.push(p);
         after = p;
       } else if (b.action === "undoPayment") {

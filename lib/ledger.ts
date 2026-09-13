@@ -42,6 +42,7 @@ export type Payment = {
   from: string;
   to: string;
   amount: number;
+  allocations?: { expense: string; amount: number }[];
   date: string;
   note: string;
   createdBy: string;
@@ -162,7 +163,11 @@ export function allocate(total: number, weights: number[]) {
   return out;
 }
 export function normalize(raw: any): Event {
-  if (raw.schema === 2) return raw;
+  if (raw.schema === 2) {
+    raw.payments ||= [];
+    attachPaymentAllocations(raw);
+    return raw;
+  }
   const people: Person[] = (raw.people || []).map((name: string) => ({
     id: name,
     name,
@@ -465,35 +470,35 @@ export function calculate(b: Expense, settlement: string) {
     contribution,
   };
 }
-export function ledger(e: Event) {
-  const people = Object.fromEntries(
-    e.people.map((p) => [
-      p.id,
-      { consumed: 0, paid: 0, responsible: 0, contribution: 0, balance: 0 },
-    ]),
-  );
-  const pair: Record<string, number> = Object.create(null);
-  const add = (from: string, to: string, amount: number) => {
-    if (!amount || from === to) return;
-    const forward = from + "\0" + to,
-      reverse = to + "\0" + from;
-    if (pair[reverse]) {
-      const cancel = Math.min(amount, pair[reverse]);
-      pair[reverse] -= cancel;
-      amount -= cancel;
+type DebtClaim = {
+  expense: string;
+  from: string;
+  to: string;
+  amount: number;
+};
+function addClaim(
+  claims: DebtClaim[],
+  expense: string,
+  from: string,
+  to: string,
+  amount: number,
+) {
+  if (!amount || from === to) return;
+  for (const reverse of claims) {
+    if (!amount) break;
+    if (reverse.amount && reverse.from === to && reverse.to === from) {
+      const cancelled = Math.min(amount, reverse.amount);
+      reverse.amount -= cancelled;
+      amount -= cancelled;
     }
-    if (amount) pair[forward] = (pair[forward] || 0) + amount;
-  };
-  let total = 0;
+  }
+  if (amount) claims.push({ expense, from, to, amount });
+}
+function claimsBeforePayments(e: Event) {
+  const claims: DebtClaim[] = [];
   for (const b of e.expenses.filter((x) => !x.deleted)) {
-    const c = calculate(b, e.settlement);
-    total += c.total;
-    for (const [p, v] of Object.entries(c.consumed)) people[p].consumed += v;
-    for (const [p, v] of Object.entries(c.paid)) people[p].paid += v;
-    for (const [p, v] of Object.entries(c.responsible))
-      people[p].responsible += v;
-    if (c.contribution) people[b.voucherOwner].contribution += c.contribution;
-    const owing = { ...c.responsible },
+    const c = calculate(b, e.settlement),
+      owing = { ...c.responsible },
       funding = { ...c.funding };
     for (const p of Object.keys(owing)) {
       const self = Math.min(owing[p] || 0, funding[p] || 0);
@@ -505,7 +510,7 @@ export function ledger(e: Event) {
       for (const to of Object.keys(funding)) {
         const amount = Math.min(left, funding[to]);
         if (amount) {
-          add(from, to, amount);
+          addClaim(claims, b.id, from, to, amount);
           left -= amount;
           funding[to] -= amount;
         }
@@ -513,10 +518,105 @@ export function ledger(e: Event) {
       }
     }
   }
-  for (const p of e.payments.filter((x) => !x.deleted))
-    add(p.to, p.from, p.amount);
+  return claims;
+}
+function allocateAgainstClaims(
+  claims: DebtClaim[],
+  from: string,
+  to: string,
+  amount: number,
+) {
+  const allocations: { expense: string; amount: number }[] = [];
+  let left = amount;
+  for (const claim of claims) {
+    if (!left) break;
+    if (claim.amount && claim.from === from && claim.to === to) {
+      const paid = Math.min(left, claim.amount);
+      claim.amount -= paid;
+      left -= paid;
+      const existing = allocations.find((x) => x.expense === claim.expense);
+      if (existing) existing.amount += paid;
+      else allocations.push({ expense: claim.expense, amount: paid });
+    }
+  }
+  return allocations;
+}
+function applyFixedPayment(claims: DebtClaim[], payment: Payment) {
+  for (const allocation of payment.allocations || []) {
+    let left = allocation.amount;
+    for (const claim of claims) {
+      if (!left) break;
+      if (
+        claim.amount &&
+        claim.expense === allocation.expense &&
+        claim.from === payment.from &&
+        claim.to === payment.to
+      ) {
+        const paid = Math.min(left, claim.amount);
+        claim.amount -= paid;
+        left -= paid;
+      }
+    }
+  }
+}
+function claimsAfterPayments(e: Event) {
+  const claims = claimsBeforePayments(e);
+  for (const payment of e.payments.filter((x) => !x.deleted)) {
+    if (payment.allocations?.length) applyFixedPayment(claims, payment);
+    else allocateAgainstClaims(
+      claims,
+      payment.from,
+      payment.to,
+      payment.amount,
+    );
+  }
+  return claims;
+}
+export function paymentAllocations(
+  e: Event,
+  from: string,
+  to: string,
+  amount: number,
+) {
+  return allocateAgainstClaims(claimsAfterPayments(e), from, to, amount);
+}
+export function attachPaymentAllocations(e: Event) {
+  const claims = claimsBeforePayments(e);
+  for (const payment of e.payments.filter((x) => !x.deleted)) {
+    if (payment.allocations?.length) applyFixedPayment(claims, payment);
+    else
+      payment.allocations = allocateAgainstClaims(
+        claims,
+        payment.from,
+        payment.to,
+        payment.amount,
+      );
+  }
+  return e;
+}
+export function ledger(e: Event) {
+  const people = Object.fromEntries(
+    e.people.map((p) => [
+      p.id,
+      { consumed: 0, paid: 0, responsible: 0, contribution: 0, balance: 0 },
+    ]),
+  );
+  let total = 0;
+  for (const b of e.expenses.filter((x) => !x.deleted)) {
+    const c = calculate(b, e.settlement);
+    total += c.total;
+    for (const [p, v] of Object.entries(c.consumed)) people[p].consumed += v;
+    for (const [p, v] of Object.entries(c.paid)) people[p].paid += v;
+    for (const [p, v] of Object.entries(c.responsible))
+      people[p].responsible += v;
+    if (c.contribution) people[b.voucherOwner].contribution += c.contribution;
+  }
+  const pair: Record<string, number> = Object.create(null);
+  for (const claim of claimsAfterPayments(e).filter((x) => x.amount > 0)) {
+    const key = claim.from + "\0" + claim.to;
+    pair[key] = (pair[key] || 0) + claim.amount;
+  }
   const transfers = Object.entries(pair)
-    .filter(([, amount]) => amount > 0)
     .map(([key, amount]) => {
       const [from, to] = key.split("\0");
       return { from, to, amount };

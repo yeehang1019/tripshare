@@ -349,20 +349,32 @@ setPlannerDirty(false);
   function expenseRows(list: Expense[]) {
     return list.map((b) => {
       const c = calculate(b, e!.settlement);
+      const linkedPayment = e!.payments
+        .filter((p) => !p.deleted)
+        .flatMap((p) => p.allocations || [])
+        .filter((a) => a.expense === b.id)
+        .reduce((sum, a) => sum + a.amount, 0);
       return (
-        <details className="bill-detail" key={b.id}>
+        <details className="bill-detail expense-card" key={b.id}>
           <summary>
-            <span>
-              {b.merchant}
-              <small>
-                {b.date} · {b.category} ·{" "}
-                {b.treat
-                  ? `Treat by ${name(b.treat)}`
-                  : `Paid by ${b.payers.map((p) => name(p.person)).join(", ")}`}
-              </small>
+            <span className="expense-summary-main">
+              <span className="expense-icon"><Receipt size={18} /></span>
+              <span>
+                <b>{b.merchant}</b>
+                <small>
+                  {b.date} · {b.category} ·{" "}
+                  {b.treat
+                    ? `Treat by ${name(b.treat)}`
+                    : `Paid by ${b.payers.map((p) => name(p.person)).join(", ")}`}
+                </small>
+              </span>
             </span>
-            <b>{money(c.cashTotal, b.currency)}</b>
+            <span className="expense-amount">
+              <b>{money(c.cashTotal, b.currency)}</b>
+              {linkedPayment > 0 && <small className="settled-label">Payment recorded</small>}
+            </span>
           </summary>
+          <div className="expense-detail-body">
           <p>
             Settlement value <b>{fmt(c.total)}</b>
           </p>
@@ -404,8 +416,14 @@ setPlannerDirty(false);
           )}
           <div className="checks">
             {!shared && allowed(rec.permissions, "expense", user, b) && (
-              <button className="secondary" onClick={() => edit(b)}>
-                Edit
+              <button className="secondary" onClick={() => linkedPayment
+                ? setConfirm({
+                    title: "Reopen this settled expense?",
+                    description: "You can edit it safely. Its recorded repayment stays linked to this expense and will never reduce newer expenses.",
+                    run: () => edit(b),
+                  })
+                : edit(b)}>
+                {linkedPayment ? "Reopen to edit" : "Edit"}
               </button>
             )}
             {!shared && allowed(rec.permissions, "deleteExpense", user, b) && (
@@ -414,7 +432,9 @@ setPlannerDirty(false);
                 onClick={() =>
                   ask(
                     "Move expense to Trash?",
-                    `${b.merchant} will be excluded from balances. Existing repayments remain unchanged.`,
+                    linkedPayment
+                      ? `${b.merchant} has a recorded repayment. The linked amount will be archived with this expense and will not reduce newer expenses.`
+                      : `${b.merchant} will be excluded from balances.`,
                     "deleteExpense",
                     b.id,
                   )
@@ -423,6 +443,7 @@ setPlannerDirty(false);
                 Delete
               </button>
             )}
+          </div>
           </div>
         </details>
       );
@@ -1112,21 +1133,23 @@ setPlannerDirty(false);
                   </>
                 )}
                 {tab === "Settlement" && (
-                  <section className="two-col">
-                    <div className="panel">
+                  <section className="settlement-page">
+                    <div className="settlement-hero">
+                      <div>
+                        <p className="eyebrow">CURRENT SETTLEMENT</p>
+                        <h2>{sum!.transfers.length ? `${sum!.transfers.length} payment${sum!.transfers.length > 1 ? "s" : ""} remaining` : "Everyone is settled"}</h2>
+                        <p>{sum!.transfers.length ? `${fmt(sum!.transfers.reduce((total, p) => total + p.amount, 0))} still needs to be paid.` : "New expenses will start from RM0.00 automatically."}</p>
+                      </div>
+                      <button className="secondary" onClick={() => whatsapp(shareText())}>WhatsApp summary</button>
+                    </div>
+                    <div className="settlement-layout">
+                    <div className="panel settlement-current">
                       <div className="section-title">
-                        <h2>Who pays who</h2>
-                        <button
-                          className="secondary"
-                          onClick={() => whatsapp(shareText())}
-                        >
-                          WhatsApp
-                        </button>
+                        <h2>Payments to make</h2>
                       </div>
                       <p className="muted">
-                        Debts stay with the actual payer. Only amounts owed
-                        between the same two people are offset. Record a repayment
-                        after money has been paid; changing dates never clears debt.
+                        New expenses are added to the balance. Recorded repayments
+                        clear the oldest matching expenses first.
                       </p>
                       {sum!.transfers.map((p, i) => (
                         <div className="transfer" key={i}>
@@ -1238,8 +1261,20 @@ setPlannerDirty(false);
                         </div>
                       )}
                     </div>
-                    <div className="panel">
-                      <h2>Payment history</h2>
+                    <div className="panel settlement-side">
+                      <h2>Member balances</h2>
+                      {Object.entries(sum!.people).map(([p, v]) => (
+                        <div className="balance-row" key={p}>
+                          <span className="avatar">{name(p).slice(0,2)}</span>
+                          <span>{name(p)}</span>
+                          <b className={v.balance < 0 ? "owes" : v.balance > 0 ? "receives" : "zero"}>
+                            {v.balance < 0 ? "Pays " : v.balance > 0 ? "Receives " : "Settled "}
+                            {fmt(Math.abs(v.balance))}
+                          </b>
+                        </div>
+                      ))}
+                      <details className="payment-history">
+                        <summary>Past payments · {e.payments.length}</summary>
                       {e.payments
                         .slice()
                         .reverse()
@@ -1251,6 +1286,8 @@ setPlannerDirty(false);
                                 {p.date} ·{" "}
                                 {p.deleted
                                   ? "Reversed"
+                                  : p.allocations?.length && p.allocations.every((a) => e.expenses.find((b) => b.id === a.expense)?.deleted)
+                                    ? "Linked expense removed"
                                   : p.note || "Recorded payment"}
                                 {p.createdBy ? " · " + p.createdBy : ""}
                               </small>
@@ -1276,21 +1313,8 @@ setPlannerDirty(false);
                       {!e.payments.length && (
                         <p className="muted">No repayments recorded.</p>
                       )}
-                      <hr />
-                      <h3>Balances</h3>
-                      {Object.entries(sum!.people).map(([p, v]) => (
-                        <div className="split-row" key={p}>
-                          <span>{name(p)}</span>
-                          <b>
-                            {v.balance < 0
-                              ? "Pays "
-                              : v.balance > 0
-                                ? "Receives "
-                                : ""}
-                            {fmt(Math.abs(v.balance))}
-                          </b>
-                        </div>
-                      ))}
+                      </details>
+                    </div>
                     </div>
                   </section>
                 )}
