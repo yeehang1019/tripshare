@@ -3,12 +3,13 @@ import { useEffect, useState, useRef } from "react";
 import {
   Wallet,
   Plus,
-  RefreshCw,
   ArrowRight,
   CalendarDays,
   Receipt,
   MapPin,
   Check as CheckIcon,
+  Users,
+  SlidersHorizontal,
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -354,24 +355,25 @@ setPlannerDirty(false);
         .flatMap((p) => p.allocations || [])
         .filter((a) => a.expense === b.id)
         .reduce((sum, a) => sum + a.amount, 0);
+      const consumers = Array.from(new Set(b.items.flatMap((item) => item.people)));
       return (
         <details className="bill-detail expense-card" key={b.id}>
           <summary>
             <span className="expense-summary-main">
-              <span className="expense-icon"><Receipt size={18} /></span>
-              <span>
+              <span className="expense-icon" data-category={b.category}><Receipt size={18} /></span>
+              <span className="expense-card-copy">
                 <b>{b.merchant}</b>
-                <small>
-                  {b.date} · {b.category} ·{" "}
-                  {b.treat
-                    ? `Treat by ${name(b.treat)}`
-                    : `Paid by ${b.payers.map((p) => name(p.person)).join(", ")}`}
-                </small>
+                <span className="expense-meta">
+                  <span className="category-chip">{b.category}</span>
+                  <span>{b.treat ? `Treat by ${name(b.treat)}` : `Paid by ${b.payers.map((p) => name(p.person)).join(", ")}`}</span>
+                  <span><Users size={14} /> {consumers.length} {consumers.length === 1 ? "person" : "people"}</span>
+                </span>
               </span>
             </span>
             <span className="expense-amount">
               <b>{money(c.cashTotal, b.currency)}</b>
-              {linkedPayment > 0 && <small className="settled-label">Payment recorded</small>}
+              {linkedPayment > 0 && <small className="settled-label"><CheckIcon size={13} /> Repayment linked</small>}
+              {!linkedPayment && <small>View details</small>}
             </span>
           </summary>
           <div className="expense-detail-body">
@@ -468,15 +470,6 @@ setPlannerDirty(false);
                   ? "Admin"
                   : "Your events"}
           </span>
-          <button
-            className="icon-button"
-            aria-label="Refresh saved data"
-            title="Reload saved expenses, plans and repayments. Unsaved input is kept."
-            disabled={busy}
-            onClick={() => load()}
-          >
-            <RefreshCw size={18} />
-          </button>
           {e && (
             <Pick
               label="Viewing member"
@@ -1029,7 +1022,18 @@ setPlannerDirty(false);
                 )}
                 {["Expenses", "My spending"].includes(tab) && (
                   <>
-                    <section className="filters panel">
+                    <section className="expense-overview">
+                      <div>
+                        <p className="eyebrow">{tab === "Expenses" ? "SHARED SPENDING" : "YOUR SPENDING"}</p>
+                        <h2>{tab === "Expenses" ? "Expenses" : name(me)}</h2>
+                        <p>{filtered.length} records · {fmt(filtered.reduce((total, item) => total + calculate(item, e.settlement).total, 0))}</p>
+                      </div>
+                      {can("addExpense") && (
+                        <button className="primary" onClick={() => add("simple")}><Plus size={18} /> Add expense</button>
+                      )}
+                    </section>
+                    <section className="filters expense-filters">
+                      <span className="filter-label"><SlidersHorizontal size={17} /> Filter</span>
                       <Field label="From">
                         <input
                           type="date"
@@ -1105,9 +1109,7 @@ setPlannerDirty(false);
                     )}
                     <section className="panel">
                       <div className="section-title">
-                        <h2>
-                          {tab} · {filtered.length}
-                        </h2>
+                        <h2>Activity</h2>
                         {can("addExpense") && (
                           <button
                             className="secondary"
@@ -1117,15 +1119,24 @@ setPlannerDirty(false);
                           </button>
                         )}
                       </div>
-                      {expenseRows(
-                        tab === "My spending"
-                          ? filtered.filter(
-                              (b) =>
-                                (calculate(b, e.settlement).consumed[me] || 0) >
-                                0,
-                            )
-                          : filtered,
-                      )}
+                      {(() => {
+                        const visible = (tab === "My spending"
+                          ? filtered.filter((b) => (calculate(b, e.settlement).consumed[me] || 0) > 0)
+                          : filtered).slice().sort((a, b) => b.date.localeCompare(a.date));
+                        const groups = visible.reduce<Record<string, Expense[]>>((all, expense) => {
+                          (all[expense.date] ||= []).push(expense);
+                          return all;
+                        }, {});
+                        return Object.entries(groups).map(([date, expenses]) => (
+                          <div className="expense-day" key={date}>
+                            <div className="expense-day-heading">
+                              <span>{new Intl.DateTimeFormat("en-MY", { weekday: "short", day: "numeric", month: "short", year: "numeric" }).format(new Date(`${date}T00:00:00`))}</span>
+                              <b>{fmt(expenses.reduce((total, item) => total + calculate(item, e.settlement).total, 0))}</b>
+                            </div>
+                            {expenseRows(expenses)}
+                          </div>
+                        ));
+                      })()}
                       {!filtered.length && (
                         <p className="muted">Nothing in this selection.</p>
                       )}
