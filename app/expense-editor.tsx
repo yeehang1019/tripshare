@@ -70,7 +70,7 @@ export default function ExpenseEditor({
   };
   return (
     <div className="entry-grid">
-      <section className="panel">
+      <section className={`panel expense-editor ${b.mode}`}>
         <div className="section-title">
           <h2>{edit ? "Edit expense" : "Add expense"}</h2>
           <button className="text-button" onClick={onCancel}>
@@ -98,6 +98,10 @@ export default function ExpenseEditor({
             <TabsTrigger value="itemized">Itemized bill</TabsTrigger>
           </TabsList>
         </Tabs>
+        <div className="entry-step-heading">
+          <span>1</span>
+          <div><b>Expense details</b><small>What was paid, and when?</small></div>
+        </div>
         <div className="fields">
           <Field label="Merchant / description">
             <input
@@ -175,6 +179,10 @@ export default function ExpenseEditor({
             </Field>
           </div>
         )}
+        <div className="entry-step-heading">
+          <span>2</span>
+          <div><b>Amount & people</b><small>Who paid, and who shared it?</small></div>
+        </div>
         <div className="fields">
           <Field label="Paid by">
             <Pick
@@ -190,16 +198,14 @@ export default function ExpenseEditor({
               }
             />
           </Field>
-          <Field label="Payment type">
-            <Pick
-              label="Payment type"
-              value={b.treat ? "Treat" : "Normal AA"}
-              options={["Normal AA", "Treat"]}
-              onChange={(v) =>
-                update({ treat: v === "Treat" ? b.payers[0].person : "" })
-              }
+          <div className="treat-toggle">
+            <Check
+              label="This expense is a treat"
+              checked={!!b.treat}
+              onChange={(checked) => update({ treat: checked ? b.payers[0].person : "" })}
             />
-          </Field>
+            <small>Leave off for normal AA.</small>
+          </div>
           {b.treat && (
             <Field label="Treat by">
               <Pick
@@ -272,7 +278,7 @@ export default function ExpenseEditor({
                 </button>
               )}
             </div>
-            <div className="checks item-charge-checks">
+            {b.mode === "itemized" && <div className="checks item-charge-checks">
               <Check
                 label="Tax applies to this item"
                 checked={it.tax}
@@ -283,9 +289,9 @@ export default function ExpenseEditor({
                 checked={it.service}
                 onChange={(service) => item(i, { service })}
               />
-            </div>
+            </div>}
             <details>
-              <summary>Custom split & item discount</summary>
+              <summary>Adjust split or add item discount</summary>
               <div className="fields">
                 <Field label="Split">
                   <Pick
@@ -373,8 +379,10 @@ export default function ExpenseEditor({
             + Add item
           </button>
         )}
+        <details className="advanced-options">
+          <summary>More options <small>Tax, discount, custom split, multiple payers</small></summary>
         <details>
-          <summary>Tax, service, discount & voucher</summary>
+          <summary>Charges, discount & voucher</summary>
           <div className="fields">
             <Field label="Tax %">
               <input
@@ -496,7 +504,7 @@ export default function ExpenseEditor({
           )}
         </details>
         <details>
-          <summary>Multiple payers</summary>
+          <summary>Paid by more than one person</summary>
           <p className="muted">
             Amounts below are in {b.currency}. One payer automatically pays the
             receipt total.
@@ -571,18 +579,9 @@ export default function ExpenseEditor({
             </button>
           </div>
         </details>
-        <div className="fields">
-          <Field
-            label={`Receipt total (${b.currency}) · ${b.mode === "itemized" ? "required" : "optional"}`}
-          >
-            <Amount
-              value={b.receipt}
-              currency={b.currency}
-              onChange={(receipt) => update({ receipt })}
-            />
-          </Field>
-          {e.kind === "trip" && (
-            <Field label="Link to itinerary">
+        {e.kind === "trip" && (
+          <div className="fields advanced-link">
+            <Field label="Link to itinerary · optional">
               <Pick
                 label="Activity"
                 value={b.activity}
@@ -593,8 +592,18 @@ export default function ExpenseEditor({
                 onChange={(activity) => update({ activity })}
               />
             </Field>
-          )}
-        </div>
+          </div>
+        )}
+        </details>
+        {b.mode === "itemized" && <div className="receipt-check">
+          <div className="entry-step-heading compact-step">
+            <span>3</span>
+            <div><b>Check receipt total</b><small>We will warn you if the items do not match.</small></div>
+          </div>
+          <Field label={`Receipt total (${b.currency})` }>
+            <Amount value={b.receipt} currency={b.currency} onChange={(receipt) => update({ receipt })} />
+          </Field>
+        </div>}
         {edit && (
           <Check
             label="I reviewed the new split; existing repayments will stay unchanged."
@@ -618,11 +627,10 @@ export default function ExpenseEditor({
         </button>
       </section>
       <aside className="panel preview">
-        <p className="eyebrow">LIVE SPLIT</p>
+        <p className="eyebrow">3 · REVIEW</p>
         <h2>{money(c?.cashTotal || 0, b.currency)}</h2>
         <p className="muted">
-          Receipt total ·{" "}
-          {b.treat ? `Treated by ${name(b.treat)}` : "Normal AA"}
+          {b.treat ? `Treated by ${name(b.treat)}` : `Split between ${b.items[0]?.people.length || 0} people`}
         </p>
         {error && (
           <p className="message error" role="alert">
@@ -631,7 +639,8 @@ export default function ExpenseEditor({
         )}
         {c && (
           <>
-            <div className="split-row">
+            <h3 className="preview-title">Each person</h3>
+            <div className="split-row settlement-value">
               <span>Settlement value</span>
               <b>{money(c.total, e.settlement)}</b>
             </div>
@@ -642,20 +651,18 @@ export default function ExpenseEditor({
               </div>
             ))}
             <hr />
-            <div className="split-row">
+            {c.service > 0 && <div className="split-row">
               <span>Service</span>
               <b>{money(c.service, b.currency)}</b>
-            </div>
-            <div className="split-row">
+            </div>}
+            {c.tax > 0 && <div className="split-row">
               <span>Tax</span>
               <b>{money(c.tax, b.currency)}</b>
-            </div>
+            </div>}
             {b.receipt !== null && !error && (
               <p className="success-text">✓ Receipt matched</p>
             )}
-            <p className="muted">
-              All shares add up exactly. No AI or OCR is used.
-            </p>
+            <p className="muted">Shares add up exactly. Cent differences are handled automatically.</p>
           </>
         )}
       </aside>
