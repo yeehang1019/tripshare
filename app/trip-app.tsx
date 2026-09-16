@@ -38,6 +38,7 @@ import {
   money,
   unit,
   allowed,
+  settlementDetails,
 } from "@/lib/ledger";
 import { Pick, Field, Amount, Check, People } from "./trip-controls";
 import ExpenseEditor from "./expense-editor";
@@ -332,6 +333,29 @@ setPlannerDirty(false);
         {!sorted.length && <p className="muted">No expenses yet.</p>}
       </div>
     );
+  }
+  function donut(personalOnly = false) {
+    const colors = ["#185c48", "#d9782d", "#447b91", "#8b668f", "#d2a43d"];
+    const data: Record<string, number> = {};
+    filtered.forEach((bill) => {
+      const result = calculate(bill, e!.settlement);
+      const value = personalOnly ? result.consumed[me] || 0 : result.total;
+      data[bill.category] = (data[bill.category] || 0) + value;
+    });
+    const entries = Object.entries(data).sort((a, b) => b[1] - a[1]);
+    const total = entries.reduce((sum, [, value]) => sum + value, 0);
+    let cursor = 0;
+    const gradient = entries.map(([, value], index) => {
+      const start = cursor;
+      cursor += total ? value / total * 100 : 0;
+      return `${colors[index % colors.length]} ${start}% ${cursor}%`;
+    }).join(", ");
+    return <div className="donut-chart-wrap">
+      <div className="donut-chart" style={{ background: total ? `conic-gradient(${gradient})` : "#eee7dc" }}>
+        <div><b>{fmt(total)}</b><small>Total</small></div>
+      </div>
+      <div className="donut-legend">{entries.slice(0,5).map(([label,value],index)=><div key={label}><i style={{background:colors[index%colors.length]}}/><span>{label}</span><b>{fmt(value)}</b></div>)}</div>
+    </div>;
   }
   const ask = (
     title: string,
@@ -939,7 +963,22 @@ setPlannerDirty(false);
                       </div>
                       <div className="panel">
                         <h2>Where your money goes</h2>
-                        {bars("category", true)}
+                        {donut(true)}
+                      </div>
+                    </section>
+                    <section className="dashboard-charts">
+                      <div className="panel">
+                        <div className="section-title"><h2>Daily spending</h2><span className="pill">Group</span></div>
+                        {bars("date", false)}
+                      </div>
+                      <div className="panel">
+                        <div className="section-title"><h2>Who paid upfront</h2><span className="pill">Cash paid</span></div>
+                        <div className="bars">
+                          {Object.entries(sum!.people).sort((a,b)=>b[1].paid-a[1].paid).map(([person,value],index) => {
+                            const maximum = Math.max(1,...Object.values(sum!.people).map(x=>x.paid));
+                            return <div className="bar-row static-bar" key={person}><span>{name(person)}</span><b>{fmt(value.paid)}</b><div><i style={{width:`${Math.max(1,value.paid/maximum*100)}%`,background:["#185c48","#d9782d","#447b91","#8b668f"][index%4]}}/></div></div>;
+                          })}
+                        </div>
                       </div>
                     </section>
                     {rec.owner && !shared && (
@@ -1077,33 +1116,16 @@ setPlannerDirty(false);
                     </section>
                     {tab === "My spending" && (
                       <>
-                        <section className="stat featured">
-                          <span>{name(me)} · Selected period consumption</span>
-                          <strong>
-                            {fmt(
-                              filtered.reduce(
-                                (s, b) =>
-                                  s +
-                                  (calculate(b, e.settlement).consumed[me] ||
-                                    0),
-                                0,
-                              ),
-                            )}
-                          </strong>
-                          <small>
-                            Changing the date filter never changes your
-                            outstanding balance.
-                          </small>
+                        <section className="stats personal-stats">
+                          <article className="stat featured"><span>Total consumed</span><strong>{fmt(filtered.reduce((s,b)=>s+(calculate(b,e.settlement).consumed[me]||0),0))}</strong><small>Your share in the selected period</small></article>
+                          <article className="stat"><span>Actually paid</span><strong>{fmt(filtered.reduce((s,b)=>s+(calculate(b,e.settlement).paid[me]||0),0))}</strong><small>Cash or card paid upfront</small></article>
+                          <article className="stat"><span>Need to pay</span><strong>{fmt(sum!.transfers.filter(t=>t.from===me).reduce((s,t)=>s+t.amount,0))}</strong><small>Current event balance</small></article>
+                          <article className="stat"><span>Need to receive</span><strong>{fmt(sum!.transfers.filter(t=>t.to===me).reduce((s,t)=>s+t.amount,0))}</strong><small>Current event balance</small></article>
                         </section>
-                        <section className="three-col">
-                          {(["category", "merchant", "date"] as const).map(
-                            (k) => (
-                              <div className="panel" key={k}>
-                                <h2>By {k}</h2>
-                                {bars(k, true)}
-                              </div>
-                            ),
-                          )}
+                        <section className="personal-insights">
+                          <div className="panel"><h2>My spending mix</h2>{donut(true)}</div>
+                          <div className="panel"><h2>My daily spending</h2>{bars("date", true)}</div>
+                          <div className="panel"><h2>My top merchants</h2>{bars("merchant", true)}</div>
                         </section>
                       </>
                     )}
@@ -1201,74 +1223,34 @@ setPlannerDirty(false);
                               Remind
                             </button>
                           </div>
+                          <details className="settlement-breakdown">
+                            <summary>View expense details</summary>
+                            {settlementDetails(e,p.from,p.to).map((detail) => {
+                              const expense = e.expenses.find((bill) => bill.id === detail.expense);
+                              return <div className="settlement-expense" key={detail.expense}>
+                                <span><b>{expense?.merchant || "Expense"}</b><small>{expense?.date} · {expense?.category}</small></span>
+                                <b>{fmt(detail.amount)}</b>
+                              </div>;
+                            })}
+                          </details>
+                          {payment && payment.from === p.from && payment.to === p.to && (
+                            <div className="payment-editor">
+                              <div className="payment-editor-head"><div><small>RECORD PAYMENT</small><h3>{name(payment.from)} → {name(payment.to)}</h3></div><b>{fmt(payment.amount)}</b></div>
+                              <div className="payment-fields">
+                                <Field label={`Amount (${e.settlement})`}><Amount value={payment.amount} currency={e.settlement} onChange={(amount) => setPayment({ ...payment, amount: amount || 0 })}/></Field>
+                                <Field label="Date"><input type="date" value={payment.date} onChange={(v) => setPayment({ ...payment, date: v.target.value })}/></Field>
+                                <Field label="Note / method"><input value={payment.note} placeholder="Cash, DuitNow…" onChange={(v) => setPayment({ ...payment, note: v.target.value })}/></Field>
+                              </div>
+                              <p className="muted">Record only after the money has actually been paid.</p>
+                              <div className="checks"><button className="primary" disabled={busy} onClick={async()=>{if(await send("payment",{entity:payment,revision:draftRevision})){setPayment(null);setNotice("Payment recorded and balance updated.");}}}>Confirm payment</button><button className="secondary" onClick={()=>setPayment(null)}>Cancel</button></div>
+                            </div>
+                          )}
                         </div>
                       ))}
                       {!sum!.transfers.length && (
                         <div className="empty">
                           <CheckIcon />
                           <h3>No outstanding balance</h3>
-                        </div>
-                      )}
-                      {payment && (
-                        <div className="panel">
-                          <h3>
-                            {name(payment.from)} → {name(payment.to)}
-                          </h3>
-                          <Field label={`Actual amount paid (${e.settlement})`}>
-                            <Amount
-                              value={payment.amount}
-                              currency={e.settlement}
-                              onChange={(amount) =>
-                                setPayment({ ...payment, amount: amount || 0 })
-                              }
-                            />
-                          </Field>
-                          <Field label="Payment date">
-                            <input
-                              type="date"
-                              value={payment.date}
-                              onChange={(v) =>
-                                setPayment({ ...payment, date: v.target.value })
-                              }
-                            />
-                          </Field>
-                          <Field label="Note / payment method">
-                            <input
-                              value={payment.note}
-                              onChange={(v) =>
-                                setPayment({ ...payment, note: v.target.value })
-                              }
-                            />
-                          </Field>
-                          <p className="muted">
-                            Only record money that has actually been paid. No
-                            second confirmation is required.
-                          </p>
-                          <div className="checks">
-                            <button
-                              className="primary"
-                              disabled={busy}
-                              onClick={async () => {
-                                if (
-                                  await send("payment", {
-                                    entity: payment,
-                                    revision: draftRevision,
-                                  })
-                                ) {
-                                  setPayment(null);
-                                  setNotice("Payment recorded.");
-                                }
-                              }}
-                            >
-                              Confirm payment
-                            </button>
-                            <button
-                              className="secondary"
-                              onClick={() => setPayment(null)}
-                            >
-                              Cancel
-                            </button>
-                          </div>
                         </div>
                       )}
                     </div>

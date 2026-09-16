@@ -572,6 +572,11 @@ function claimsAfterPayments(e: Event) {
   }
   return claims;
 }
+export function settlementDetails(e: Event, from: string, to: string) {
+  return claimsAfterPayments(e)
+    .filter((claim) => claim.from === from && claim.to === to && claim.amount > 0)
+    .map((claim) => ({ expense: claim.expense, amount: claim.amount }));
+}
 export function paymentAllocations(
   e: Event,
   from: string,
