@@ -371,7 +371,7 @@ setPlannerDirty(false);
           setNotice("Saved. Balances have been recalculated.");
       },
     });
-  function expenseRows(list: Expense[]) {
+  function expenseRows(list: Expense[], personalOnly = false) {
     return list.map((b) => {
       const c = calculate(b, e!.settlement);
       const linkedPayment = e!.payments
@@ -380,6 +380,7 @@ setPlannerDirty(false);
         .filter((a) => a.expense === b.id)
         .reduce((sum, a) => sum + a.amount, 0);
       const consumers = Array.from(new Set(b.items.flatMap((item) => item.people)));
+      const shownAmount = personalOnly ? c.consumed[me] || 0 : c.cashTotal;
       return (
         <details className="bill-detail expense-card" key={b.id}>
           <summary>
@@ -395,46 +396,45 @@ setPlannerDirty(false);
               </span>
             </span>
             <span className="expense-amount">
-              <b>{money(c.cashTotal, b.currency)}</b>
-              {linkedPayment > 0 && <small className="settled-label"><CheckIcon size={13} /> Repayment linked</small>}
-              {!linkedPayment && <small>View details</small>}
+              <b>{personalOnly ? fmt(shownAmount) : money(shownAmount, b.currency)}</b>
+              {personalOnly && <small className="my-share-label">My share</small>}
+              {!personalOnly && linkedPayment > 0 && <small className="settled-label"><CheckIcon size={13} /> Repayment linked</small>}
+              {!personalOnly && !linkedPayment && <small>View details</small>}
             </span>
           </summary>
           <div className="expense-detail-body">
-          <p>
-            Settlement value <b>{fmt(c.total)}</b>
-          </p>
+          <p>{personalOnly ? "My final consumption" : "Settlement value"} <b>{fmt(personalOnly ? c.consumed[me] || 0 : c.total)}</b></p>
           {b.currency !== e!.settlement && (
             <p className="muted">
               Saved rate: 1 {b.currency} = {b.rate} {e!.settlement}
               {b.actual !== null ? " · Actual card charge used" : ""}
             </p>
           )}
-          <h3>Items</h3>
-          {b.items.map((it, i) => (
+          <h3>{personalOnly ? "My items" : "Items"}</h3>
+          {b.items.map((it, i) => ({it,i})).filter(({it})=>!personalOnly || it.people.includes(me)).map(({it,i}) => (
             <p key={it.id}>
               <span>
                 {it.name || b.merchant}
-                <small>{it.people.map(name).join(", ")}</small>
+                <small>{personalOnly ? "My item share" : it.people.map(name).join(", ")}</small>
               </span>
-              <b>{money(c.lines[i].total, b.currency)}</b>
+              <b>{money(personalOnly ? c.lines[i].values[it.people.indexOf(me)] || 0 : c.lines[i].total, b.currency)}</b>
             </p>
           ))}
-          <h3>Final consumption after charges & voucher</h3>
+          {!personalOnly && <><h3>Final consumption after charges & voucher</h3>
           {Object.entries(c.consumed).map(([p, v]) => (
             <p key={p}>
               <span>{name(p)}</span>
               <b>{fmt(v)}</b>
             </p>
-          ))}
-          <h3>Cash paid</h3>
+          ))}</>}
+          {!personalOnly && <><h3>Cash paid</h3>
           {Object.entries(c.paid).map(([p, v]) => (
             <p key={p}>
               <span>{name(p)}</span>
               <b>{fmt(v)}</b>
             </p>
-          ))}
-          {c.contribution > 0 && (
+          ))}</>}
+          {!personalOnly && c.contribution > 0 && (
             <p>
               Voucher contributed by {name(b.voucherOwner)}{" "}
               <b>{fmt(c.contribution)}</b>
@@ -1065,7 +1065,7 @@ setPlannerDirty(false);
                       <div>
                         <p className="eyebrow">{tab === "Expenses" ? "SHARED SPENDING" : "YOUR SPENDING"}</p>
                         <h2>{tab === "Expenses" ? "Expenses" : name(me)}</h2>
-                        <p>{filtered.length} records · {fmt(filtered.reduce((total, item) => total + calculate(item, e.settlement).total, 0))}</p>
+                        <p>{tab === "My spending" ? filtered.filter(item => (calculate(item,e.settlement).consumed[me] || 0) > 0).length : filtered.length} records · {fmt(filtered.reduce((total, item) => total + (tab === "My spending" ? calculate(item, e.settlement).consumed[me] || 0 : calculate(item, e.settlement).total), 0))}</p>
                       </div>
                       {can("addExpense") && (
                         <button className="primary" onClick={() => add("simple")}><Plus size={18} /> Add expense</button>
@@ -1153,9 +1153,9 @@ setPlannerDirty(false);
                           <div className="expense-day" key={date}>
                             <div className="expense-day-heading">
                               <span>{new Intl.DateTimeFormat("en-MY", { weekday: "short", day: "numeric", month: "short", year: "numeric" }).format(new Date(`${date}T00:00:00`))}</span>
-                              <b>{fmt(expenses.reduce((total, item) => total + calculate(item, e.settlement).total, 0))}</b>
+                              <b>{fmt(expenses.reduce((total, item) => total + (tab === "My spending" ? calculate(item, e.settlement).consumed[me] || 0 : calculate(item, e.settlement).total), 0))}</b>
                             </div>
-                            {expenseRows(expenses)}
+                            {expenseRows(expenses, tab === "My spending")}
                           </div>
                         ));
                       })()}
