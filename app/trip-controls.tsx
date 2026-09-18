@@ -10,6 +10,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { unit, digits, Person } from "@/lib/ledger";
 import { evaluateAmount } from "@/lib/amount-expression";
+import { Users, UserRound, X } from "lucide-react";
 export function Pick({
   label,
   value,
@@ -138,14 +139,14 @@ export function People({
           onChange(people.filter((p) => p.active).map((p) => p.id))
         }
       >
-        Select all · {people.filter((p) => p.active).length}
+        <Users size={15}/> Select all · {people.filter((p) => p.active).length}
       </button>
       <button
         type="button"
         className="text-button"
         onClick={() => onChange([])}
       >
-        Clear all
+        <X size={15}/> Clear all
       </button>
       {primary && (
         <button
@@ -153,7 +154,7 @@ export function People({
           className="text-button"
           onClick={() => onChange([primary.id])}
         >
-          Only {primary.name}
+          <UserRound size={15}/> Only {primary.name}
         </button>
       )}
       {people.map((p) => (

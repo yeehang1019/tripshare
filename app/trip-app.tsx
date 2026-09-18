@@ -10,6 +10,16 @@ import {
   Check as CheckIcon,
   Users,
   SlidersHorizontal,
+  Copy,
+  HandCoins,
+  Bell,
+  UserRound,
+  UsersRound,
+  Utensils,
+  Car,
+  Ticket,
+  RotateCcw,
+  ListFilter,
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -99,6 +109,7 @@ export default function TripApp({ shared = false }: { shared?: boolean }) {
     [groupName, setGroupName] = useState(""),
     [groupPeople, setGroupPeople] = useState<string[]>([]),
     [payment, setPayment] = useState<any>(null),
+    [settlementScope, setSettlementScope] = useState<"mine" | "everyone">("mine"),
     [confirm, setConfirm] = useState<{
       title: string;
       description: string;
@@ -233,6 +244,19 @@ setPlannerDirty(false);
     setDraftRevision(rec.revision);
     setTab("Add expense");
   }
+  function duplicateExpense(source: Expense) {
+    const copy = structuredClone(source);
+    copy.id = crypto.randomUUID();
+    copy.date = today();
+    copy.activity = "";
+    copy.createdBy = "";
+    copy.deleted = false;
+    copy.items = copy.items.map((item) => ({ ...item, id: crypto.randomUUID() }));
+    copy.discountItems = [];
+    setBill(copy);
+    setDraftRevision(rec.revision);
+    setTab("Add expense");
+  }
   function clearUnsavedInput() {
     setBill(null);
     setActivity(null);
@@ -281,6 +305,11 @@ setPlannerDirty(false);
   }
   const sum = e ? ledger(e) : null,
     personal = sum?.people[me];
+  const visibleTransfers = sum
+    ? settlementScope === "mine"
+      ? sum.transfers.filter((transfer) => transfer.from === me || transfer.to === me)
+      : sum.transfers
+    : [];
   const filtered =
     e?.expenses.filter(
       (b) =>
@@ -354,7 +383,7 @@ setPlannerDirty(false);
       <div className="donut-chart" style={{ background: total ? `conic-gradient(${gradient})` : "#eee7dc" }}>
         <div><b>{fmt(total)}</b><small>Total</small></div>
       </div>
-      <div className="donut-legend">{entries.slice(0,5).map(([label,value],index)=><div key={label}><i style={{background:colors[index%colors.length]}}/><span>{label}</span><b>{fmt(value)}</b></div>)}</div>
+      <div className="donut-legend">{entries.slice(0,5).map(([label,value],index)=><button key={label} onClick={()=>{setCat(label);setTab(personalOnly?"My spending":"Expenses")}}><i style={{background:colors[index%colors.length]}}/><span>{label}</span><b>{fmt(value)}</b></button>)}</div>
     </div>;
   }
   const ask = (
@@ -468,6 +497,9 @@ setPlannerDirty(false);
               >
                 Delete
               </button>
+            )}
+            {!shared && can("addExpense") && (
+              <button className="text-button" onClick={() => duplicateExpense(b)}><Copy size={15}/> Duplicate</button>
             )}
           </div>
           </div>
@@ -909,29 +941,30 @@ setPlannerDirty(false);
                           ))}
                         {can("addExpense") && (
                           <div className="quick-grid">
-                            {["Toll", "Petrol", "Ticket", "Meal"].map(
-                              (x, i) => (
+                            {[
+                              {name:"Toll",category:"Transport",icon:<Car size={18}/>},
+                              {name:"Petrol",category:"Transport",icon:<Car size={18}/>},
+                              {name:"Ticket",category:"Activity",icon:<Ticket size={18}/>},
+                              {name:"Meal",category:"Food",icon:<Utensils size={18}/>},
+                            ].map(
+                              (template) => (
                                 <button
-                                  key={x}
+                                  key={template.name}
                                   onClick={() => {
                                     const b = blankExpense(e, me);
-                                    b.merchant = x;
-                                    b.category =
-                                      i < 2
-                                        ? "Transport"
-                                        : i === 2
-                                          ? "Activity"
-                                          : "Food";
+                                    b.merchant = template.name;
+                                    b.category = template.category;
                                     setBill(b);
                                     setDraftRevision(rec.revision);
                                     setTab("Add expense");
                                   }}
                                 >
-                                  {x}
+                                  <span>{template.icon}</span>{template.name}
                                   <Plus size={17} />
                                 </button>
                               ),
                             )}
+                            {!!e.expenses.filter(x=>!x.deleted).length && <button className="repeat-expense" onClick={()=>duplicateExpense(e.expenses.filter(x=>!x.deleted).at(-1)!)}><span><RotateCcw size={18}/></span>Repeat last<Copy size={17}/></button>}
                           </div>
                         )}
                         <div className="split-row">
@@ -1117,10 +1150,10 @@ setPlannerDirty(false);
                     {tab === "My spending" && (
                       <>
                         <section className="stats personal-stats">
-                          <article className="stat featured"><span>Total consumed</span><strong>{fmt(filtered.reduce((s,b)=>s+(calculate(b,e.settlement).consumed[me]||0),0))}</strong><small>Your share in the selected period</small></article>
-                          <article className="stat"><span>Actually paid</span><strong>{fmt(filtered.reduce((s,b)=>s+(calculate(b,e.settlement).paid[me]||0),0))}</strong><small>Cash or card paid upfront</small></article>
-                          <article className="stat"><span>Need to pay</span><strong>{fmt(sum!.transfers.filter(t=>t.from===me).reduce((s,t)=>s+t.amount,0))}</strong><small>Current event balance</small></article>
-                          <article className="stat"><span>Need to receive</span><strong>{fmt(sum!.transfers.filter(t=>t.to===me).reduce((s,t)=>s+t.amount,0))}</strong><small>Current event balance</small></article>
+                          <button className="stat featured interactive-stat" onClick={()=>document.querySelector(".personal-activity")?.scrollIntoView({behavior:"smooth"})}><span><Receipt size={17}/> Total consumed</span><strong>{fmt(filtered.reduce((s,b)=>s+(calculate(b,e.settlement).consumed[me]||0),0))}</strong><small>Open personal expense details →</small></button>
+                          <button className="stat interactive-stat" onClick={()=>document.querySelector(".personal-activity")?.scrollIntoView({behavior:"smooth"})}><span><Wallet size={17}/> Actually paid</span><strong>{fmt(filtered.reduce((s,b)=>s+(calculate(b,e.settlement).paid[me]||0),0))}</strong><small>Review expenses paid upfront →</small></button>
+                          <button className="stat interactive-stat" onClick={()=>{setSettlementScope("mine");setTab("Settlement")}}><span><HandCoins size={17}/> Need to pay</span><strong>{fmt(sum!.transfers.filter(t=>t.from===me).reduce((s,t)=>s+t.amount,0))}</strong><small>Open My Settlement →</small></button>
+                          <button className="stat interactive-stat" onClick={()=>{setSettlementScope("mine");setTab("Settlement")}}><span><UserRound size={17}/> Need to receive</span><strong>{fmt(sum!.transfers.filter(t=>t.to===me).reduce((s,t)=>s+t.amount,0))}</strong><small>Open My Settlement →</small></button>
                         </section>
                         <section className="personal-insights">
                           <div className="panel"><h2>My spending mix</h2>{donut(true)}</div>
@@ -1129,7 +1162,7 @@ setPlannerDirty(false);
                         </section>
                       </>
                     )}
-                    <section className="panel">
+                    <section className={`panel ${tab === "My spending" ? "personal-activity" : ""}`}>
                       <div className="section-title">
                         <h2>Activity</h2>
                         {can("addExpense") && (
@@ -1169,22 +1202,26 @@ setPlannerDirty(false);
                   <section className="settlement-page">
                     <div className="settlement-hero">
                       <div>
-                        <p className="eyebrow">CURRENT SETTLEMENT</p>
-                        <h2>{sum!.transfers.length ? `${sum!.transfers.length} payment${sum!.transfers.length > 1 ? "s" : ""} remaining` : "Everyone is settled"}</h2>
-                        <p>{sum!.transfers.length ? `${fmt(sum!.transfers.reduce((total, p) => total + p.amount, 0))} still needs to be paid.` : "New expenses will start from RM0.00 automatically."}</p>
+                        <p className="eyebrow">{settlementScope === "mine" ? "MY SETTLEMENT" : "GROUP SETTLEMENT"}</p>
+                        <h2>{visibleTransfers.length ? `${visibleTransfers.length} payment${visibleTransfers.length > 1 ? "s" : ""} remaining` : settlementScope === "mine" ? `${name(me)} is settled` : "Everyone is settled"}</h2>
+                        <p>{visibleTransfers.length ? `${fmt(visibleTransfers.reduce((total, p) => total + p.amount, 0))} still needs to be paid.` : "New expenses will update this automatically."}</p>
                       </div>
-                      <button className="secondary" onClick={() => whatsapp(shareText())}>WhatsApp summary</button>
+                      <button className="secondary" onClick={() => whatsapp(shareText())}><Bell size={17}/> WhatsApp summary</button>
+                    </div>
+                    <div className="scope-switch" role="group" aria-label="Settlement view">
+                      <button className={settlementScope === "mine" ? "active" : ""} onClick={()=>setSettlementScope("mine")}><UserRound size={17}/> Mine</button>
+                      <button className={settlementScope === "everyone" ? "active" : ""} onClick={()=>setSettlementScope("everyone")}><UsersRound size={17}/> Everyone</button>
                     </div>
                     <div className="settlement-layout">
                     <div className="panel settlement-current">
                       <div className="section-title">
-                        <h2>Payments to make</h2>
+                        <h2>{settlementScope === "mine" ? `${name(me)}'s payments` : "Payments to make"}</h2>
                       </div>
                       <p className="muted">
                         New expenses are added to the balance. Recorded repayments
                         clear the oldest matching expenses first.
                       </p>
-                      {sum!.transfers.map((p, i) => (
+                      {visibleTransfers.map((p, i) => (
                         <div className="transfer" key={i}>
                           <div>
                             <b>{name(p.from)}</b>
@@ -1209,7 +1246,7 @@ setPlannerDirty(false);
                                   setDraftRevision(rec.revision);
                                 }}
                               >
-                                Record full / partial payment
+                                <HandCoins size={16}/> Record payment
                               </button>
                             )}
                             <button
@@ -1220,11 +1257,12 @@ setPlannerDirty(false);
                                 )
                               }
                             >
-                              Remind
+                              <Bell size={16}/> Remind
                             </button>
+                            <button className="text-button" onClick={async()=>{await navigator.clipboard.writeText(`${e.name}: ${name(p.from)} → ${name(p.to)} ${fmt(p.amount)}`);setNotice("Payment details copied.")}}><Copy size={16}/> Copy</button>
                           </div>
                           <details className="settlement-breakdown">
-                            <summary>View expense details</summary>
+                            <summary><ListFilter size={16}/> View expense details</summary>
                             {settlementDetails(e,p.from,p.to).map((detail) => {
                               const expense = e.expenses.find((bill) => bill.id === detail.expense);
                               return <div className="settlement-expense" key={detail.expense}>
@@ -1247,7 +1285,7 @@ setPlannerDirty(false);
                           )}
                         </div>
                       ))}
-                      {!sum!.transfers.length && (
+                      {!visibleTransfers.length && (
                         <div className="empty">
                           <CheckIcon />
                           <h3>No outstanding balance</h3>
@@ -1255,8 +1293,8 @@ setPlannerDirty(false);
                       )}
                     </div>
                     <div className="panel settlement-side">
-                      <h2>Member balances</h2>
-                      {Object.entries(sum!.people).map(([p, v]) => (
+                      <h2>{settlementScope === "mine" ? "My balance" : "Member balances"}</h2>
+                      {Object.entries(sum!.people).filter(([p])=>settlementScope === "everyone" || p === me).map(([p, v]) => (
                         <div className="balance-row" key={p}>
                           <span className="avatar">{name(p).slice(0,2)}</span>
                           <span>{name(p)}</span>

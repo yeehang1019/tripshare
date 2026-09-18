@@ -13,6 +13,7 @@ import {
   unit,
 } from "@/lib/ledger";
 import { Pick, Field, Amount, Check, People } from "./trip-controls";
+import { UsersRound, Sparkles, ArrowRight } from "lucide-react";
 export default function ExpenseEditor({
   event: e,
   initial,
@@ -250,7 +251,7 @@ export default function ExpenseEditor({
                   className="text-button"
                   onClick={() => setPeople(i, [...b.items[i - 1].people])}
                 >
-                  Same as previous
+                  <Sparkles size={15}/> Same as previous
                 </button>
               )}
               {e.groups.map((g) => (
@@ -259,7 +260,7 @@ export default function ExpenseEditor({
                   key={g.id}
                   onClick={() => setPeople(i, g.people)}
                 >
-                  {g.name}
+                  <UsersRound size={15}/> {g.name}
                 </button>
               ))}
               {b.items.length > 1 && (
@@ -623,7 +624,7 @@ export default function ExpenseEditor({
           }
           onClick={() => onSave(b)}
         >
-          {busy ? "Saving…" : edit ? "Save changes" : "Save expense"}
+          {busy ? "Saving…" : edit ? "Save changes" : "Save expense"} {!busy && <ArrowRight size={18}/>}
         </button>
       </section>
       <aside className="panel preview">
@@ -650,6 +651,13 @@ export default function ExpenseEditor({
                 <b>{money(v, e.settlement)}</b>
               </div>
             ))}
+            {!b.treat && b.payers.length === 1 && (
+              <div className="live-result">
+                <b>After saving</b>
+                {Object.entries(c.responsible).filter(([p,v])=>p !== b.payers[0].person && v > 0).map(([p,v])=><p key={p}><span>{name(p)} will owe {name(b.payers[0].person)}</span><b>{money(v,e.settlement)}</b></p>)}
+                {!Object.entries(c.responsible).some(([p,v])=>p !== b.payers[0].person && v > 0) && <small>No repayment will be created.</small>}
+              </div>
+            )}
             <hr />
             {c.service > 0 && <div className="split-row">
               <span>Service</span>
