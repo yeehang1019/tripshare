@@ -20,6 +20,10 @@ import {
   Ticket,
   RotateCcw,
   ListFilter,
+  LayoutDashboard,
+  MapPinned,
+  ReceiptText,
+  Settings2,
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -668,11 +672,26 @@ setPlannerDirty(false);
                     "Settlement",
                     "My spending",
                     ...(!shared ? ["Settings"] : []),
-                  ].map((t) => (
-                    <TabsTrigger key={t} value={t}>
-                      {t}
-                    </TabsTrigger>
-                  ))}
+                  ].map((t) => {
+                    const Icon =
+                      t === "Dashboard"
+                        ? LayoutDashboard
+                        : t === "Trip Plan"
+                          ? MapPinned
+                          : t === "Expenses"
+                            ? ReceiptText
+                            : t === "Settlement"
+                              ? HandCoins
+                              : t === "My spending"
+                                ? UserRound
+                                : Settings2;
+                    return (
+                      <TabsTrigger key={t} value={t} title={t}>
+                        <Icon className="nav-icon" size={17} />
+                        <span className="nav-label">{t}</span>
+                      </TabsTrigger>
+                    );
+                  })}
                 </TabsList>
               </Tabs>
             )}
