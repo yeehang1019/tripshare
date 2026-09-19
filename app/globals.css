@@ -116,6 +116,7 @@ html,body{width:100%;max-width:100%;overflow-x:clip}body{background:var(--backgr
 header{background:var(--surface-glass);border-color:var(--border);box-shadow:0 1px 0 var(--border),0 10px 34px color-mix(in srgb,var(--neon-purple) 10%,transparent);backdrop-filter:blur(18px)}
 .brand{color:var(--foreground)}.brandmark{background:linear-gradient(145deg,var(--neon-purple),var(--neon-pink));box-shadow:0 8px 24px color-mix(in srgb,var(--neon-pink) 32%,transparent)}.brand-dot{color:var(--neon-pink)}
 .theme-toggle{color:var(--primary);background:var(--surface-soft);border-color:var(--border);border-radius:12px;min-width:42px;min-height:42px}.saved,.muted,small{color:var(--text-secondary)}
+.install-app{color:var(--neon-pink);background:color-mix(in srgb,var(--neon-pink) 10%,var(--card));border-color:color-mix(in srgb,var(--neon-pink) 28%,var(--border));border-radius:12px;min-width:42px;min-height:42px}
 .eyebrow{color:var(--primary)}h1,h2,h3,.expense-amount>b,.preview>h2{color:var(--foreground)}
 .primary{background:linear-gradient(135deg,var(--neon-purple),var(--neon-pink));color:#fff;box-shadow:0 8px 24px color-mix(in srgb,var(--neon-pink) 24%,transparent)}.primary:hover{background:linear-gradient(135deg,#7944ec,#d92b9b)}
 .secondary,.icon-button{background:var(--card);border-color:var(--border);color:var(--foreground)}.text-button{color:var(--primary)}
@@ -163,9 +164,12 @@ footer{color:var(--text-quiet)}
 @media(max-width:700px){.motion-world::before{width:390px;height:390px;right:-220px;top:-130px;opacity:.42;filter:blur(22px)}.motion-world::after{width:340px;height:340px;left:-180px;bottom:-120px;opacity:.32}.panel>h2.card-title{padding-bottom:8px}}
 @media(prefers-reduced-motion:reduce){.motion-world::before,.motion-world::after{animation:none;opacity:.2}}
 
+/* Keep motion behind the content. Touch devices can retain :hover, so card sheen must never sit over data. */
+.panel::after,.stat::after,.expense-card::after,.transfer::after{display:none!important}
+
 /* Phone layout: single-column forms, non-overlapping feedback, compact cloud identity. */
 @media(max-width:700px){
-  header{padding:0 15px}.brand{font-size:23px;gap:8px}.brandmark{width:40px;height:40px}.header-right{gap:7px}
+  header{padding:0 15px}.brand{font-size:23px;gap:8px}.brandmark{width:40px;height:40px}.header-right{gap:7px}.install-app{min-width:38px;min-height:38px;padding:8px}
   .sync-status{max-width:none!important;font-size:12px!important;overflow:visible!important}.sync-email{display:none}.sync-role{white-space:nowrap}
   main{padding:22px 14px 112px}.topline{gap:12px}.topline h1{font-size:31px;line-height:1.08}.topline .muted{font-size:14px}
   .message{position:static;top:auto;right:auto;width:100%;margin:0 0 18px;padding:13px 14px;border-radius:12px}

@@ -33,6 +33,7 @@ import {
   Store,
   Route,
   Sparkles,
+  Download,
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -46,7 +47,7 @@ import {
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
 import {
-  Event,
+  Event as TripEvent,
   Expense,
   Activity,
   Permission,
@@ -69,13 +70,17 @@ import TripPlanner from "./trip-planner";
 import MotionLayer from "./motion-layer";
 type RecordT = {
   id: string;
-  data: Event;
+  data: TripEvent;
   owner: boolean;
   permissions: Permission[];
   person: string;
   revision: number;
 };
-const newEvent = (): Event => ({
+type InstallPrompt = globalThis.Event & {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
+};
+const newEvent = (): TripEvent => ({
   schema: 2,
   name: "",
   kind: "trip",
@@ -102,10 +107,13 @@ export default function TripApp({ shared = false, authenticatedEmail = "", authe
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [notice, setNotice] = useState(""),
+    [installPrompt, setInstallPrompt] = useState<InstallPrompt | null>(null),
+    [installHelp, setInstallHelp] = useState(false),
+    [standalone, setStandalone] = useState(false),
     [bill, setBill] = useState<Expense | null>(null),
     [draftRevision, setDraftRevision] = useState(0),
     [creating, setCreating] = useState(false),
-    [settings, setSettings] = useState<Event | null>(null),
+    [settings, setSettings] = useState<TripEvent | null>(null),
     [names, setNames] = useState("YH, ET, YC, FZ, WZ, ZY, IVAN, JH"),
     [activity, setActivity] = useState<Activity | null>(null),
     [start, setStart] = useState(""),
@@ -180,6 +188,19 @@ export default function TripApp({ shared = false, authenticatedEmail = "", authe
     const nextTheme = savedTheme === "night" ? "night" : "light";
     setTheme(nextTheme);
     document.documentElement.dataset.theme = nextTheme;
+  }, []);
+  useEffect(() => {
+    const isStandalone =
+      window.matchMedia("(display-mode: standalone)").matches ||
+      Boolean((navigator as Navigator & { standalone?: boolean }).standalone);
+    setStandalone(isStandalone);
+    const capturePrompt = (event: globalThis.Event) => {
+      event.preventDefault();
+      setInstallPrompt(event as InstallPrompt);
+    };
+    window.addEventListener("beforeinstallprompt", capturePrompt);
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => {});
+    return () => window.removeEventListener("beforeinstallprompt", capturePrompt);
   }, []);
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -552,6 +573,27 @@ setPlannerDirty(false);
           tripshare<span className="brand-dot">.</span>
         </a>
         <div className="header-right">
+          {!shared && !standalone && (
+            <button
+              className="icon-button install-app"
+              aria-label="Install TripShare app"
+              title="Install TripShare"
+              onClick={async () => {
+                if (!installPrompt) {
+                  setInstallHelp(true);
+                  return;
+                }
+                await installPrompt.prompt();
+                const choice = await installPrompt.userChoice;
+                if (choice.outcome === "accepted") {
+                  setInstallPrompt(null);
+                  setStandalone(true);
+                }
+              }}
+            >
+              <Download size={18} />
+            </button>
+          )}
           <button
             className="icon-button theme-toggle"
             aria-label={theme === "night" ? "Switch to light mode" : "Switch to night mode"}
@@ -579,6 +621,19 @@ setPlannerDirty(false);
           )}
         </div>
       </header>
+      <AlertDialog open={installHelp} onOpenChange={setInstallHelp}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Install TripShare</AlertDialogTitle>
+            <AlertDialogDescription>
+              On iPhone, open TripShare in Safari, tap Share, then choose Add to Home Screen. On Windows, open it in Chrome or Edge and choose Install app from the address bar or browser menu.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setInstallHelp(false)}>Got it</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <main>
         {error && (
           <div className="message error" role="alert">
