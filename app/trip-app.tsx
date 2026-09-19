@@ -199,7 +199,16 @@ export default function TripApp({ shared = false, authenticatedEmail = "", authe
       setInstallPrompt(event as InstallPrompt);
     };
     window.addEventListener("beforeinstallprompt", capturePrompt);
-    if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => {});
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker
+        .register("/sw.js", { scope: "/" })
+        .then(() => navigator.serviceWorker.ready)
+        .then(() => {
+          // Edge can decide installability only after the worker has activated.
+          // The event listener above stays active and captures a late prompt.
+        })
+        .catch(() => {});
+    }
     return () => window.removeEventListener("beforeinstallprompt", capturePrompt);
   }, []);
   useEffect(() => {
@@ -626,7 +635,7 @@ setPlannerDirty(false);
           <AlertDialogHeader>
             <AlertDialogTitle>Install TripShare</AlertDialogTitle>
             <AlertDialogDescription>
-              On iPhone, open TripShare in Safari, tap Share, then choose Add to Home Screen. On Windows, open it in Chrome or Edge and choose Install app from the address bar or browser menu.
+              Edge has not enabled its one-click install prompt yet. In Edge, choose ⋯ → More tools → Apps → Install TripShare (or Install this site as an app). On iPhone, open TripShare in Safari, tap Share, then choose Add to Home Screen.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
