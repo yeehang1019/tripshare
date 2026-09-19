@@ -26,6 +26,13 @@ import {
   Settings2,
   MoonStar,
   Sun,
+  ChartPie,
+  ChartColumn,
+  ShieldCheck,
+  Clock3,
+  Store,
+  Route,
+  Sparkles,
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -907,28 +914,28 @@ setPlannerDirty(false);
                   <>
                     <section className="stats">
                       <article className="stat featured">
-                        <span>{name(me)} · Total consumed</span>
+                        <span><Receipt size={17}/>{name(me)} · Total consumed</span>
                         <strong>{fmt(personal?.consumed || 0)}</strong>
                         <small>
                           Your final consumption, including treats received
                         </small>
                       </article>
                       <article className="stat">
-                        <span>Actually paid</span>
+                        <span><Wallet size={17}/>Actually paid</span>
                         <strong>{fmt(personal?.paid || 0)}</strong>
                         <small>
                           Cash / card payments, excluding repayments
                         </small>
                       </article>
                       <article className="stat">
-                        <span>Need to pay</span>
+                        <span><HandCoins size={17}/>Need to pay</span>
                         <strong>
                           {fmt(sum!.transfers.filter(t=>t.from===me).reduce((s,t)=>s+t.amount,0))}
                         </strong>
                         <small>Total outstanding to each person</small>
                       </article>
                       <article className="stat">
-                        <span>Need to receive</span>
+                        <span><UserRound size={17}/>Need to receive</span>
                         <strong>
                           {fmt(sum!.transfers.filter(t=>t.to===me).reduce((s,t)=>s+t.amount,0))}
                         </strong>
@@ -939,6 +946,7 @@ setPlannerDirty(false);
                       <div className="panel">
                         <div className="section-title">
                           <h2>
+                            {e.kind === "trip" ? <Route size={20}/> : <Sparkles size={20}/>}
                             {e.kind === "trip"
                               ? "Trip Plan · day by day"
                               : "Quick expense"}
@@ -1037,21 +1045,21 @@ setPlannerDirty(false);
                         )}
                       </div>
                       <div className="panel">
-                        <h2>Where your money goes</h2>
+                        <h2 className="card-title"><ChartPie size={20}/>Where your money goes</h2>
                         {donut(true)}
                       </div>
                     </section>
                     <section className="dashboard-charts">
                       <div className="panel">
-                        <div className="section-title"><h2>Daily spending</h2><span className="pill">Group</span></div>
+                        <div className="section-title"><h2><ChartColumn size={20}/>Daily spending</h2><span className="pill">Group</span></div>
                         {bars("date", false)}
                       </div>
                       <div className="panel">
-                        <div className="section-title"><h2>Who paid upfront</h2><span className="pill">Cash paid</span></div>
+                        <div className="section-title"><h2><UsersRound size={20}/>Who paid upfront</h2><span className="pill">Cash paid</span></div>
                         <div className="bars">
                           {Object.entries(sum!.people).sort((a,b)=>b[1].paid-a[1].paid).map(([person,value],index) => {
                             const maximum = Math.max(1,...Object.values(sum!.people).map(x=>x.paid));
-                            return <div className="bar-row static-bar" key={person}><span>{name(person)}</span><b>{fmt(value.paid)}</b><div><i style={{width:`${Math.max(1,value.paid/maximum*100)}%`,background:["#185c48","#d9782d","#447b91","#8b668f"][index%4]}}/></div></div>;
+                            return <div className="bar-row static-bar" key={person}><span>{name(person)}</span><b>{fmt(value.paid)}</b><div><i style={{width:`${Math.max(1,value.paid/maximum*100)}%`,background:["#8b5cf6","#ed45b5","#b473ff","#f277c7"][index%4]}}/></div></div>;
                           })}
                         </div>
                       </div>
@@ -1059,7 +1067,7 @@ setPlannerDirty(false);
                     {rec.owner && !shared && (
                       <section className="panel access-shortcut">
                         <div>
-                          <h2>Sharing & permissions</h2>
+                          <h2 className="card-title"><ShieldCheck size={20}/>Sharing & permissions</h2>
                           <p className="muted">
                             Create a read-only link or choose who can help as
                             admin.
@@ -1075,7 +1083,7 @@ setPlannerDirty(false);
                     )}
                     <section className="panel">
                       <div className="section-title">
-                        <h2>Recent expenses</h2>
+                        <h2><Clock3 size={20}/>Recent expenses</h2>
                         <button
                           className="text-button"
                           onClick={() => setTab("Expenses")}
@@ -1198,15 +1206,15 @@ setPlannerDirty(false);
                           <button className="stat interactive-stat" onClick={()=>{setSettlementScope("mine");setTab("Settlement")}}><span><UserRound size={17}/> Need to receive</span><strong>{fmt(sum!.transfers.filter(t=>t.to===me).reduce((s,t)=>s+t.amount,0))}</strong><small>Open My Settlement →</small></button>
                         </section>
                         <section className="personal-insights">
-                          <div className="panel"><h2>My spending mix</h2>{donut(true)}</div>
-                          <div className="panel"><h2>My daily spending</h2>{bars("date", true)}</div>
-                          <div className="panel"><h2>My top merchants</h2>{bars("merchant", true)}</div>
+                          <div className="panel"><h2 className="card-title"><ChartPie size={20}/>My spending mix</h2>{donut(true)}</div>
+                          <div className="panel"><h2 className="card-title"><ChartColumn size={20}/>My daily spending</h2>{bars("date", true)}</div>
+                          <div className="panel"><h2 className="card-title"><Store size={20}/>My top merchants</h2>{bars("merchant", true)}</div>
                         </section>
                       </>
                     )}
                     <section className={`panel ${tab === "My spending" ? "personal-activity" : ""}`}>
                       <div className="section-title">
-                        <h2>Activity</h2>
+                        <h2><ReceiptText size={20}/>Activity</h2>
                         {can("addExpense") && (
                           <button
                             className="secondary"
@@ -1257,7 +1265,7 @@ setPlannerDirty(false);
                     <div className="settlement-layout">
                     <div className="panel settlement-current">
                       <div className="section-title">
-                        <h2>{settlementScope === "mine" ? `${name(me)}'s payments` : "Payments to make"}</h2>
+                        <h2><HandCoins size={20}/>{settlementScope === "mine" ? `${name(me)}'s payments` : "Payments to make"}</h2>
                       </div>
                       <p className="muted">
                         New expenses are added to the balance. Recorded repayments
@@ -1335,7 +1343,7 @@ setPlannerDirty(false);
                       )}
                     </div>
                     <div className="panel settlement-side">
-                      <h2>{settlementScope === "mine" ? "My balance" : "Member balances"}</h2>
+                      <h2 className="card-title"><Wallet size={20}/>{settlementScope === "mine" ? "My balance" : "Member balances"}</h2>
                       {Object.entries(sum!.people).filter(([p])=>settlementScope === "everyone" || p === me).map(([p, v]) => (
                         <div className="balance-row" key={p}>
                           <span className="avatar">{name(p).slice(0,2)}</span>

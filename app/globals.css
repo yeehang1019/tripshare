@@ -137,3 +137,28 @@ footer{color:var(--text-quiet)}
 [data-theme="night"] .featured.interactive-stat small,[data-theme="night"] .my-share-label{color:#f3b8e4!important}
 @media(min-width:1921px){.motion-pointer-glow,.motion-scene-sweep{display:none}.motion-orb{opacity:.42}.motion-grid{opacity:.55}}
 @media(max-width:700px){.motion-orb{opacity:.28}.motion-grid{opacity:.32}.motion-scene-sweep{display:none}.navigation{background:var(--surface-glass)!important;border-color:var(--border)!important;box-shadow:0 15px 40px color-mix(in srgb,var(--neon-purple) 18%,transparent)}.navigation button[data-state=active]{background:linear-gradient(135deg,color-mix(in srgb,var(--neon-purple) 18%,var(--card)),color-mix(in srgb,var(--neon-pink) 14%,var(--card)));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--neon-purple) 35%,transparent)}.theme-toggle{min-width:38px;min-height:38px;padding:8px}.saved.sync-status{color:var(--text-secondary)}}
+
+/* Neon consistency sweep and richer display-card icon language. */
+.trip-planner{--plan-ink:var(--foreground);--plan-blue:var(--primary)}
+.section-title h2,.card-title{display:flex;align-items:center;gap:9px}.section-title h2>svg,.card-title>svg{color:var(--neon-pink);filter:drop-shadow(0 4px 8px color-mix(in srgb,var(--neon-pink) 24%,transparent));flex:0 0 auto}
+.stat>span>svg{color:var(--neon-purple);padding:7px;width:32px;height:32px;border-radius:10px;background:color-mix(in srgb,var(--neon-purple) 12%,var(--card));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--neon-purple) 15%,transparent)}
+.stat.featured>span>svg{color:#fff;background:#ffffff1c;box-shadow:inset 0 0 0 1px #ffffff20}
+.panel>h2.card-title{padding-bottom:10px;border-bottom:1px solid var(--border)}
+.plan-metrics>div,.plan-entry-body,.plan-day-tabs button,.plan-readiness,.plan-day-summary{background:var(--card);border-color:var(--border);color:var(--foreground)}
+.plan-metrics span,.plan-task small{color:var(--text-secondary)}.plan-metrics svg,.plan-readiness svg,.plan-icon{color:var(--primary)}
+.plan-time,.plan-route,.plan-money b{color:var(--foreground)}.plan-status{background:var(--surface-soft);color:var(--text-secondary)}.plan-status.booked{background:color-mix(in srgb,var(--neon-purple) 14%,var(--card));color:var(--primary)}
+.advanced-options>summary,.settlement-breakdown summary,.payment-editor-head>b,.live-result>b,.filter-label,.my-share-label{color:var(--primary)!important}
+.entry-step-heading>span{background:linear-gradient(135deg,var(--neon-purple),var(--neon-pink))}.preview{border-top-color:var(--neon-pink)}
+.payment-editor{border-left-color:var(--neon-pink)}.payment-editor-head small{color:var(--neon-pink)}
+.expense-icon[data-category="Food"],.expense-icon[data-category="Transport"],.expense-icon[data-category="Activity"],.expense-icon[data-category="Shopping"],.expense-icon[data-category="Grocery"]{background:color-mix(in srgb,var(--neon-purple) 11%,var(--card));color:var(--neon-pink)}
+.avatar{background:linear-gradient(135deg,color-mix(in srgb,var(--neon-purple) 18%,var(--card)),color-mix(in srgb,var(--neon-pink) 14%,var(--card)));color:var(--primary)}
+.panel,.stat,.expense-card,.transfer,.plan-entry-body{border-color:color-mix(in srgb,var(--neon-purple) 18%,var(--border))}
+.panel:hover,.stat:hover,.expense-card:hover,.settlement-current .transfer:hover{border-color:color-mix(in srgb,var(--neon-pink) 34%,var(--border));box-shadow:0 16px 38px color-mix(in srgb,var(--neon-purple) 14%,transparent)}
+.motion-world::before{content:"";position:absolute;width:620px;height:620px;right:-190px;top:-260px;border-radius:50%;background:conic-gradient(from 70deg,color-mix(in srgb,var(--neon-purple) 22%,transparent),transparent 28%,color-mix(in srgb,var(--neon-pink) 19%,transparent) 52%,transparent 76%);filter:blur(28px);opacity:.72;will-change:transform;animation:neon-sky-turn 38s linear infinite}
+.motion-world::after{content:"";position:absolute;width:520px;height:520px;left:-210px;bottom:-250px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--neon-pink) 18%,transparent),transparent 68%);filter:blur(18px);opacity:.7;will-change:transform;animation:neon-sky-drift 22s ease-in-out infinite alternate}
+.motion-grid{background-image:radial-gradient(color-mix(in srgb,var(--neon-pink) 19%,transparent) 1px,transparent 1px),linear-gradient(color-mix(in srgb,var(--neon-purple) 6%,transparent) 1px,transparent 1px),linear-gradient(90deg,color-mix(in srgb,var(--neon-purple) 6%,transparent) 1px,transparent 1px);background-size:30px 30px,60px 60px,60px 60px}
+@keyframes neon-sky-turn{to{transform:rotate(360deg) scale(1.05)}}
+@keyframes neon-sky-drift{to{transform:translate3d(70px,-45px,0) scale(1.08)}}
+@media(min-width:1921px){.motion-world::before{width:720px;height:720px;opacity:.48}.motion-world::after{opacity:.4}}
+@media(max-width:700px){.motion-world::before{width:390px;height:390px;right:-220px;top:-130px;opacity:.42;filter:blur(22px)}.motion-world::after{width:340px;height:340px;left:-180px;bottom:-120px;opacity:.32}.panel>h2.card-title{padding-bottom:8px}}
+@media(prefers-reduced-motion:reduce){.motion-world::before,.motion-world::after{animation:none;opacity:.2}}
