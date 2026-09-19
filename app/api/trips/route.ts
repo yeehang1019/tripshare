@@ -30,7 +30,7 @@ async function identity(r: Request): Promise<Identity | null> {
   const headerUser = r.headers.get("oai-authenticated-user-id") || "";
   const headerEmail = email(r);
   if (headerUser && headerEmail) return { user: headerUser, email: headerEmail };
-  const token = sessionToken(r);
+  const token = r.headers.get("x-tripshare-session") || sessionToken(r);
   if (!token) return headerEmail ? { user: headerEmail, email: headerEmail } : null;
   const row: any = await database()
     .prepare("SELECT user,email FROM sessions WHERE token=? AND expires_at>?")

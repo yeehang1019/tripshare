@@ -1,4 +1,4 @@
-import { database } from "@/db/raw";
+import { createTripShareSession } from "@/app/session";
 
 export const dynamic = "force-dynamic";
 
@@ -14,13 +14,7 @@ export async function GET(request: Request) {
     return Response.json({ error: "Sign in to continue" }, { status: 401 });
   }
 
-  const token = crypto.randomUUID() + crypto.randomUUID();
-  const expiresAt = Date.now() + 30 * 24 * 60 * 60 * 1000;
-  const db = database();
-  await db.batch([
-    db.prepare("DELETE FROM sessions WHERE expires_at<?").bind(Date.now()),
-    db.prepare("INSERT INTO sessions(token,user,email,expires_at) VALUES(?,?,?,?)").bind(token, user, email, expiresAt),
-  ]);
+  const token = await createTripShareSession(user, email);
 
   const destination = new URL(safeReturnTo(new URL(request.url).searchParams.get("return_to")), request.url);
   return new Response(null, {

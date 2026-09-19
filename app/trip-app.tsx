@@ -92,7 +92,7 @@ const newEvent = (): Event => ({
   audit: [],
   budget: 0,
 });
-export default function TripApp({ shared = false, authenticatedEmail = "" }: { shared?: boolean; authenticatedEmail?: string }) {
+export default function TripApp({ shared = false, authenticatedEmail = "", authenticatedSession = "" }: { shared?: boolean; authenticatedEmail?: string; authenticatedSession?: string }) {
   const [records, setRecords] = useState<RecordT[]>([]),
     [id, setId] = useState(""),
     [me, setMe] = useState(""),
@@ -151,7 +151,9 @@ export default function TripApp({ shared = false, authenticatedEmail = "" }: { s
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ token: token.current, pin: pinRef.current }),
         });
-      } else r = await fetch("/api/trips");
+      } else r = await fetch("/api/trips", {
+        headers: authenticatedSession ? { "X-TripShare-Session": authenticatedSession } : {},
+      });
       const j = await r.json();
       if (j.needsPin) {
         setNeedsPin(true);
@@ -159,7 +161,7 @@ export default function TripApp({ shared = false, authenticatedEmail = "" }: { s
         return;
       }
       if (r.status === 401 && !shared) {
-        window.location.assign("/api/session?return_to=/");
+        window.location.assign("/signin-with-chatgpt?return_to=%2F");
         return;
       }
       if (!r.ok) throw Error(j.error || "Could not load");
@@ -225,7 +227,10 @@ setPlannerDirty(false);
     try {
       const r = await fetch("/api/trips", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(authenticatedSession ? { "X-TripShare-Session": authenticatedSession } : {}),
+        },
         body: JSON.stringify({
           action,
           id: rec?.id,

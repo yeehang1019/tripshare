@@ -103,7 +103,7 @@ body::before,body::after{display:none!important}.stats,.home-grid,.dashboard-cha
   --input:#49375f;--ring:#ff54c8;--neon-purple:#a970ff;--neon-pink:#ff54c8;
   --surface-glass:#151025f2;--surface-soft:#211632;--text-secondary:#d5c8e4;--text-quiet:#ae9fbd;
 }
-body{background:var(--background);color:var(--foreground);transition:background-color .25s ease,color .25s ease}
+html,body{width:100%;max-width:100%;overflow-x:clip}body{background:var(--background);color:var(--foreground);transition:background-color .25s ease,color .25s ease}
 .motion-world{background:radial-gradient(circle at 82% 4%,color-mix(in srgb,var(--neon-purple) 22%,transparent),transparent 31%),radial-gradient(circle at 12% 88%,color-mix(in srgb,var(--neon-pink) 16%,transparent),transparent 33%),linear-gradient(145deg,var(--background),color-mix(in srgb,var(--background) 88%,var(--neon-purple)))}
 .motion-orb-one{width:min(760px,62vw);height:min(760px,62vw);background:radial-gradient(circle at 58% 58%,color-mix(in srgb,var(--neon-pink) 45%,transparent) 0 8%,color-mix(in srgb,var(--neon-purple) 22%,transparent) 38%,transparent 70%)}
 .motion-orb-two{width:min(680px,54vw);height:min(680px,54vw);background:radial-gradient(circle at 42% 48%,color-mix(in srgb,var(--neon-purple) 45%,transparent) 0 8%,color-mix(in srgb,var(--neon-pink) 18%,transparent) 38%,transparent 70%)}
@@ -173,6 +173,7 @@ footer{color:var(--text-quiet)}
   .event-switch .pick{grid-column:1/-1}.event-switch .pill{display:flex;align-items:center;justify-content:center;margin:0}.event-switch .secondary{min-width:0;padding:10px 8px;white-space:normal;line-height:1.2}
   .fields{grid-template-columns:1fr!important;gap:8px}.field{margin-bottom:10px}.field>span{font-size:14px}.field input,.field textarea,.pick{font-size:16px;min-height:48px}
   .mode-picker{grid-template-columns:1fr 1fr;gap:9px}.mode-picker button{padding:15px 13px;min-width:0}.mode-picker button small{font-size:13px;line-height:1.4}
+  .app,.motion-world,header,main{width:100%;max-width:100%}.panel,.expense-editor,.preview{min-width:0;max-width:100%}
   .panel{padding:19px 17px}.panel>h2{font-size:21px}.top-actions{flex-shrink:0}
 }
 @media(max-width:370px){.event-switch{grid-template-columns:1fr 1fr}.event-switch .pill{grid-column:1/-1;justify-self:start}.mode-picker{grid-template-columns:1fr}}
