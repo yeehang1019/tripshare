@@ -19,15 +19,34 @@ const response = (data: unknown, status = 200) =>
   });
 const email = (r: Request) =>
   (r.headers.get("oai-authenticated-user-email") || "").toLowerCase();
-async function access(row: any, r: Request) {
+type Identity = { user: string; email: string };
+const sessionToken = (r: Request) =>
+  (r.headers.get("cookie") || "")
+    .split(";")
+    .map((part) => part.trim())
+    .find((part) => part.startsWith("tripshare_session="))
+    ?.slice("tripshare_session=".length) || "";
+async function identity(r: Request): Promise<Identity | null> {
+  const headerUser = r.headers.get("oai-authenticated-user-id") || "";
+  const headerEmail = email(r);
+  if (headerUser && headerEmail) return { user: headerUser, email: headerEmail };
+  const token = sessionToken(r);
+  if (!token) return headerEmail ? { user: headerEmail, email: headerEmail } : null;
+  const row: any = await database()
+    .prepare("SELECT user,email FROM sessions WHERE token=? AND expires_at>?")
+    .bind(token, Date.now())
+    .first();
+  return row ? { user: row.user, email: row.email } : null;
+}
+async function access(row: any, who: Identity) {
   const owner =
-    row.owner === r.headers.get("oai-authenticated-user-id") ||
-    (!!row.owner_email && row.owner_email === email(r));
+    row.owner === who.user ||
+    (!!row.owner_email && row.owner_email === who.email);
   const grant: any = owner
     ? null
     : await database()
         .prepare("SELECT * FROM grants WHERE trip=? AND email=?")
-        .bind(row.id, email(r))
+        .bind(row.id, who.email)
         .first();
   return {
     owner,
@@ -40,32 +59,32 @@ async function access(row: any, r: Request) {
   };
 }
 export async function GET(r: Request) {
-  const user = r.headers.get("oai-authenticated-user-id");
-  if (!user) return response({ error: "Sign in to manage your events" }, 401);
+  const who = await identity(r);
+  if (!who) return response({ error: "Sign in to manage your events" }, 401);
   try {
     const rows = await database()
       .prepare(
         "SELECT DISTINCT t.* FROM trips t WHERE t.owner=? OR t.owner_email=? OR EXISTS(SELECT 1 FROM grants g WHERE g.trip=t.id AND g.email=?) OR EXISTS(SELECT 1 FROM members m WHERE m.trip=t.id AND m.user=?)",
       )
-      .bind(user, email(r), email(r), user)
+      .bind(who.user, who.email, who.email, who.user)
       .all();
     const trips = [];
     for (const row of rows.results as any[]) {
-      const a = await access(row, r);
+      const a = await access(row, who);
       const data = normalize(JSON.parse(row.data));
       if (!a.owner && !a.permissions.length) data.audit = [];
       trips.push({ id: row.id, revision: row.revision, data, ...a });
     }
-    return response({ trips, user: email(r) });
+    return response({ trips, user: who.email });
   } catch (e) {
     console.error(e);
     return response({ error: "Could not load events. Please retry." }, 503);
   }
 }
 export async function POST(r: Request) {
-  const user = r.headers.get("oai-authenticated-user-id"),
-    actor = email(r);
-  if (!user || !actor)
+  const who = await identity(r),
+    actor = who?.email || "";
+  if (!who || !actor)
     return response({ error: "Sign in to manage events" }, 401);
   if (
     r.headers.get("origin") &&
@@ -101,7 +120,7 @@ export async function POST(r: Request) {
         .prepare(
           "INSERT INTO trips(id,owner,owner_email,invite,data,revision) VALUES(?,?,?,?,?,0)",
         )
-        .bind(id, user, actor, crypto.randomUUID(), JSON.stringify(data))
+        .bind(id, who.user, actor, crypto.randomUUID(), JSON.stringify(data))
         .run();
       return response({ id });
     }
@@ -110,7 +129,7 @@ export async function POST(r: Request) {
       .bind(b.id)
       .first();
     if (!row) return response({ error: "Event not found" }, 404);
-    const a = await access(row, r);
+    const a = await access(row, who);
     if (b.action === "accessInfo") {
       if (!a.owner) return response({ error: "Owner access required" }, 403);
       const grants = await db

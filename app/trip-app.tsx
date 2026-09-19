@@ -92,12 +92,12 @@ const newEvent = (): Event => ({
   audit: [],
   budget: 0,
 });
-export default function TripApp({ shared = false }: { shared?: boolean }) {
+export default function TripApp({ shared = false, authenticatedEmail = "" }: { shared?: boolean; authenticatedEmail?: string }) {
   const [records, setRecords] = useState<RecordT[]>([]),
     [id, setId] = useState(""),
     [me, setMe] = useState(""),
     [tab, setTab] = useState("Dashboard"),
-    [user, setUser] = useState(""),
+    [user, setUser] = useState(authenticatedEmail),
     [loaded, setLoaded] = useState(false),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
@@ -156,6 +156,10 @@ export default function TripApp({ shared = false }: { shared?: boolean }) {
       if (j.needsPin) {
         setNeedsPin(true);
         if (j.error) setError(j.error);
+        return;
+      }
+      if (r.status === 401 && !shared) {
+        window.location.assign("/api/session?return_to=/");
         return;
       }
       if (!r.ok) throw Error(j.error || "Could not load");
@@ -552,13 +556,10 @@ setPlannerDirty(false);
             {theme === "night" ? <Sun size={18} /> : <MoonStar size={18} />}
           </button>
           <span className="saved sync-status" title={user || undefined}>
-            {shared
-              ? "Read-only view"
-              : rec?.owner
-                ? `Owner · ${user || "Cloud sync"}`
-                : rec?.permissions.length
-                  ? `Admin · ${user || "Cloud sync"}`
-                  : `Cloud sync · ${user || "signed in"}`}
+            <span className="sync-role">
+              {shared ? "Read-only" : rec?.owner ? "Owner" : rec?.permissions.length ? "Admin" : "Cloud sync"}
+            </span>
+            {!shared && <span className="sync-email"> · {user || "signed in"}</span>}
           </span>
           {e && (
             <Pick

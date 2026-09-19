@@ -162,3 +162,17 @@ footer{color:var(--text-quiet)}
 @media(min-width:1921px){.motion-world::before{width:720px;height:720px;opacity:.48}.motion-world::after{opacity:.4}}
 @media(max-width:700px){.motion-world::before{width:390px;height:390px;right:-220px;top:-130px;opacity:.42;filter:blur(22px)}.motion-world::after{width:340px;height:340px;left:-180px;bottom:-120px;opacity:.32}.panel>h2.card-title{padding-bottom:8px}}
 @media(prefers-reduced-motion:reduce){.motion-world::before,.motion-world::after{animation:none;opacity:.2}}
+
+/* Phone layout: single-column forms, non-overlapping feedback, compact cloud identity. */
+@media(max-width:700px){
+  header{padding:0 15px}.brand{font-size:23px;gap:8px}.brandmark{width:40px;height:40px}.header-right{gap:7px}
+  .sync-status{max-width:none!important;font-size:12px!important;overflow:visible!important}.sync-email{display:none}.sync-role{white-space:nowrap}
+  main{padding:22px 14px 112px}.topline{gap:12px}.topline h1{font-size:31px;line-height:1.08}.topline .muted{font-size:14px}
+  .message{position:static;top:auto;right:auto;width:100%;margin:0 0 18px;padding:13px 14px;border-radius:12px}
+  .event-switch{display:grid;grid-template-columns:auto minmax(0,1fr) minmax(0,1fr);gap:9px;align-items:stretch;margin-top:18px}
+  .event-switch .pick{grid-column:1/-1}.event-switch .pill{display:flex;align-items:center;justify-content:center;margin:0}.event-switch .secondary{min-width:0;padding:10px 8px;white-space:normal;line-height:1.2}
+  .fields{grid-template-columns:1fr!important;gap:8px}.field{margin-bottom:10px}.field>span{font-size:14px}.field input,.field textarea,.pick{font-size:16px;min-height:48px}
+  .mode-picker{grid-template-columns:1fr 1fr;gap:9px}.mode-picker button{padding:15px 13px;min-width:0}.mode-picker button small{font-size:13px;line-height:1.4}
+  .panel{padding:19px 17px}.panel>h2{font-size:21px}.top-actions{flex-shrink:0}
+}
+@media(max-width:370px){.event-switch{grid-template-columns:1fr 1fr}.event-switch .pill{grid-column:1/-1;justify-self:start}.mode-picker{grid-template-columns:1fr}}
