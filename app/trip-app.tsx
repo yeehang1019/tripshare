@@ -53,6 +53,7 @@ import {
 import { Pick, Field, Amount, Check, People } from "./trip-controls";
 import ExpenseEditor from "./expense-editor";
 import TripPlanner from "./trip-planner";
+import MotionLayer from "./motion-layer";
 type RecordT = {
   id: string;
   data: Event;
@@ -509,6 +510,7 @@ setPlannerDirty(false);
   }
   return (
     <div className="app">
+      <MotionLayer scene={`${rec?.id || "empty"}-${tab}`} />
       <header>
         <a className="brand" href={shared ? "#" : "/"}>
           <span className="brandmark">
@@ -517,14 +519,14 @@ setPlannerDirty(false);
           tripshare<span className="brand-dot">.</span>
         </a>
         <div className="header-right">
-          <span className="saved">
+          <span className="saved sync-status" title={user || undefined}>
             {shared
               ? "Read-only view"
               : rec?.owner
-                ? "Owner"
+                ? `Owner · ${user || "Cloud sync"}`
                 : rec?.permissions.length
-                  ? "Admin"
-                  : "Your events"}
+                  ? `Admin · ${user || "Cloud sync"}`
+                  : `Cloud sync · ${user || "signed in"}`}
           </span>
           {e && (
             <Pick

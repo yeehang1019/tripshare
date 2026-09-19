@@ -20,7 +20,9 @@ const response = (data: unknown, status = 200) =>
 const email = (r: Request) =>
   (r.headers.get("oai-authenticated-user-email") || "").toLowerCase();
 async function access(row: any, r: Request) {
-  const owner = row.owner === r.headers.get("oai-authenticated-user-id");
+  const owner =
+    row.owner === r.headers.get("oai-authenticated-user-id") ||
+    (!!row.owner_email && row.owner_email === email(r));
   const grant: any = owner
     ? null
     : await database()
@@ -43,9 +45,9 @@ export async function GET(r: Request) {
   try {
     const rows = await database()
       .prepare(
-        "SELECT DISTINCT t.* FROM trips t WHERE t.owner=? OR EXISTS(SELECT 1 FROM grants g WHERE g.trip=t.id AND g.email=?) OR EXISTS(SELECT 1 FROM members m WHERE m.trip=t.id AND m.user=?)",
+        "SELECT DISTINCT t.* FROM trips t WHERE t.owner=? OR t.owner_email=? OR EXISTS(SELECT 1 FROM grants g WHERE g.trip=t.id AND g.email=?) OR EXISTS(SELECT 1 FROM members m WHERE m.trip=t.id AND m.user=?)",
       )
-      .bind(user, email(r), user)
+      .bind(user, email(r), email(r), user)
       .all();
     const trips = [];
     for (const row of rows.results as any[]) {
@@ -97,9 +99,9 @@ export async function POST(r: Request) {
       });
       await db
         .prepare(
-          "INSERT INTO trips(id,owner,invite,data,revision) VALUES(?,?,?,?,0)",
+          "INSERT INTO trips(id,owner,owner_email,invite,data,revision) VALUES(?,?,?,?,?,0)",
         )
-        .bind(id, user, crypto.randomUUID(), JSON.stringify(data))
+        .bind(id, user, actor, crypto.randomUUID(), JSON.stringify(data))
         .run();
       return response({ id });
     }

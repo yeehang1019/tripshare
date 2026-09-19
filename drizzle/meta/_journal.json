@@ -15,6 +15,13 @@
       "when": 1788860335466,
       "tag": "0001_greedy_jasper_sitwell",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1789810083694,
+      "tag": "0002_violet_wendell_rand",
+      "breakpoints": true
     }
   ]
 }
