@@ -24,6 +24,8 @@ import {
   MapPinned,
   ReceiptText,
   Settings2,
+  MoonStar,
+  Sun,
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -115,6 +117,7 @@ export default function TripApp({ shared = false }: { shared?: boolean }) {
     [groupPeople, setGroupPeople] = useState<string[]>([]),
     [payment, setPayment] = useState<any>(null),
     [settlementScope, setSettlementScope] = useState<"mine" | "everyone">("mine"),
+    [theme, setTheme] = useState<"light" | "night">("light"),
     [confirm, setConfirm] = useState<{
       title: string;
       description: string;
@@ -159,6 +162,16 @@ export default function TripApp({ shared = false }: { shared?: boolean }) {
       setLoaded(true);
     }
   }
+  useEffect(() => {
+    const savedTheme = localStorage.getItem("tripshare-theme");
+    const nextTheme = savedTheme === "night" ? "night" : "light";
+    setTheme(nextTheme);
+    document.documentElement.dataset.theme = nextTheme;
+  }, []);
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem("tripshare-theme", theme);
+  }, [theme]);
   useEffect(() => {
     load();
     const timer = setInterval(() => {
@@ -523,6 +536,14 @@ setPlannerDirty(false);
           tripshare<span className="brand-dot">.</span>
         </a>
         <div className="header-right">
+          <button
+            className="icon-button theme-toggle"
+            aria-label={theme === "night" ? "Switch to light mode" : "Switch to night mode"}
+            title={theme === "night" ? "Light mode" : "Night mode"}
+            onClick={() => setTheme(theme === "night" ? "light" : "night")}
+          >
+            {theme === "night" ? <Sun size={18} /> : <MoonStar size={18} />}
+          </button>
           <span className="saved sync-status" title={user || undefined}>
             {shared
               ? "Read-only view"
