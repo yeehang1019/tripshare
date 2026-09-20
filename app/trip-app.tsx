@@ -415,7 +415,7 @@ setPlannerDirty(false);
               <i
                 style={{
                   width: Math.max((v / max) * 100, 1) + "%",
-                  background: ["#176c58", "#4c81a4", "#d3a339", "#8b6f9b"][
+                  background: ["#8b5cf6", "#ed45b5", "#b473ff", "#f277c7"][
                     i % 4
                   ],
                 }}
@@ -428,7 +428,7 @@ setPlannerDirty(false);
     );
   }
   function donut(personalOnly = false) {
-    const colors = ["#185c48", "#d9782d", "#447b91", "#8b668f", "#d2a43d"];
+    const colors = ["#8b5cf6", "#ed45b5", "#b473ff", "#f277c7", "#c86ff2"];
     const data: Record<string, number> = {};
     filtered.forEach((bill) => {
       const result = calculate(bill, e!.settlement);
@@ -444,7 +444,7 @@ setPlannerDirty(false);
       return `${colors[index % colors.length]} ${start}% ${cursor}%`;
     }).join(", ");
     return <div className="donut-chart-wrap">
-      <div className="donut-chart" style={{ background: total ? `conic-gradient(${gradient})` : "#eee7dc" }}>
+      <div className="donut-chart" style={{ background: total ? `conic-gradient(${gradient})` : "var(--muted)" }}>
         <div><b>{fmt(total)}</b><small>Total</small></div>
       </div>
       <div className="donut-legend">{entries.slice(0,5).map(([label,value],index)=><button key={label} onClick={()=>{setCat(label);setTab(personalOnly?"My spending":"Expenses")}}><i style={{background:colors[index%colors.length]}}/><span>{label}</span><b>{fmt(value)}</b></button>)}</div>

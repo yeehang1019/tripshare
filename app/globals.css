@@ -167,6 +167,22 @@ footer{color:var(--text-quiet)}
 /* Keep motion behind the content. Touch devices can retain :hover, so card sheen must never sit over data. */
 .panel::after,.stat::after,.expense-card::after,.transfer::after{display:none!important}
 
+/* One purple-pink interaction language, including legacy high-specificity rules. */
+button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid var(--ring)!important;outline-offset:3px}
+.secondary:hover,.icon-button:hover,.quick-grid button:hover,.donut-legend>button:hover{background:var(--surface-soft)!important;border-color:color-mix(in srgb,var(--neon-pink) 38%,var(--border));color:var(--primary)}
+.text-button:hover{color:var(--neon-pink)}
+.stat:hover strong,.expense-card:hover .expense-amount>b,.transfer:hover>div strong{color:var(--neon-pink);text-shadow:0 5px 18px color-mix(in srgb,var(--neon-pink) 22%,transparent)}
+.payment-editor .primary{background:linear-gradient(135deg,var(--neon-purple),var(--neon-pink));color:#fff}
+.quick-grid .repeat-expense{background:color-mix(in srgb,var(--neon-pink) 8%,var(--card));border-color:color-mix(in srgb,var(--neon-pink) 28%,var(--border));color:var(--primary)}
+
+/* Adaptive performance tier: keep one slow ambient layer on 4K and phones. */
+[data-motion-tier="lite"] header{backdrop-filter:none;background:var(--surface-glass)}
+[data-motion-tier="lite"] .motion-world::before,[data-motion-tier="lite"] .motion-world::after{display:none}
+[data-motion-tier="lite"] .motion-orb{filter:none;opacity:.3}
+[data-motion-tier="lite"] .motion-grid{opacity:.24;mask-image:none}
+[data-motion-tier="lite"] .panel,[data-motion-tier="lite"] .stat,[data-motion-tier="lite"] .expense-card,[data-motion-tier="lite"] .transfer{box-shadow:0 8px 22px color-mix(in srgb,var(--neon-purple) 8%,transparent)}
+[data-motion-tier="lite"] .panel:hover,[data-motion-tier="lite"] .stat:hover,[data-motion-tier="lite"] .expense-card:hover,[data-motion-tier="lite"] .settlement-current .transfer:hover{transform:none;box-shadow:0 10px 25px color-mix(in srgb,var(--neon-purple) 10%,transparent)}
+
 /* Phone layout: single-column forms, non-overlapping feedback, compact cloud identity. */
 @media(max-width:700px){
   header{padding:0 15px}.brand{font-size:23px;gap:8px}.brandmark{width:40px;height:40px}.header-right{gap:7px}.install-app{min-width:38px;min-height:38px;padding:8px}
