@@ -34,8 +34,18 @@ import {
   Route,
   Sparkles,
   Download,
+  Palette,
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -79,6 +89,16 @@ type RecordT = {
 type InstallPrompt = globalThis.Event & {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
+};
+type PaletteName = "neon" | "mono" | "sky" | "crimson" | "warm";
+type ThemeMode = "light" | "night";
+type MotionMode = "full" | "smooth" | "battery";
+const paletteLabels: Record<PaletteName, string> = {
+  neon: "Neon Purple",
+  mono: "Monochrome",
+  sky: "Sky Blue",
+  crimson: "Crimson Red",
+  warm: "Warm Journey",
 };
 const newEvent = (): TripEvent => ({
   schema: 2,
@@ -132,7 +152,9 @@ export default function TripApp({ shared = false, authenticatedEmail = "", authe
     [groupPeople, setGroupPeople] = useState<string[]>([]),
     [payment, setPayment] = useState<any>(null),
     [settlementScope, setSettlementScope] = useState<"mine" | "everyone">("mine"),
-    [theme, setTheme] = useState<"light" | "night">("light"),
+    [theme, setTheme] = useState<ThemeMode>("light"),
+    [palette, setPalette] = useState<PaletteName>("neon"),
+    [motionMode, setMotionMode] = useState<MotionMode>("smooth"),
     [confirm, setConfirm] = useState<{
       title: string;
       description: string;
@@ -185,10 +207,23 @@ export default function TripApp({ shared = false, authenticatedEmail = "", authe
   }
   useEffect(() => {
     const savedTheme = localStorage.getItem("tripshare-theme");
-    const nextTheme = savedTheme === "night" ? "night" : "light";
-    setTheme(nextTheme);
-    document.documentElement.dataset.theme = nextTheme;
-  }, []);
+    const savedPalette = localStorage.getItem("tripshare-palette");
+    const savedMotion = localStorage.getItem("tripshare-motion");
+    setTheme(savedTheme === "night" ? "night" : "light");
+    if (["neon", "mono", "sky", "crimson", "warm"].includes(savedPalette || "")) setPalette(savedPalette as PaletteName);
+    if (["full", "smooth", "battery"].includes(savedMotion || "")) setMotionMode(savedMotion as MotionMode);
+    if (!shared && authenticatedSession) {
+      fetch("/api/preferences", { headers: { "X-TripShare-Session": authenticatedSession } })
+        .then((response) => response.ok ? response.json() : null)
+        .then((preference) => {
+          if (!preference) return;
+          if (["neon", "mono", "sky", "crimson", "warm"].includes(preference.palette)) setPalette(preference.palette);
+          if (["light", "night"].includes(preference.mode)) setTheme(preference.mode);
+          if (["full", "smooth", "battery"].includes(preference.motion)) setMotionMode(preference.motion);
+        })
+        .catch(() => {});
+    }
+  }, [authenticatedSession, shared]);
   useEffect(() => {
     const isStandalone =
       window.matchMedia("(display-mode: standalone)").matches ||
@@ -213,8 +248,24 @@ export default function TripApp({ shared = false, authenticatedEmail = "", authe
   }, []);
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
+    document.documentElement.dataset.palette = palette;
+    document.documentElement.dataset.motionMode = motionMode;
     localStorage.setItem("tripshare-theme", theme);
-  }, [theme]);
+    localStorage.setItem("tripshare-palette", palette);
+    localStorage.setItem("tripshare-motion", motionMode);
+  }, [motionMode, palette, theme]);
+  function saveAppearance(nextPalette: PaletteName, nextTheme: ThemeMode, nextMotion: MotionMode) {
+    setPalette(nextPalette);
+    setTheme(nextTheme);
+    setMotionMode(nextMotion);
+    if (!shared && authenticatedSession) {
+      fetch("/api/preferences", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-TripShare-Session": authenticatedSession },
+        body: JSON.stringify({ palette: nextPalette, mode: nextTheme, motion: nextMotion }),
+      }).catch(() => {});
+    }
+  }
   useEffect(() => {
     load();
     const timer = setInterval(() => {
@@ -415,7 +466,7 @@ setPlannerDirty(false);
               <i
                 style={{
                   width: Math.max((v / max) * 100, 1) + "%",
-                  background: ["#8b5cf6", "#ed45b5", "#b473ff", "#f277c7"][
+                  background: ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)"][
                     i % 4
                   ],
                 }}
@@ -428,7 +479,7 @@ setPlannerDirty(false);
     );
   }
   function donut(personalOnly = false) {
-    const colors = ["#8b5cf6", "#ed45b5", "#b473ff", "#f277c7", "#c86ff2"];
+    const colors = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)"];
     const data: Record<string, number> = {};
     filtered.forEach((bill) => {
       const result = calculate(bill, e!.settlement);
@@ -573,7 +624,7 @@ setPlannerDirty(false);
   }
   return (
     <div className="app">
-      <MotionLayer scene={`${rec?.id || "empty"}-${tab}`} />
+      <MotionLayer scene={`${rec?.id || "empty"}-${tab}`} mode={motionMode} />
       <header>
         <a className="brand" href={shared ? "#" : "/"}>
           <span className="brandmark">
@@ -603,14 +654,38 @@ setPlannerDirty(false);
               <Download size={18} />
             </button>
           )}
-          <button
-            className="icon-button theme-toggle"
-            aria-label={theme === "night" ? "Switch to light mode" : "Switch to night mode"}
-            title={theme === "night" ? "Light mode" : "Night mode"}
-            onClick={() => setTheme(theme === "night" ? "light" : "night")}
-          >
-            {theme === "night" ? <Sun size={18} /> : <MoonStar size={18} />}
-          </button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="icon-button theme-toggle" aria-label="Appearance" title="Appearance">
+                <Palette size={18} />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="appearance-menu">
+              <DropdownMenuLabel>Theme colour</DropdownMenuLabel>
+              <DropdownMenuRadioGroup value={palette} onValueChange={(value) => saveAppearance(value as PaletteName, theme, motionMode)}>
+                {(Object.keys(paletteLabels) as PaletteName[]).map((value) => (
+                  <DropdownMenuRadioItem key={value} value={value} onSelect={(event) => event.preventDefault()}>
+                    <span className="palette-swatch" data-palette-preview={value} />
+                    {paletteLabels[value]}
+                  </DropdownMenuRadioItem>
+                ))}
+              </DropdownMenuRadioGroup>
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel>Mode</DropdownMenuLabel>
+              <DropdownMenuRadioGroup value={theme} onValueChange={(value) => saveAppearance(palette, value as ThemeMode, motionMode)}>
+                <DropdownMenuRadioItem value="light" onSelect={(event) => event.preventDefault()}><Sun size={15}/> Light</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="night" onSelect={(event) => event.preventDefault()}><MoonStar size={15}/> Night</DropdownMenuRadioItem>
+              </DropdownMenuRadioGroup>
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel>Motion</DropdownMenuLabel>
+              <DropdownMenuRadioGroup value={motionMode} onValueChange={(value) => saveAppearance(palette, theme, value as MotionMode)}>
+                <DropdownMenuRadioItem value="full" onSelect={(event) => event.preventDefault()}>Full motion</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="smooth" onSelect={(event) => event.preventDefault()}>Smooth</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="battery" onSelect={(event) => event.preventDefault()}>Battery saver</DropdownMenuRadioItem>
+              </DropdownMenuRadioGroup>
+              {!shared && <p className="appearance-sync">Synced to {user || "your account"}</p>}
+            </DropdownMenuContent>
+          </DropdownMenu>
           <span className="saved sync-status" title={user || undefined}>
             <span className="sync-role">
               {shared ? "Read-only" : rec?.owner ? "Owner" : rec?.permissions.length ? "Admin" : "Cloud sync"}

@@ -11,9 +11,11 @@ import {
   useSpring,
 } from "motion/react";
 
-export default function MotionLayer({ scene }: { scene: string }) {
+export default function MotionLayer({ scene, mode = "smooth" }: { scene: string; mode?: "full" | "smooth" | "battery" }) {
   const reduceMotion = useReducedMotion();
-  const [lite, setLite] = useState(false);
+  const [adaptiveLite, setAdaptiveLite] = useState(false);
+  const lite = mode !== "full" || adaptiveLite;
+  const battery = mode === "battery";
   const { scrollYProgress } = useScroll();
   const scrollScale = useSpring(scrollYProgress, {
     stiffness: 135,
@@ -35,8 +37,8 @@ export default function MotionLayer({ scene }: { scene: string }) {
           window.innerWidth <= 800 ||
           pixels >= 5_000_000 ||
           (navigator.hardwareConcurrency || 8) <= 4;
-        setLite(nextLite);
-        document.documentElement.dataset.motionTier = nextLite ? "lite" : "full";
+        setAdaptiveLite(nextLite);
+        document.documentElement.dataset.motionTier = battery ? "battery" : lite ? "lite" : "full";
       });
     };
     chooseTier();
@@ -45,10 +47,10 @@ export default function MotionLayer({ scene }: { scene: string }) {
       cancelAnimationFrame(frame);
       window.removeEventListener("resize", chooseTier);
     };
-  }, []);
+  }, [battery, lite]);
 
   useEffect(() => {
-    if (reduceMotion) return;
+    if (reduceMotion || battery) return;
 
     const frame = requestAnimationFrame(() => {
       const visibleCards = Array.from(
@@ -97,24 +99,24 @@ export default function MotionLayer({ scene }: { scene: string }) {
       cancelAnimationFrame(frame);
       stopWatching();
     };
-  }, [scene, reduceMotion]);
+  }, [battery, scene, reduceMotion]);
 
   useEffect(() => {
-    if (reduceMotion || lite || !window.matchMedia("(pointer:fine)").matches) return;
+    if (reduceMotion || battery || lite || !window.matchMedia("(pointer:fine)").matches) return;
     const move = (event: PointerEvent) => {
       pointerX.set(event.clientX);
       pointerY.set(event.clientY);
     };
     window.addEventListener("pointermove", move, { passive: true });
     return () => window.removeEventListener("pointermove", move);
-  }, [glowX, glowY, lite, pointerX, pointerY, reduceMotion]);
+  }, [battery, glowX, glowY, lite, pointerX, pointerY, reduceMotion]);
 
-  const still = reduceMotion ? { x: 0, y: 0, rotate: 0, scale: 1 } : undefined;
+  const still = reduceMotion || battery ? { x: 0, y: 0, rotate: 0, scale: 1 } : undefined;
 
   return (
     <div className={`motion-world${lite ? " motion-lite" : ""}`} aria-hidden="true">
       <motion.div className="motion-scroll-progress" style={{ scaleX: reduceMotion ? 1 : scrollScale }} />
-      {!lite && <motion.div className="motion-pointer-glow" style={{ x: glowX, y: glowY }} />}
+      {!lite && !battery && <motion.div className="motion-pointer-glow" style={{ x: glowX, y: glowY }} />}
       {!lite && <AnimatePresence mode="popLayout">
         <motion.div
           key={scene}
