@@ -90,15 +90,16 @@ type InstallPrompt = globalThis.Event & {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 };
-type PaletteName = "neon" | "mono" | "sky" | "crimson" | "warm";
+type PaletteName = "neon" | "sky" | "mono" | "warm" | "emerald" | "crimson";
 type ThemeMode = "light" | "night";
 type MotionMode = "full" | "smooth" | "battery";
 const paletteLabels: Record<PaletteName, string> = {
-  neon: "Neon Purple",
+  neon: "Purple Dream",
+  sky: "Ocean Blue",
   mono: "Monochrome",
-  sky: "Sky Blue",
-  crimson: "Crimson Red",
   warm: "Warm Journey",
+  emerald: "Emerald Nature",
+  crimson: "Crimson",
 };
 const newEvent = (): TripEvent => ({
   schema: 2,
@@ -210,14 +211,14 @@ export default function TripApp({ shared = false, authenticatedEmail = "", authe
     const savedPalette = localStorage.getItem("tripshare-palette");
     const savedMotion = localStorage.getItem("tripshare-motion");
     setTheme(savedTheme === "night" ? "night" : "light");
-    if (["neon", "mono", "sky", "crimson", "warm"].includes(savedPalette || "")) setPalette(savedPalette as PaletteName);
+    if (["neon", "sky", "mono", "warm", "emerald", "crimson"].includes(savedPalette || "")) setPalette(savedPalette as PaletteName);
     if (["full", "smooth", "battery"].includes(savedMotion || "")) setMotionMode(savedMotion as MotionMode);
     if (!shared && authenticatedSession) {
       fetch("/api/preferences", { headers: { "X-TripShare-Session": authenticatedSession } })
         .then((response) => response.ok ? response.json() : null)
         .then((preference) => {
           if (!preference) return;
-          if (["neon", "mono", "sky", "crimson", "warm"].includes(preference.palette)) setPalette(preference.palette);
+          if (["neon", "sky", "mono", "warm", "emerald", "crimson"].includes(preference.palette)) setPalette(preference.palette);
           if (["light", "night"].includes(preference.mode)) setTheme(preference.mode);
           if (["full", "smooth", "battery"].includes(preference.motion)) setMotionMode(preference.motion);
         })
@@ -1204,7 +1205,7 @@ setPlannerDirty(false);
                         <div className="bars">
                           {Object.entries(sum!.people).sort((a,b)=>b[1].paid-a[1].paid).map(([person,value],index) => {
                             const maximum = Math.max(1,...Object.values(sum!.people).map(x=>x.paid));
-                            return <div className="bar-row static-bar" key={person}><span>{name(person)}</span><b>{fmt(value.paid)}</b><div><i style={{width:`${Math.max(1,value.paid/maximum*100)}%`,background:["#8b5cf6","#ed45b5","#b473ff","#f277c7"][index%4]}}/></div></div>;
+                            return <div className="bar-row static-bar" key={person}><span>{name(person)}</span><b>{fmt(value.paid)}</b><div><i style={{width:`${Math.max(1,value.paid/maximum*100)}%`,background:["var(--chart-1)","var(--chart-2)","var(--chart-3)","var(--chart-4)"][index%4]}}/></div></div>;
                           })}
                         </div>
                       </div>
