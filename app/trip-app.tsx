@@ -124,6 +124,7 @@ export default function TripApp({ shared = false, authenticatedEmail = "", authe
     [me, setMe] = useState(""),
     [tab, setTab] = useState("Dashboard"),
     [user, setUser] = useState(authenticatedEmail),
+    [canCreateEvents, setCanCreateEvents] = useState(false),
     [loaded, setLoaded] = useState(false),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
@@ -146,6 +147,7 @@ export default function TripApp({ shared = false, authenticatedEmail = "", authe
     [shareToken, setShareToken] = useState(""),
     [accessInfo, setAccessInfo] = useState<any>({ grants: [], shares: [] }),
     [target, setTarget] = useState(""),
+    [targetPerson, setTargetPerson] = useState(""),
     [role, setRole] = useState("Viewer"),
     [permissions, setPermissions] = useState<Permission[]>([]),
     [memberName, setMemberName] = useState(""),
@@ -199,6 +201,7 @@ export default function TripApp({ shared = false, authenticatedEmail = "", authe
       setNeedsPin(false);
       setRecords(shared ? [j.trip] : j.trips);
       if (j.user) setUser(j.user);
+      if (!shared) setCanCreateEvents(Boolean(j.canCreate));
       setLoaded(true);
       setError("");
     } catch (err) {
@@ -278,14 +281,15 @@ export default function TripApp({ shared = false, authenticatedEmail = "", authe
     if (!e) return;
     const pref = localStorage.getItem("tripshare-person-" + rec.id);
     setMe(
-      e.people.some((p) => p.id === pref)
-        ? pref!
-        : rec.person || e.people[0]?.id || "",
+      rec.owner
+        ? e.people.some((p) => p.id === pref) ? pref! : e.people[0]?.id || ""
+        : e.people.some((p) => p.id === rec.person) ? rec.person : "",
     );
     setStart("");
     setEnd("");
     setCat("All");
     setMerchant("");
+    setSettlementScope(rec.owner || (!shared && !!rec.person) ? "mine" : "everyone");
     setBill(null);
     setActivity(null);
 setPlannerDirty(false);
@@ -302,6 +306,7 @@ setPlannerDirty(false);
     }
   }, [tab, rec?.id, rec?.owner]);
   const name = (p: string) => e?.people.find((x) => x.id === p)?.name || p;
+  const hasPersonalAccess = !!e && (rec.owner || (!shared && e.people.some((p) => p.id === rec.person)));
   const fmt = (n: number) => money(n, e?.settlement || "MYR");
   async function send(action: string, extra: any = {}, refresh = true) {
     setBusy(true);
@@ -693,7 +698,7 @@ setPlannerDirty(false);
             </span>
             {!shared && <span className="sync-email"> · {user || "signed in"}</span>}
           </span>
-          {e && (
+          {e && rec.owner && (
             <Pick
               label="Viewing member"
               value={me}
@@ -703,6 +708,11 @@ setPlannerDirty(false);
                 localStorage.setItem("tripshare-person-" + rec.id, p);
               }}
             />
+          )}
+          {e && !rec.owner && !shared && rec.person && (
+            <span className="pill" title="Your account is linked to this member">
+              <UserRound size={14} /> {name(rec.person)}
+            </span>
           )}
         </div>
       </header>
@@ -800,26 +810,28 @@ setPlannerDirty(false);
                 <span className="pill">
                   {e?.kind === "daily" ? "DAILY GROUP" : "TRIP"}
                 </span>
-                <button
-                  className="secondary compact"
-                  onClick={() => {
-                    setCreating(true);
-                    setSettings({ ...newEvent(), kind: "trip" });
-                    setTab("Settings");
-                  }}
-                >
-                  + New Trip
-                </button>
-                <button
-                  className="secondary compact"
-                  onClick={() => {
-                    setCreating(true);
-                    setSettings({ ...newEvent(), kind: "daily" });
-                    setTab("Settings");
-                  }}
-                >
-                  + New Daily Group
-                </button>
+                {canCreateEvents && <>
+                  <button
+                    className="secondary compact"
+                    onClick={() => {
+                      setCreating(true);
+                      setSettings({ ...newEvent(), kind: "trip" });
+                      setTab("Settings");
+                    }}
+                  >
+                    + New Trip
+                  </button>
+                  <button
+                    className="secondary compact"
+                    onClick={() => {
+                      setCreating(true);
+                      setSettings({ ...newEvent(), kind: "daily" });
+                      setTab("Settings");
+                    }}
+                  >
+                    + New Daily Group
+                  </button>
+                </>}
               </div>
             )}
             {e && (
@@ -844,8 +856,8 @@ setPlannerDirty(false);
                     ...(e.kind === "trip" ? ["Trip Plan"] : []),
                     "Expenses",
                     "Settlement",
-                    "My spending",
-                    ...(!shared ? ["Settings"] : []),
+                    ...(hasPersonalAccess ? ["My spending"] : []),
+                    ...(!shared && rec.owner ? ["Settings"] : []),
                   ].map((t) => {
                     const Icon =
                       t === "Dashboard"
@@ -869,7 +881,7 @@ setPlannerDirty(false);
                 </TabsList>
               </Tabs>
             )}
-            {(!e || creating || settings) && !shared && (
+            {!shared && ((canCreateEvents && (!e || creating)) || (rec?.owner && !!settings)) && (
               <section className="panel">
                 <h2>
                   {creating || !e
@@ -1054,11 +1066,18 @@ setPlannerDirty(false);
                 })()}
               </section>
             )}
+            {!shared && !e && !canCreateEvents && loaded && (
+              <section className="panel empty">
+                <ShieldCheck size={30} />
+                <h2>No event access yet</h2>
+                <p className="muted">Ask the owner to add your sign-in email to a Trip or Daily Group.</p>
+              </section>
+            )}
             {e && !creating && !settings && (
               <>
                 {tab === "Dashboard" && (
                   <>
-                    <section className="stats">
+                    {hasPersonalAccess ? <section className="stats">
                       <article className="stat featured">
                         <span><Receipt size={17}/>{name(me)} · Total consumed</span>
                         <strong>{fmt(personal?.consumed || 0)}</strong>
@@ -1087,7 +1106,12 @@ setPlannerDirty(false);
                         </strong>
                         <small>After actual repayments</small>
                       </article>
-                    </section>
+                    </section> : <section className="stats">
+                      <article className="stat featured"><span><Receipt size={17}/>Group spending</span><strong>{fmt(sum!.total)}</strong><small>All recorded expenses in this event</small></article>
+                      <article className="stat"><span><ReceiptText size={17}/>Expenses</span><strong>{e.expenses.filter((x) => !x.deleted).length}</strong><small>Active expense records</small></article>
+                      <article className="stat"><span><UsersRound size={17}/>Members</span><strong>{e.people.filter((p) => p.active).length}</strong><small>Active members</small></article>
+                      <article className="stat"><span><HandCoins size={17}/>Payments remaining</span><strong>{sum!.transfers.length}</strong><small>Open Settlement for details</small></article>
+                    </section>}
                     <section className="two-col home-grid">
                       <div className="panel">
                         <div className="section-title">
@@ -1147,7 +1171,7 @@ setPlannerDirty(false);
                                 <button
                                   key={template.name}
                                   onClick={() => {
-                                    const b = blankExpense(e, me);
+                                    const b = blankExpense(e, e.people.find((p) => p.id === me)?.id || e.people[0]?.id || "");
                                     b.merchant = template.name;
                                     b.category = template.category;
                                     setBill(b);
@@ -1191,8 +1215,8 @@ setPlannerDirty(false);
                         )}
                       </div>
                       <div className="panel">
-                        <h2 className="card-title"><ChartPie size={20}/>Where your money goes</h2>
-                        {donut(true)}
+                        <h2 className="card-title"><ChartPie size={20}/>{hasPersonalAccess ? "Where your money goes" : "Group spending mix"}</h2>
+                        {donut(hasPersonalAccess)}
                       </div>
                     </section>
                     <section className="dashboard-charts">
@@ -1200,15 +1224,18 @@ setPlannerDirty(false);
                         <div className="section-title"><h2><ChartColumn size={20}/>Daily spending</h2><span className="pill">Group</span></div>
                         {bars("date", false)}
                       </div>
-                      <div className="panel">
-                        <div className="section-title"><h2><UsersRound size={20}/>Who paid upfront</h2><span className="pill">Cash paid</span></div>
+                      {rec.owner ? <div className="panel">
+                        <div className="section-title"><h2><UsersRound size={20}/>Who paid upfront</h2><span className="pill">OWNER VIEW</span></div>
                         <div className="bars">
                           {Object.entries(sum!.people).sort((a,b)=>b[1].paid-a[1].paid).map(([person,value],index) => {
                             const maximum = Math.max(1,...Object.values(sum!.people).map(x=>x.paid));
                             return <div className="bar-row static-bar" key={person}><span>{name(person)}</span><b>{fmt(value.paid)}</b><div><i style={{width:`${Math.max(1,value.paid/maximum*100)}%`,background:["var(--chart-1)","var(--chart-2)","var(--chart-3)","var(--chart-4)"][index%4]}}/></div></div>;
                           })}
                         </div>
-                      </div>
+                      </div> : <div className="panel">
+                        <div className="section-title"><h2><ChartPie size={20}/>Spending by category</h2><span className="pill">Group</span></div>
+                        {bars("category", false)}
+                      </div>}
                     </section>
                     {rec.owner && !shared && (
                       <section className="panel access-shortcut">
@@ -1288,7 +1315,7 @@ setPlannerDirty(false);
                     onDelete={id=>ask("Remove this plan?","Linked expenses remain in your ledger.","deleteActivity",id)}
                     onExpense={a=>add("simple",a)} onShare={whatsapp}/>
                 )}
-                {["Expenses", "My spending"].includes(tab) && (
+                {(tab === "Expenses" || (tab === "My spending" && hasPersonalAccess)) && (
                   <>
                     <section className="expense-overview">
                       <div>
@@ -1405,7 +1432,7 @@ setPlannerDirty(false);
                       <button className="secondary" onClick={() => whatsapp(shareText())}><Bell size={17}/> WhatsApp summary</button>
                     </div>
                     <div className="scope-switch" role="group" aria-label="Settlement view">
-                      <button className={settlementScope === "mine" ? "active" : ""} onClick={()=>setSettlementScope("mine")}><UserRound size={17}/> Mine</button>
+                      {hasPersonalAccess && <button className={settlementScope === "mine" ? "active" : ""} onClick={()=>setSettlementScope("mine")}><UserRound size={17}/> Mine</button>}
                       <button className={settlementScope === "everyone" ? "active" : ""} onClick={()=>setSettlementScope("everyone")}><UsersRound size={17}/> Everyone</button>
                     </div>
                     <div className="settlement-layout">
@@ -1545,7 +1572,7 @@ setPlannerDirty(false);
                     </div>
                   </section>
                 )}
-                {tab === "Settings" && !shared && (
+                {tab === "Settings" && !shared && rec.owner && (
                   <>
                     <section className="two-col">
                       <div className="panel">
@@ -1936,6 +1963,15 @@ setPlannerDirty(false);
                                 }}
                               />
                             </Field>
+                            <Field label="Link account to member">
+                              <Pick
+                                label="Member"
+                                value={targetPerson}
+                                options={[{ id: "", name: "Not linked" }, ...e.people.map((p) => ({ id: p.id, name: p.name }))]}
+                                onChange={setTargetPerson}
+                              />
+                            </Field>
+                            <p className="muted">Linked admins can open only their own personal spending page. They cannot switch to another member.</p>
                             <details>
                               <summary>Custom permissions</summary>
                               {permissionKeys.map((p) => (
@@ -1960,11 +1996,12 @@ setPlannerDirty(false);
                                 if (
                                   await send(
                                     "grant",
-                                    { email: target, permissions },
+                                    { email: target, permissions, person: targetPerson },
                                     false,
                                   )
                                 ) {
                                   setTarget("");
+                                  setTargetPerson("");
                                   const j = await send("accessInfo", {}, false);
                                   if (j) setAccessInfo(j);
                                   setNotice(
@@ -1981,6 +2018,7 @@ setPlannerDirty(false);
                                   {g.email}
                                   <small>
                                     {g.permissions.join(", ") || "Viewer"}
+                                    {g.person ? ` · ${name(g.person)}` : " · Personal page not linked"}
                                   </small>
                                 </span>
                                 <button

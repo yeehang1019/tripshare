@@ -58,6 +58,13 @@ async function access(row: any, who: Identity) {
     person: grant?.person || "",
   };
 }
+async function appOwner(who: Identity) {
+  const row: any = await database()
+    .prepare("SELECT 1 AS allowed FROM app_owner WHERE id='primary' AND (user=? OR email=?)")
+    .bind(who.user, who.email)
+    .first();
+  return !!row;
+}
 export async function GET(r: Request) {
   const who = await identity(r);
   if (!who) return response({ error: "Sign in to manage your events" }, 401);
@@ -72,10 +79,20 @@ export async function GET(r: Request) {
     for (const row of rows.results as any[]) {
       const a = await access(row, who);
       const data = normalize(JSON.parse(row.data));
-      if (!a.owner && !a.permissions.length) data.audit = [];
+      if (!a.owner) {
+        data.audit = [];
+        data.expenses = data.expenses.map((expense) => ({
+          ...expense,
+          createdBy: expense.createdBy === who.email ? who.email : "",
+        }));
+        data.payments = data.payments.map((payment) => ({
+          ...payment,
+          createdBy: payment.createdBy === who.email ? who.email : "",
+        }));
+      }
       trips.push({ id: row.id, revision: row.revision, data, ...a });
     }
-    return response({ trips, user: who.email });
+    return response({ trips, user: who.email, canCreate: await appOwner(who) });
   } catch (e) {
     console.error(e);
     return response({ error: "Could not load events. Please retry." }, 503);
@@ -97,6 +114,12 @@ export async function POST(r: Request) {
     const b = await r.json(),
       db = database();
     if (["create", "import"].includes(b.action)) {
+      await db
+        .prepare("INSERT OR IGNORE INTO app_owner(id,user,email) SELECT 'primary',?,? WHERE NOT EXISTS(SELECT 1 FROM app_owner WHERE id='primary') AND NOT EXISTS(SELECT 1 FROM trips)")
+        .bind(who.user, actor)
+        .run();
+      if (!(await appOwner(who)))
+        return response({ error: "Only the TripShare owner can create or import events" }, 403);
       const data: Event = normalize(b.data);
       if (b.action === "import") {
         data.audit = [];
@@ -165,6 +188,9 @@ export async function POST(r: Request) {
           b.permissions.some((p: any) => !permissionKeys.includes(p))
         )
           throw Error("Invalid permissions");
+        const person = String(b.person || "");
+        if (person && !normalize(JSON.parse(row.data)).people.some((p) => p.id === person))
+          throw Error("Choose a valid member for this account");
         await db
           .prepare(
             "INSERT INTO grants(id,trip,email,permissions,person) VALUES(?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET permissions=excluded.permissions,person=excluded.person",
@@ -174,7 +200,7 @@ export async function POST(r: Request) {
             row.id,
             target,
             JSON.stringify(b.permissions),
-            String(b.person || ""),
+            person,
           )
           .run();
         return response({ ok: true });

@@ -741,7 +741,14 @@ export const roles: Record<string, Permission[]> = {
   Viewer: [],
   "Expense Helper": ["addExpense", "editOwn"],
   "Trip Planner": ["plan"],
-  "Full Admin": [...permissionKeys],
+  "Event Admin · this event only": [
+    "addExpense",
+    "editOwn",
+    "editAll",
+    "settle",
+    "plan",
+    "members",
+  ],
 };
 export function allowed(
   perms: Permission[],
