@@ -747,7 +747,6 @@ export const roles: Record<string, Permission[]> = {
     "editAll",
     "settle",
     "plan",
-    "members",
   ],
 };
 export function allowed(

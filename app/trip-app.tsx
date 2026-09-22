@@ -1591,31 +1591,42 @@ setPlannerDirty(false);
                     <section className="two-col">
                       <div className="panel">
                         <h2>Members & groups</h2>
-                        {e.people.map((p) => (
-                          <div className="split-row" key={p.id}>
+                        {e.people.map((p) => {
+                          const account = accessInfo.grants.find((g: any) => g.person === p.id);
+                          const isAdmin = !!account?.permissions?.length;
+                          return <div className="split-row member-access-row" key={p.id}>
                             <span>
-                              {p.name}
+                              <b>{p.name}</b>
                               <small>
-                                {p.active
-                                  ? "Active"
-                                  : "Inactive · history retained"}
+                                {isAdmin ? "Event Admin" : "Member"}
+                                {account?.email ? ` · ${account.email}` : " · Not linked to an email"}
+                                {!p.active ? " · Inactive; history retained" : ""}
                               </small>
                             </span>
-                            {can("members") && (
+                            {can("members") && <span className="member-row-actions">
+                              <button
+                                className="text-button"
+                                onClick={() => {
+                                  setTarget(account?.email || "");
+                                  setTargetPerson(p.id);
+                                  const nextRole = isAdmin ? "Event Admin · this event only" : "Member · own data only";
+                                  setRole(nextRole);
+                                  setPermissions(account?.permissions || roles[nextRole]);
+                                  document.getElementById("member-access")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                                }}
+                              >
+                                {account ? "Edit access" : "Link email"}
+                              </button>
                               <button
                                 className="text-button"
                                 disabled={busy}
-                                onClick={() =>
-                                  send("person", {
-                                    entity: { ...p, active: !p.active },
-                                  })
-                                }
+                                onClick={() => send("person", { entity: { ...p, active: !p.active } })}
                               >
                                 {p.active ? "Set inactive" : "Reactivate"}
                               </button>
-                            )}
-                          </div>
-                        ))}
+                            </span>}
+                          </div>;
+                        })}
                         {can("members") && (
                           <>
                             <Field label="Add member">
@@ -1636,8 +1647,10 @@ setPlannerDirty(false);
                                       active: true,
                                     },
                                   })
-                                )
+                                ) {
                                   setMemberName("");
+                                  setNotice("Member added. Link an email only when this person needs to sign in.");
+                                }
                               }}
                             >
                               Add member
@@ -1957,8 +1970,9 @@ setPlannerDirty(false);
                               </div>
                             ))}
                           </div>
-                          <div>
-                            <h3>Give a member or admin access</h3>
+                          <div id="member-access">
+                            <h3>Member login & role</h3>
+                            <p className="muted">Everyone in the member list is a Member automatically. An email is required only when that person needs to sign in. Promote selected members to Event Admin when needed.</p>
                             <Field label="Their sign-in email">
                               <input
                                 type="email"
