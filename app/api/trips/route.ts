@@ -191,6 +191,8 @@ export async function POST(r: Request) {
         const person = String(b.person || "");
         if (person && !normalize(JSON.parse(row.data)).people.some((p) => p.id === person))
           throw Error("Choose a valid member for this account");
+        if (!b.permissions.length && !person)
+          throw Error("Choose which member this account belongs to");
         await db
           .prepare(
             "INSERT INTO grants(id,trip,email,permissions,person) VALUES(?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET permissions=excluded.permissions,person=excluded.person",

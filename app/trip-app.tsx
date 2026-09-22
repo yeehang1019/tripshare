@@ -148,7 +148,7 @@ export default function TripApp({ shared = false, authenticatedEmail = "", authe
     [accessInfo, setAccessInfo] = useState<any>({ grants: [], shares: [] }),
     [target, setTarget] = useState(""),
     [targetPerson, setTargetPerson] = useState(""),
-    [role, setRole] = useState("Viewer"),
+    [role, setRole] = useState("Member · own data only"),
     [permissions, setPermissions] = useState<Permission[]>([]),
     [memberName, setMemberName] = useState(""),
     [groupName, setGroupName] = useState(""),
@@ -167,6 +167,8 @@ export default function TripApp({ shared = false, authenticatedEmail = "", authe
  const rec = records.find((x) => x.id === id) || records[0],
     e = rec?.data;
   const can = (p: Permission) => !shared && !!rec?.permissions.includes(p);
+  const isMember = !!rec && !shared && !rec.owner && rec.permissions.length === 0 && !!rec.person;
+  const canViewGroup = !!rec && (shared || rec.owner || rec.permissions.length > 0);
   const editing = useRef(false),
     accessLoaded = useRef(false);
   editing.current = !!(bill || activity || settings || payment || plannerDirty);
@@ -290,6 +292,7 @@ export default function TripApp({ shared = false, authenticatedEmail = "", authe
     setCat("All");
     setMerchant("");
     setSettlementScope(rec.owner || (!shared && !!rec.person) ? "mine" : "everyone");
+    setTab(!rec.owner && !shared && rec.permissions.length === 0 && rec.person ? "My spending" : "Dashboard");
     setBill(null);
     setActivity(null);
 setPlannerDirty(false);
@@ -414,7 +417,13 @@ setPlannerDirty(false);
   function shareText() {
     if (!e) return "";
     const s = ledger(e);
-    return `${e.name}\nTotal spending: ${fmt(s.total)}\n\nSettlement\n${s.transfers.map((p) => `${name(p.from)} → ${name(p.to)}: ${fmt(p.amount)}`).join("\n") || "No outstanding balance"}${accessInfo.shares[0] ? "\n\nView details: " + viewLink(accessInfo.shares[0].token) : shared ? "\n\nView details: " + window.location.href : ""}`;
+    const transfers = isMember
+      ? s.transfers.filter((p) => p.from === me || p.to === me)
+      : s.transfers;
+    const heading = isMember
+      ? `${name(me)}'s settlement`
+      : `Total spending: ${fmt(s.total)}\n\nSettlement`;
+    return `${e.name}\n${heading}\n${transfers.map((p) => `${name(p.from)} → ${name(p.to)}: ${fmt(p.amount)}`).join("\n") || "No outstanding balance"}${!isMember && accessInfo.shares[0] ? "\n\nView details: " + viewLink(accessInfo.shares[0].token) : shared ? "\n\nView details: " + window.location.href : ""}`;
   }
   function download(text: string, type: string, filename: string) {
     const url = URL.createObjectURL(new Blob([text], { type })),
@@ -430,6 +439,9 @@ setPlannerDirty(false);
     ? settlementScope === "mine"
       ? sum.transfers.filter((transfer) => transfer.from === me || transfer.to === me)
       : sum.transfers
+    : [];
+  const visiblePayments = e
+    ? e.payments.filter((p) => !isMember || p.from === me || p.to === me)
     : [];
   const filtered =
     e?.expenses.filter(
@@ -851,14 +863,16 @@ setPlannerDirty(false);
                 }}
               >
                 <TabsList className="navigation" variant="line">
-                  {[
-                    "Dashboard",
-                    ...(e.kind === "trip" ? ["Trip Plan"] : []),
-                    "Expenses",
-                    "Settlement",
-                    ...(hasPersonalAccess ? ["My spending"] : []),
-                    ...(!shared && rec.owner ? ["Settings"] : []),
-                  ].map((t) => {
+                  {(isMember
+                    ? ["My spending", "Settlement"]
+                    : [
+                        "Dashboard",
+                        ...(e.kind === "trip" ? ["Trip Plan"] : []),
+                        "Expenses",
+                        "Settlement",
+                        ...(hasPersonalAccess ? ["My spending"] : []),
+                        ...(!shared && rec.owner ? ["Settings"] : []),
+                      ]).map((t) => {
                     const Icon =
                       t === "Dashboard"
                         ? LayoutDashboard
@@ -1075,7 +1089,7 @@ setPlannerDirty(false);
             )}
             {e && !creating && !settings && (
               <>
-                {tab === "Dashboard" && (
+                {tab === "Dashboard" && canViewGroup && (
                   <>
                     {hasPersonalAccess ? <section className="stats">
                       <article className="stat featured">
@@ -1307,7 +1321,7 @@ setPlannerDirty(false);
                     }}
                   />
                 )}
-                {tab === "Trip Plan" && e.kind === "trip" && (
+                {tab === "Trip Plan" && canViewGroup && e.kind === "trip" && (
                   <TripPlanner key={rec.id} event={e} busy={busy} canPlan={can("plan")} canExpense={can("addExpense")} draft={activity} setDraft={setActivity} onDirty={setPlannerDirty}
                     onBegin={()=>setDraftRevision(rec.revision)}
                     onSave={async entity=>!!(await send("activity",{entity,revision:draftRevision}))}
@@ -1315,7 +1329,7 @@ setPlannerDirty(false);
                     onDelete={id=>ask("Remove this plan?","Linked expenses remain in your ledger.","deleteActivity",id)}
                     onExpense={a=>add("simple",a)} onShare={whatsapp}/>
                 )}
-                {(tab === "Expenses" || (tab === "My spending" && hasPersonalAccess)) && (
+                {((tab === "Expenses" && canViewGroup) || (tab === "My spending" && hasPersonalAccess)) && (
                   <>
                     <section className="expense-overview">
                       <div>
@@ -1433,7 +1447,7 @@ setPlannerDirty(false);
                     </div>
                     <div className="scope-switch" role="group" aria-label="Settlement view">
                       {hasPersonalAccess && <button className={settlementScope === "mine" ? "active" : ""} onClick={()=>setSettlementScope("mine")}><UserRound size={17}/> Mine</button>}
-                      <button className={settlementScope === "everyone" ? "active" : ""} onClick={()=>setSettlementScope("everyone")}><UsersRound size={17}/> Everyone</button>
+                      {!isMember && <button className={settlementScope === "everyone" ? "active" : ""} onClick={()=>setSettlementScope("everyone")}><UsersRound size={17}/> Everyone</button>}
                     </div>
                     <div className="settlement-layout">
                     <div className="panel settlement-current">
@@ -1528,8 +1542,8 @@ setPlannerDirty(false);
                         </div>
                       ))}
                       <details className="payment-history">
-                        <summary>Past payments · {e.payments.length}</summary>
-                      {e.payments
+                        <summary>Past payments · {visiblePayments.length}</summary>
+                      {visiblePayments
                         .slice()
                         .reverse()
                         .map((p) => (
@@ -1564,7 +1578,7 @@ setPlannerDirty(false);
                             )}
                           </div>
                         ))}
-                      {!e.payments.length && (
+                      {!visiblePayments.length && (
                         <p className="muted">No repayments recorded.</p>
                       )}
                       </details>
@@ -1944,7 +1958,7 @@ setPlannerDirty(false);
                             ))}
                           </div>
                           <div>
-                            <h3>Grant access to an admin</h3>
+                            <h3>Give a member or admin access</h3>
                             <Field label="Their sign-in email">
                               <input
                                 type="email"
@@ -1971,7 +1985,7 @@ setPlannerDirty(false);
                                 onChange={setTargetPerson}
                               />
                             </Field>
-                            <p className="muted">Linked admins can open only their own personal spending page. They cannot switch to another member.</p>
+                            <p className="muted">Members see only their own spending and settlement. Event Admins can manage this event, including expenses and repayments, but cannot create another event or change access.</p>
                             <details>
                               <summary>Custom permissions</summary>
                               {permissionKeys.map((p) => (
@@ -2017,7 +2031,7 @@ setPlannerDirty(false);
                                 <span>
                                   {g.email}
                                   <small>
-                                    {g.permissions.join(", ") || "Viewer"}
+                                    {g.permissions.join(", ") || "Member · own data only"}
                                     {g.person ? ` · ${name(g.person)}` : " · Personal page not linked"}
                                   </small>
                                 </span>

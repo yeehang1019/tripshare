@@ -738,7 +738,7 @@ export const permissionKeys = [
 ] as const;
 export type Permission = (typeof permissionKeys)[number];
 export const roles: Record<string, Permission[]> = {
-  Viewer: [],
+  "Member · own data only": [],
   "Expense Helper": ["addExpense", "editOwn"],
   "Trip Planner": ["plan"],
   "Event Admin · this event only": [
