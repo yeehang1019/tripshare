@@ -115,5 +115,10 @@ test('Personal sync paginates Daily and Trip, isolates B, records repayments and
  await h.post({action:'restoreExpense',id:d,revision:6,entityId:bill.id});
  const restored=await h.syncRead(removed.next_cursor);assert.equal(restored.entries[0].deleted,false);assert.equal(restored.entries[0].consumed_minor,5000);
  assert.equal((await h.get('b@example.com')).trips.every(x=>x.personal.name==='B'),true);
+ h.integrationEnv.POCKET_SYNC_TOKEN='';assert.equal((await h.syncRead()).status,503);
+ h.integrationEnv.POCKET_SYNC_TOKEN='test-only-secret';
+ h.sqlite.exec('DELETE FROM sync_limits');
+ for(let n=0;n<60;n++)assert.equal((await h.syncRead()).status,200);
+ assert.equal((await h.syncRead()).status,429);
  h.sqlite.close();
 });
