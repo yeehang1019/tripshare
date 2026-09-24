@@ -1,4 +1,5 @@
 import { database } from "@/db/raw";
+import { memberRecord } from "@/lib/personal";
 import {
   normalize,
   validateEvent,
@@ -26,7 +27,7 @@ const sessionToken = (r: Request) =>
     .map((part) => part.trim())
     .find((part) => part.startsWith("tripshare_session="))
     ?.slice("tripshare_session=".length) || "";
-async function identity(r: Request): Promise<Identity | null> {
+export async function identity(r: Request): Promise<Identity | null> {
   const headerUser = r.headers.get("oai-authenticated-user-id") || "";
   const headerEmail = email(r);
   if (headerUser && headerEmail) return { user: headerUser, email: headerEmail };
@@ -38,7 +39,7 @@ async function identity(r: Request): Promise<Identity | null> {
     .first();
   return row ? { user: row.user, email: row.email } : null;
 }
-async function access(row: any, who: Identity) {
+export async function access(row: any, who: Identity) {
   const owner =
     row.owner === who.user ||
     (!!row.owner_email && row.owner_email === who.email);
@@ -79,6 +80,11 @@ export async function GET(r: Request) {
     for (const row of rows.results as any[]) {
       const a = await access(row, who);
       const data = normalize(JSON.parse(row.data));
+      if (!a.owner && !a.permissions.length) {
+        if (a.person && data.people.some(p => p.id === a.person))
+          trips.push(memberRecord(row.id, row.revision, data, a.person));
+        continue;
+      }
       if (!a.owner) {
         data.audit = [];
         data.expenses = data.expenses.map((expense) => ({
@@ -391,12 +397,28 @@ export async function POST(r: Request) {
     });
     if (JSON.stringify(data).length > 3000000)
       throw Error("Event is full. Export a backup and create a new event.");
-    const result = await db
-      .prepare(
-        "UPDATE trips SET data=?,revision=revision+1 WHERE id=? AND revision=?",
-      )
-      .bind(JSON.stringify(data), row.id, b.revision)
-      .run();
+    const changes: {kind:string;recordId:string;members:string}[] = [];
+    if (['expense','deleteExpense','restoreExpense'].includes(b.action)) {
+      const current = data.expenses.find(x => x.id === entity);
+      const participants = (x?: Expense) => x ? [
+        ...x.items.flatMap(item => item.people), ...x.payers.map(p => p.person),
+        ...(x.treat ? [x.treat] : []), ...(x.voucherOwner ? [x.voucherOwner] : []),
+      ] : [];
+      changes.push({kind:'expense',recordId:entity,members:JSON.stringify([...new Set([...participants(old),...participants(current)])])});
+    }
+    if (['payment','undoPayment'].includes(b.action)) {
+      const p = data.payments.find(x => x.id === entity);
+      if (p) changes.push({kind:'payment',recordId:entity,members:JSON.stringify([p.from,p.to])});
+    }
+    const now = new Date().toISOString();
+    const results = await db.batch([
+      db.prepare('UPDATE trips SET data=?,revision=revision+1 WHERE id=? AND revision=?')
+        .bind(JSON.stringify(data), row.id, b.revision),
+      ...changes.map(change => db.prepare(
+        'INSERT INTO sync_changes(trip,kind,record_id,members,changed_at) SELECT ?,?,?,?,? WHERE EXISTS(SELECT 1 FROM trips WHERE id=? AND revision=?)'
+      ).bind(row.id,change.kind,change.recordId,change.members,now,row.id,b.revision+1)),
+    ]);
+    const result = results[0];
     if (!result.meta.changes)
       return response(
         {

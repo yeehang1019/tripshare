@@ -85,6 +85,10 @@ type RecordT = {
   permissions: Permission[];
   person: string;
   revision: number;
+  personal?: {name:string;consumed:number;paid:number;
+    transfers:{from:string;to:string;fromName:string;toName:string;amount:number}[];
+    expenses:{id:string;date:string;title:string;category:string;consumed:number;paid:number;items:{name:string;amount:number}[]}[];
+    payments:{id:string;date:string;from:string;to:string;fromName:string;toName:string;amount:number}[]};
 };
 type InstallPrompt = globalThis.Event & {
   prompt: () => Promise<void>;
@@ -183,7 +187,7 @@ export default function TripApp({ shared = false, authenticatedEmail = "", authe
           new URLSearchParams(window.location.hash.slice(1)).get("key") || "";
         r = await fetch("/api/view", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json",...(authenticatedSession ? {"X-TripShare-Session":authenticatedSession} : {}) },
           body: JSON.stringify({ token: token.current, pin: pinRef.current }),
         });
       } else r = await fetch("/api/trips", {
@@ -639,6 +643,17 @@ setPlannerDirty(false);
         </details>
       );
     });
+  }
+  if(rec?.personal){
+    const view=rec.personal;
+    const owe=view.transfers.filter(t=>t.from===rec.person).reduce((n,t)=>n+t.amount,0);
+    const receive=view.transfers.filter(t=>t.to===rec.person).reduce((n,t)=>n+t.amount,0);
+    return <div className="app member-view"><header><a className="brand" href="/">tripshare<span className="brand-dot">.</span></a><strong>{view.name} · {e?.kind==='trip'?'Trip':'Daily Group'}</strong></header>
+      <main><section className="panel"><h1>{e?.name}</h1><p>Your own spending and outstanding payments</p>
+        <select aria-label="Choose event" value={rec.id} onChange={x=>setId(x.target.value)}>{records.map(x=><option value={x.id} key={x.id}>{x.data.name}</option>)}</select>
+        <div className="stats personal-stats"><div className="stat featured"><span>Total consumed</span><strong>{fmt(view.consumed)}</strong></div><div className="stat"><span>Actually paid</span><strong>{fmt(view.paid)}</strong></div><div className="stat"><span>Need to pay</span><strong>{fmt(owe)}</strong></div><div className="stat"><span>Need to receive</span><strong>{fmt(receive)}</strong></div></div>
+      </section><section className="panel"><h2>My expenses</h2>{view.expenses.map(b=><details key={b.id} className="expense-row"><summary><strong>{b.title}</strong> · {b.date} · {b.category} · My share {fmt(b.consumed)} · Paid {fmt(b.paid)}</summary><ul>{b.items.map((item,i)=><li key={i}>{item.name} · {fmt(item.amount)}</li>)}</ul></details>)}{!view.expenses.length&&<p>No personal expenses yet.</p>}</section>
+      <section className="panel"><h2>My settlement</h2>{view.transfers.map(t=><div key={t.from+':'+t.to} className="expense-row"><strong>{t.fromName} → {t.toName}: {fmt(t.amount)}</strong></div>)}{!view.transfers.length&&<p>All settled.</p>}<h3>Repayment history</h3>{view.payments.map(p=><p key={p.id}>{p.date} · {p.fromName} → {p.toName} · {fmt(p.amount)}</p>)}</section></main></div>;
   }
   return (
     <div className="app">

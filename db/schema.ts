@@ -13,3 +13,14 @@ export const userPreferences=sqliteTable('user_preferences',{
   motion:text('motion').notNull().default('smooth'),
   updatedAt:integer('updated_at').notNull(),
 },t=>[index('user_preferences_email').on(t.email)]);
+export const syncChanges=sqliteTable('sync_changes',{
+  seq:integer('seq').primaryKey({autoIncrement:true}),
+  trip:text('trip').notNull(),
+  kind:text('kind').notNull(),
+  recordId:text('record_id').notNull(),
+  members:text('members').notNull(),
+  changedAt:text('changed_at').notNull(),
+},t=>[index('sync_changes_trip_seq').on(t.trip,t.seq)]);
+export const syncLimits=sqliteTable('sync_limits',{
+  key:text('key').primaryKey(), count:integer('count').notNull(),
+},t=>[]);
