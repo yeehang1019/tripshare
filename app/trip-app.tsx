@@ -94,17 +94,22 @@ type InstallPrompt = globalThis.Event & {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 };
-type PaletteName = "neon" | "sky" | "mono" | "warm" | "emerald" | "crimson";
+type PaletteName = "cyberpunk" | "cozy" | "plum" | "abyss" | "sahara" | "northern" | "kodak" | "amazon" | "interstellar" | "kyoto";
 type ThemeMode = "light" | "night";
 type MotionMode = "full" | "smooth" | "battery";
 const paletteLabels: Record<PaletteName, string> = {
-  neon: "Purple Dream",
-  sky: "Ocean Blue",
-  mono: "Monochrome",
-  warm: "Warm Journey",
-  emerald: "Emerald Nature",
-  crimson: "Crimson",
+  cyberpunk: "Cyberpunk", cozy: "Cozy Cabin", plum: "Mount Hua Plum",
+  abyss: "Abyss", sahara: "Sahara Dusk", northern: "Northern Lights",
+  kodak: "Kodak Moment", amazon: "Amazon", interstellar: "Interstellar",
+  kyoto: "Kyoto Spring",
 };
+const previousPalette: Record<string, PaletteName> = {
+  neon: "cyberpunk", sky: "abyss", mono: "interstellar",
+  warm: "cozy", emerald: "amazon", crimson: "kyoto",
+};
+const resolvePalette = (value: string | null): PaletteName | null =>
+  value && Object.prototype.hasOwnProperty.call(paletteLabels, value) ? value as PaletteName :
+    value && previousPalette[value] ? previousPalette[value] : null;
 const newEvent = (): TripEvent => ({
   schema: 2,
   name: "",
@@ -160,7 +165,7 @@ export default function TripApp({ shared = false, authenticatedEmail = "", authe
     [payment, setPayment] = useState<any>(null),
     [settlementScope, setSettlementScope] = useState<"mine" | "everyone">("mine"),
     [theme, setTheme] = useState<ThemeMode>("light"),
-    [palette, setPalette] = useState<PaletteName>("neon"),
+    [palette, setPalette] = useState<PaletteName>("cyberpunk"),
     [motionMode, setMotionMode] = useState<MotionMode>("smooth"),
     [confirm, setConfirm] = useState<{
       title: string;
@@ -220,14 +225,16 @@ export default function TripApp({ shared = false, authenticatedEmail = "", authe
     const savedPalette = localStorage.getItem("tripshare-palette");
     const savedMotion = localStorage.getItem("tripshare-motion");
     setTheme(savedTheme === "night" ? "night" : "light");
-    if (["neon", "sky", "mono", "warm", "emerald", "crimson"].includes(savedPalette || "")) setPalette(savedPalette as PaletteName);
+    const restoredPalette = resolvePalette(savedPalette);
+    if (restoredPalette) setPalette(restoredPalette);
     if (["full", "smooth", "battery"].includes(savedMotion || "")) setMotionMode(savedMotion as MotionMode);
     if (!shared && authenticatedSession) {
       fetch("/api/preferences", { headers: { "X-TripShare-Session": authenticatedSession } })
         .then((response) => response.ok ? response.json() : null)
         .then((preference) => {
           if (!preference) return;
-          if (["neon", "sky", "mono", "warm", "emerald", "crimson"].includes(preference.palette)) setPalette(preference.palette);
+          const syncedPalette = resolvePalette(preference.palette);
+          if (syncedPalette) setPalette(syncedPalette);
           if (["light", "night"].includes(preference.mode)) setTheme(preference.mode);
           if (["full", "smooth", "battery"].includes(preference.motion)) setMotionMode(preference.motion);
         })

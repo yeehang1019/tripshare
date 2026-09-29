@@ -32,7 +32,7 @@ export async function GET(request: Request) {
     .prepare("SELECT palette,mode,motion FROM user_preferences WHERE user=?")
     .bind(who.user)
     .first();
-  return response(row || { palette: "neon", mode: "light", motion: "smooth" });
+  return response(row || { palette: "cyberpunk", mode: "light", motion: "smooth" });
 }
 
 export async function POST(request: Request) {
@@ -41,7 +41,7 @@ export async function POST(request: Request) {
   if (request.headers.get("origin") && request.headers.get("origin") !== new URL(request.url).origin)
     return response({ error: "Invalid origin" }, 403);
   const body = await request.json();
-  const palettes = ["neon", "sky", "mono", "warm", "emerald", "crimson"];
+  const palettes = ["cyberpunk", "cozy", "plum", "abyss", "sahara", "northern", "kodak", "amazon", "interstellar", "kyoto"];
   const modes = ["light", "night"];
   const motions = ["full", "smooth", "battery"];
   if (!palettes.includes(body.palette) || !modes.includes(body.mode) || !motions.includes(body.motion))
