@@ -459,13 +459,18 @@ setPlannerDirty(false);
       ? (typeof window === "undefined" ? "" : localStorage.getItem("tripshare-person-" + record.id) || "")
       : record.person;
     if (!memberId || !record.data.people.some((person) => person.id === memberId)) return [];
-    const transfers = record.personal?.transfers || ledger(record.data).transfers;
+    const groupLedger = record.personal ? null : ledger(record.data);
+    const transfers = record.personal?.transfers || groupLedger!.transfers;
+    const consumption = record.personal?.consumed ?? groupLedger?.people[memberId]?.consumed ?? 0;
+    const paid = record.personal?.paid ?? groupLedger?.people[memberId]?.paid ?? 0;
     return [{
       id: record.id,
       name: record.data.name,
       kind: record.data.kind,
       currency: record.data.settlement,
       member: record.data.people.find((person) => person.id === memberId)!.name,
+      consumed: consumption,
+      paid,
       pay: transfers.filter((transfer) => transfer.from === memberId).reduce((total, transfer) => total + transfer.amount, 0),
       receive: transfers.filter((transfer) => transfer.to === memberId).reduce((total, transfer) => total + transfer.amount, 0),
     }];
@@ -474,6 +479,12 @@ setPlannerDirty(false);
     const currency = totals[group.currency] ||= { pay: 0, receive: 0 };
     currency.pay += group.pay;
     currency.receive += group.receive;
+    return totals;
+  }, {}));
+  const spendingTotals = Object.entries(crossGroupBalances.reduce<Record<string, { consumed: number; paid: number }>>((totals, group) => {
+    const currency = totals[group.currency] ||= { consumed: 0, paid: 0 };
+    currency.consumed += group.consumed;
+    currency.paid += group.paid;
     return totals;
   }, {}));
   const unselectedOwnerGroups = !shared ? records.filter((record) => record.owner && !crossGroupBalances.some((group) => group.id === record.id)).length : 0;
@@ -891,6 +902,15 @@ setPlannerDirty(false);
                 </>}
               </div>
             )}
+            {!shared && records.length > 0 && <section className="panel all-spending" aria-label="Total personal spending across groups">
+              <div className="section-title"><h2><Receipt size={20}/> My total spending</h2><small>All time · Daily + Trip</small></div>
+              {spendingTotals.length ? <div className="all-spending-totals">{spendingTotals.map(([currency, total]) => <div key={currency}><span>{currency} · My consumption</span><strong>{money(total.consumed, currency)}</strong><small>Paid upfront: {money(total.paid, currency)}</small></div>)}</div> : <p className="muted">Choose your own member in each group to see your spending total.</p>}
+              {unselectedOwnerGroups > 0 && <p className="muted">{unselectedOwnerGroups} owned group{unselectedOwnerGroups === 1 ? " is" : "s are"} excluded. Open each group and choose your own name under Viewing member.</p>}
+              <details className="all-spending-details"><summary>View spending by group · {crossGroupBalances.length}</summary>
+                {crossGroupBalances.map((group) => <div className="all-spending-row" key={group.id}><span><b>{group.name}</b><small>{group.kind === "daily" ? "Daily group" : "Trip"} · {group.member}</small></span><span><b>{money(group.consumed, group.currency)}</b><small>Paid upfront {money(group.paid, group.currency)}</small></span></div>)}
+              </details>
+              <small>Consumption is your share of each expense. Repayments do not change spending; currencies are shown separately.</small>
+            </section>}
             {e && (
               <Tabs
                 value={tab}
