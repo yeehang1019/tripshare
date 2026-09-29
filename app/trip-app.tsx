@@ -447,6 +447,29 @@ setPlannerDirty(false);
   const visiblePayments = e
     ? e.payments.filter((p) => !isMember || p.from === me || p.to === me)
     : [];
+  const crossGroupBalances = !shared ? records.flatMap((record) => {
+    const memberId = record.owner
+      ? (typeof window === "undefined" ? "" : localStorage.getItem("tripshare-person-" + record.id) || "")
+      : record.person;
+    if (!memberId || !record.data.people.some((person) => person.id === memberId)) return [];
+    const transfers = record.personal?.transfers || ledger(record.data).transfers;
+    return [{
+      id: record.id,
+      name: record.data.name,
+      kind: record.data.kind,
+      currency: record.data.settlement,
+      member: record.data.people.find((person) => person.id === memberId)!.name,
+      pay: transfers.filter((transfer) => transfer.from === memberId).reduce((total, transfer) => total + transfer.amount, 0),
+      receive: transfers.filter((transfer) => transfer.to === memberId).reduce((total, transfer) => total + transfer.amount, 0),
+    }];
+  }) : [];
+  const crossGroupTotals = Object.entries(crossGroupBalances.reduce<Record<string, { pay: number; receive: number }>>((totals, group) => {
+    const currency = totals[group.currency] ||= { pay: 0, receive: 0 };
+    currency.pay += group.pay;
+    currency.receive += group.receive;
+    return totals;
+  }, {}));
+  const unselectedOwnerGroups = !shared ? records.filter((record) => record.owner && !crossGroupBalances.some((group) => group.id === record.id)).length : 0;
   const filtered =
     e?.expenses.filter(
       (b) =>
@@ -1452,6 +1475,15 @@ setPlannerDirty(false);
                 )}
                 {tab === "Settlement" && (
                   <section className="settlement-page">
+                    {!shared && <section className="panel cross-group-summary" aria-label="All groups settlement summary">
+                      <div className="section-title"><h2><Wallet size={20}/> Across my groups</h2><small>Outstanding balances · {crossGroupBalances.length} group{crossGroupBalances.length === 1 ? "" : "s"}</small></div>
+                      {crossGroupTotals.length ? <>
+                        <div className="cross-group-totals">{crossGroupTotals.map(([currency, total]) => <div key={currency} className="cross-group-total"><span>{currency} · Total to pay</span><strong>{money(total.pay, currency)}</strong><small>To receive: {money(total.receive, currency)}</small></div>)}</div>
+                        <div className="cross-group-list">{crossGroupBalances.map((group) => <button key={group.id} className="cross-group-row" onClick={() => { if (group.id !== rec.id) choose(group.id); else document.querySelector(".settlement-current")?.scrollIntoView({ behavior: "smooth" }); }}><span><b>{group.name}</b><small>{group.kind === "daily" ? "Daily group" : "Trip"} · {group.member}</small></span><span>Pay {money(group.pay, group.currency)}<small>Receive {money(group.receive, group.currency)}</small></span></button>)}</div>
+                      </> : <p className="muted">Link your account to a member, or choose your member in each group to see your total.</p>}
+                      {unselectedOwnerGroups > 0 && <p className="muted">{unselectedOwnerGroups} owned group{unselectedOwnerGroups === 1 ? " is" : "s are"} excluded. Open each one and choose your own name under Viewing member.</p>}
+                      <small>Totals are kept separate by currency. Payments to receive do not reduce the amount to pay.</small>
+                    </section>}
                     <div className="settlement-hero">
                       <div>
                         <p className="eyebrow">{settlementScope === "mine" ? "MY SETTLEMENT" : "GROUP SETTLEMENT"}</p>
