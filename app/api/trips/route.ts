@@ -43,9 +43,7 @@ export async function access(row: any, who: Identity) {
   const owner =
     row.owner === who.user ||
     (!!row.owner_email && row.owner_email === who.email);
-  const grant: any = owner
-    ? null
-    : await database()
+  const grant: any = await database()
         .prepare("SELECT * FROM grants WHERE trip=? AND email=?")
         .bind(row.id, who.email)
         .first();
@@ -301,6 +299,8 @@ export async function POST(r: Request) {
           403,
         );
       if (b.action === "expense") {
+        if (old && (b.entity.paymentStatus || 'paid') !== 'paid' && (old.paymentStatus || 'paid') === 'paid' && data.payments.some(p => !p.deleted && (!p.allocations || p.allocations.some(a => a.expense === entity))))
+          throw Error("Undo repayments linked to this expense before changing it to unpaid or prepaid");
         const expense: Expense = {
           ...b.entity,
           createdBy: old?.createdBy || actor,

@@ -11,6 +11,7 @@ export type Item = {
   service: boolean;
 };
 export type Expense = {
+  paymentStatus?: "paid" | "postpaid" | "prepaid";
   id: string;
   date: string;
   merchant: string;
@@ -271,6 +272,7 @@ export function blankExpense(e: Event, person: string): Expense {
   };
 }
 export function calculate(b: Expense, settlement: string) {
+  check(!b.paymentStatus || ['paid', 'postpaid', 'prepaid'].includes(b.paymentStatus), 'Invalid payment status');
   check(b.items.length > 0 && b.items.length <= 300, "Add 1–300 items");
   check(
     currencies.includes(b.currency) && currencies.includes(settlement),
@@ -453,10 +455,23 @@ export function calculate(b: Expense, settlement: string) {
   if (contribution)
     funding[b.voucherOwner] = (funding[b.voucherOwner] || 0) + contribution;
   const responsible = b.treat ? { [b.treat]: total } : consumed;
+  const owingMembers = Object.keys(responsible);
+  const unpaid = b.paymentStatus === 'postpaid' ? Object.fromEntries(owingMembers.map((p, i) => [p, allocate(cashSettle, owingMembers.map(id => responsible[id]))[i]])) : {};
+  const prepaid = b.paymentStatus === 'prepaid' ? { ...paid } : {};
+  if (b.paymentStatus === 'postpaid') {
+    for (const p of Object.keys(paid)) paid[p] = 0;
+    for (const p of Object.keys(funding)) funding[p] = 0;
+  }
+  if (b.paymentStatus === 'prepaid') {
+    for (const p of Object.keys(consumed)) consumed[p] = 0;
+    for (const p of Object.keys(responsible)) responsible[p] = 0;
+  }
   return {
     cashTotal,
     cashSettle,
-    total,
+    total: b.paymentStatus === 'prepaid' ? 0 : total,
+    unpaid,
+    prepaid,
     cost,
     consumed,
     paid,
@@ -467,7 +482,7 @@ export function calculate(b: Expense, settlement: string) {
     lines,
     tax: tax.reduce((a, v) => a + v, 0),
     service: service.reduce((a, v) => a + v, 0),
-    contribution,
+    contribution: !b.paymentStatus || b.paymentStatus === 'paid' ? contribution : 0,
   };
 }
 type DebtClaim = {
@@ -497,6 +512,7 @@ function addClaim(
 function claimsBeforePayments(e: Event) {
   const claims: DebtClaim[] = [];
   for (const b of e.expenses.filter((x) => !x.deleted)) {
+    if (b.paymentStatus === 'postpaid' || b.paymentStatus === 'prepaid') continue;
     const c = calculate(b, e.settlement),
       owing = { ...c.responsible },
       funding = { ...c.funding };
@@ -603,7 +619,7 @@ export function ledger(e: Event) {
   const people = Object.fromEntries(
     e.people.map((p) => [
       p.id,
-      { consumed: 0, paid: 0, responsible: 0, contribution: 0, balance: 0 },
+      { consumed: 0, paid: 0, responsible: 0, contribution: 0, balance: 0, unpaid: 0, prepaid: 0 },
     ]),
   );
   let total = 0;
@@ -612,6 +628,8 @@ export function ledger(e: Event) {
     total += c.total;
     for (const [p, v] of Object.entries(c.consumed)) people[p].consumed += v;
     for (const [p, v] of Object.entries(c.paid)) people[p].paid += v;
+    for (const [p, v] of Object.entries(c.unpaid)) people[p].unpaid += v;
+    for (const [p, v] of Object.entries(c.prepaid)) people[p].prepaid += v;
     for (const [p, v] of Object.entries(c.responsible))
       people[p].responsible += v;
     if (c.contribution) people[b.voucherOwner].contribution += c.contribution;

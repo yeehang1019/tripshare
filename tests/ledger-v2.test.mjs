@@ -26,3 +26,11 @@ test('Soft delete / restore and permissions',()=>{const e=event(),b=bill(e);e.ex
 test('Deterministic cent conservation across discounts, tax and voucher',()=>{for(let n=1;n<=100;n++){const b=bill();b.items[0].amount=n*1234;b.discount=n;b.tax=6;b.service=10;b.voucher=n*2;const c=calculate(b,'MYR');assert.equal(Object.values(c.consumed).reduce((a,v)=>a+v,0),c.total);assert.equal(Object.values(c.paid).reduce((a,v)=>a+v,0),c.cashSettle)}});
 test('Selected item discount is proportional and excludes unrelated item',()=>{const b=bill();b.items=[[530,'A'],[530,'B'],[590,'C'],[1090,'C extra']].map(([amount,name],i)=>({...blankItem([i<2?String(name):'YC']),amount,name}));b.items[0].people=['YH'];b.items[1].people=['ET'];b.discount=530;b.discountItems=b.items.slice(0,3).map(i=>i.id);const c=calculate(b,'MYR');assert.deepEqual(c.consumed,{YH:360,ET:360,YC:1490});assert.deepEqual(c.lines.map(x=>x.discount),[170,170,190,0]);assert.equal(c.total,2210)});
 test('Invalid negative split rejected',()=>assert.throws(()=>allocate(100,[1,-1]),/weights/));
+
+test('Postpaid and prepaid distinguish consumption, cash and supplier obligations',()=>{
+ const e=event(),b=bill(e,12000);b.items[0].people=['YH','ET','YC'];e.expenses=[b];
+ b.paymentStatus='postpaid';let s=ledger(e);assert.equal(s.people.YH.consumed,4000);assert.equal(s.people.ET.paid,0);assert.equal(s.people.YH.unpaid,4000);assert.equal(s.transfers.length,0);
+ b.paymentStatus='prepaid';s=ledger(e);assert.equal(s.total,0);assert.equal(s.people.YH.consumed,0);assert.equal(s.people.ET.paid,12000);assert.equal(s.people.ET.prepaid,12000);assert.equal(s.transfers.length,0);
+ b.paymentStatus='paid';s=ledger(e);assert.equal(s.total,12000);assert.equal(s.people.YH.consumed,4000);assert.equal(s.people.ET.paid,12000);assert.equal(s.people.ET.prepaid,0);assert.equal(s.people.YH.unpaid,0);assert.equal(s.transfers.length,2);assert.equal(e.expenses.length,1);
+ b.paymentStatus='invalid';assert.throws(()=>calculate(b,'MYR'),/payment status/);
+});

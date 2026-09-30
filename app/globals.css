@@ -280,3 +280,12 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible{
 /* Keep headline copy readable for bright accent palettes. */
 [data-palette] .featured,[data-palette] .settlement-hero,[data-palette] .plan-hero,[data-palette] .expense-overview{background:var(--primary);color:var(--primary-foreground)}
 .all-spending{margin-bottom:22px}.all-spending .section-title h2{display:flex;gap:9px;align-items:center}.all-spending-totals{display:flex;flex-wrap:wrap;gap:12px;margin:15px 0}.all-spending-totals>div{flex:1 1 190px;display:grid;gap:2px;padding:15px;border:1px solid var(--border);border-radius:12px;background:var(--background)}.all-spending-totals span{font-size:14px}.all-spending-totals strong{font-size:29px;line-height:1.2}.all-spending-details{margin:10px 0}.all-spending-details summary{cursor:pointer;font-weight:600;color:var(--primary);padding:8px 0}.all-spending-row{display:flex;justify-content:space-between;gap:16px;border-top:1px solid var(--border);padding:11px 0}.all-spending-row>span{display:grid;gap:2px}.all-spending-row>span:last-child{text-align:right}.all-spending-row small{display:block}@media(max-width:560px){.all-spending .section-title{align-items:flex-start;flex-direction:column}}
+/* Explicit foreground/background pairs for member chips and portalled controls. */
+[data-palette] .person{background:var(--surface)!important;color:var(--text)!important;border:1px solid var(--border)!important}
+[data-palette] .person.selected{background:color-mix(in srgb,var(--primary) 16%,var(--surface))!important;color:var(--text)!important;border-color:var(--primary)!important}
+[data-palette] [data-slot="checkbox"]{background:var(--surface);color:var(--text);border-color:var(--primary)}
+[data-palette] [data-slot="checkbox"][data-state="checked"]{background:var(--primary);color:var(--primary-foreground);border-color:var(--primary)}
+[data-palette] [data-slot="select-content"],[data-palette] [data-slot="dropdown-menu-content"]{background:var(--surface);color:var(--text);border-color:var(--border)}
+[data-palette] [data-slot="select-item"][data-highlighted],[data-palette] [role="menuitemradio"][data-highlighted]{background:color-mix(in srgb,var(--primary) 16%,var(--surface));color:var(--text)}
+[data-palette] .pick,[data-palette] .check-label{color:var(--text)!important}
+[data-palette] .featured svg,[data-palette] .featured small,[data-palette] .featured span{color:var(--primary-foreground)!important}

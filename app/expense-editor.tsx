@@ -185,7 +185,15 @@ export default function ExpenseEditor({
           <div><b>Amount & people</b><small>Who paid, and who shared it?</small></div>
         </div>
         <div className="fields">
-          <Field label="Paid by">
+          <Field label="Payment status">
+            <Pick label="Payment status" value={b.paymentStatus || 'paid'} options={[
+              {id:'paid',name:'Consumed & paid'},
+              {id:'postpaid',name:'Postpaid · consumed, not paid'},
+              {id:'prepaid',name:'Prepaid · paid, not consumed'},
+            ]} onChange={(paymentStatus) => update({paymentStatus:paymentStatus as Expense['paymentStatus']})}/>
+            <small>{b.paymentStatus === 'postpaid' ? 'Counts as consumption and unpaid to the supplier. Change to Consumed & paid after payment.' : b.paymentStatus === 'prepaid' ? 'Counts as paid upfront only. Edit this same record to Consumed & paid when used; do not add a second expense.' : 'Counts as consumption and actual payment. Member reimbursements appear in Settlement.'}</small>
+          </Field>
+          <Field label={b.paymentStatus === 'postpaid' ? "Will be paid by" : "Paid by"}>
             <Pick
               label="Paid by"
               value={b.payers[0]?.person || ""}
@@ -651,7 +659,7 @@ export default function ExpenseEditor({
                 <b>{money(v, e.settlement)}</b>
               </div>
             ))}
-            {!b.treat && b.payers.length === 1 && (
+            {!b.treat && b.payers.length === 1 && (!b.paymentStatus || b.paymentStatus === 'paid') && (
               <div className="live-result">
                 <b>After saving</b>
                 {Object.entries(c.responsible).filter(([p,v])=>p !== b.payers[0].person && v > 0).map(([p,v])=><p key={p}><span>{name(p)} will owe {name(b.payers[0].person)}</span><b>{money(v,e.settlement)}</b></p>)}

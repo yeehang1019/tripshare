@@ -122,3 +122,29 @@ test('Personal sync paginates Daily and Trip, isolates B, records repayments and
  assert.equal((await h.syncRead()).status,429);
  h.sqlite.close();
 });
+
+test('Owner retains full access and their email member binding in both groups',async()=>{
+ const h=await harness();
+ for(const [name,member,amount] of [['KL','A',64469],['JB','B',6337]]){
+  const e=ledger.normalize({name,people:['A','B'],bills:[],payments:[]});e.kind='daily';const {id}=await h.post({action:'create',data:e});
+  await h.post({action:'grant',id,email:'owner@example.com',person:member,permissions:[]});
+  const b=ledger.blankExpense(e,member);b.merchant='Example bill';b.items[0].amount=amount;b.items[0].people=[member];assert.equal((await h.post({action:'expense',id,revision:0,entity:b})).status,200);
+ }
+ const groups=(await h.get('owner@example.com')).trips;assert.equal(groups.length,2);
+ assert.ok(groups.every(g=>g.owner&&g.person&&g.permissions.length===ledger.permissionKeys.length));
+ assert.equal(groups.reduce((n,g)=>n+ledger.ledger(g.data).people[g.person].consumed,0),70806);h.sqlite.close();
+});
+
+test('Payment timing updates the same personal sync key and blocks invalid backward transitions',async()=>{
+ const h=await harness(),e=ledger.normalize({name:'Timing',people:['A','B'],bills:[],payments:[]}),{id}=await h.post({action:'create',data:e});
+ await h.post({action:'grant',id,email:'b@example.com',person:'B',permissions:[]});
+ const b=ledger.blankExpense(e,'B');b.merchant='Advance booking';b.items[0].amount=12000;b.items[0].people=['A','B'];b.paymentStatus='prepaid';
+ assert.equal((await h.post({action:'expense',id,revision:0,entity:b})).status,200);
+ const full=await h.syncRead();assert.equal(full.entries[0].consumed_minor,0);assert.equal(full.entries[0].paid_minor,12000);assert.equal(full.entries[0].prepaid_minor,12000);const key=full.entries[0].key;
+ b.paymentStatus='postpaid';assert.equal((await h.post({action:'expense',id,revision:1,entity:b})).status,200);
+ const pending=await h.syncRead(full.next_cursor);assert.deepEqual(pending.entries[0].key,key);assert.equal(pending.entries[0].consumed_minor,6000);assert.equal(pending.entries[0].paid_minor,0);assert.equal(pending.entries[0].unpaid_minor,6000);
+ b.paymentStatus='paid';assert.equal((await h.post({action:'expense',id,revision:2,entity:b})).status,200);
+ const used=await h.syncRead(pending.next_cursor);assert.deepEqual(used.entries[0].key,key);assert.equal(used.entries[0].consumed_minor,6000);assert.equal(used.entries[0].paid_minor,12000);
+ assert.equal((await h.post({action:'payment',id,revision:3,entity:{id:'p',from:'A',to:'B',amount:2000,date:'2026-09-30',note:''}})).status,200);
+ b.paymentStatus='postpaid';assert.equal((await h.post({action:'expense',id,revision:4,entity:b})).status,400);h.sqlite.close();
+});

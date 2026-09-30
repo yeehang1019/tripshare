@@ -8,13 +8,15 @@ export function personalView(event: Event, person: string) {
     name: member.name,
     consumed: totals.people[person].consumed,
     paid: totals.people[person].paid,
+    unpaid: totals.people[person].unpaid,
+    prepaid: totals.people[person].prepaid,
     transfers: totals.transfers.filter(t => t.from === person || t.to === person)
       .map(t => ({...t, fromName: event.people.find(p => p.id === t.from)?.name || '', toName: event.people.find(p => p.id === t.to)?.name || ''})),
     expenses: event.expenses.filter(b => !b.deleted).flatMap(b => {
       const c = calculate(b, event.settlement);
       if (!c.consumed[person] && !c.paid[person]) return [];
       return [{ id:b.id, date:b.date, title:b.merchant, category:b.category,
-        consumed:c.consumed[person] || 0, paid:c.paid[person] || 0,
+        consumed:c.consumed[person] || 0, paid:c.paid[person] || 0, paymentStatus:b.paymentStatus || 'paid',
         items:b.items.flatMap((item,i) => item.people.includes(person) ? [{name:item.name, amount:c.lines[i].values[item.people.indexOf(person)]}] : []) }];
     }),
     payments: event.payments.filter(p => !p.deleted && (p.from === person || p.to === person))
