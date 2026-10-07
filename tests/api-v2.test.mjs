@@ -148,3 +148,17 @@ test('Payment timing updates the same personal sync key and blocks invalid backw
  assert.equal((await h.post({action:'payment',id,revision:3,entity:{id:'p',from:'A',to:'B',amount:2000,date:'2026-09-30',note:''}})).status,200);
  b.paymentStatus='postpaid';assert.equal((await h.post({action:'expense',id,revision:4,entity:b})).status,400);h.sqlite.close();
 });
+
+test('Split removal tombstones retain original dates and old cursors can be retried',async()=>{
+ const h=await harness(),e=ledger.normalize({name:'Contract',people:['A','B'],bills:[],payments:[]}),{id}=await h.post({action:'create',data:e});
+ await h.post({action:'grant',id,email:'b@example.com',person:'B',permissions:[]});
+ const b=ledger.blankExpense(e,'A');b.merchant='Example';b.date='2026-10-05';b.items[0].amount=12000;b.items[0].people=['A','B'];
+ assert.equal((await h.post({action:'expense',id,revision:0,entity:b})).status,200);
+ const start=await h.syncRead();b.items[0].people=['A'];
+ assert.equal((await h.post({action:'expense',id,revision:1,entity:b})).status,200);
+ const delta=await h.syncRead(start.next_cursor,undefined,1);assert.equal(delta.status,200);assert.equal(delta.entries[0].deleted,true);assert.equal(delta.entries[0].date,'2026-10-05');assert.equal(delta.entries[0].consumed_minor,0);
+ assert.deepEqual((await h.syncRead(start.next_cursor,undefined,1)).entries,delta.entries);
+ h.sqlite.exec(`UPDATE trips SET data=json_set(data,'$.expenses[0].date','2026-02-30')`);
+ const bad=await h.syncRead(start.next_cursor,undefined,1);assert.equal(bad.status,503);assert.equal(bad.error,'invalid_source_record');assert.equal(bad.field,'date');assert.equal(bad.next_cursor,undefined);
+ h.sqlite.close();
+});

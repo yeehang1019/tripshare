@@ -6,6 +6,23 @@ export const dynamic='force-dynamic';
 const reply=(body:unknown,status=200,extras:Record<string,string>={})=>Response.json(body,{status,headers:{'Cache-Control':'private, no-store','Referrer-Policy':'no-referrer',...extras}});
 type Scope={id:string;person:string;data:Event};
 type Cursor={v:1;phase:'full'|'delta';after:string;watermark:number;scope:string};
+const currencies=new Set('MYR SGD USD CNY EUR GBP JPY THB IDR HKD TWD AUD KRW'.split(' '));
+class SourceContractError extends Error {
+  constructor(public field:string){super('Invalid source field: '+field);}
+}
+function checkedEntry(entry:any){
+  if(!['expense','payment'].includes(entry.record_type))throw new SourceContractError('record_type');
+  for(const field of ['group_id','member_id',entry.record_type==='expense'?'expense_id':'payment_id']){
+    if(typeof entry[field]!=='string'||!entry[field].trim()||entry[field].length>150)throw new SourceContractError(field);
+  }
+  if(typeof entry.currency!=='string'||!currencies.has(entry.currency))throw new SourceContractError('currency');
+  const date=entry.date;
+  if(typeof date!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(date)||date<'2000-01-01'||date>'2100-12-31')throw new SourceContractError('date');
+  const parsed=new Date(date+'T00:00:00Z');
+  if(!Number.isFinite(parsed.getTime())||parsed.toISOString().slice(0,10)!==date)throw new SourceContractError('date');
+  if(typeof entry.deleted!=='boolean')throw new SourceContractError('deleted');
+  return entry;
+}
 const encode=(value:string)=>btoa(unescape(encodeURIComponent(value))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
 const decode=(value:string)=>decodeURIComponent(escape(atob(value.replace(/-/g,'+').replace(/_/g,'/'))));
 const bytes=(value:string)=>new TextEncoder().encode(value);
@@ -77,7 +94,7 @@ export async function GET(request:Request){
       const keyed=entries.map((entry:any)=>({entry,key:JSON.stringify([entry.group_id,entry.record_type,entry.expense_id||entry.payment_id])}));
       const remaining=keyed.filter(x=>x.key>cursor!.after),page=remaining.slice(0,size),more=remaining.length>size;
       const next:Cursor=more?{...cursor,after:page.at(-1)!.key}:{...cursor,phase:'delta',after:String(cursor.watermark)};
-      return reply({schema_version:1,mode:'full',entries:page.map(x=>x.entry),next_cursor:await makeCursor(next,config.POCKET_SYNC_TOKEN),has_more:more});
+      return reply({schema_version:1,mode:'full',entries:page.map(x=>checkedEntry(x.entry)),next_cursor:await makeCursor(next,config.POCKET_SYNC_TOKEN),has_more:more});
     }
     const after=Number(cursor.after);
     if(!Number.isSafeInteger(after)||after<0)return reply({error:'invalid_cursor'},400);
@@ -89,17 +106,25 @@ export async function GET(request:Request){
       if(change.kind==='expense'){
         const b=group.data.expenses.find(x=>x.id===change.record_id);
         const projected=b?expenseEntry(group,b):null;
+        // Membership removal still needs a tombstone with the original expense date.
+        // Deleted expenses remain in data; audit is the fallback for historical missing records.
+        const historical=b||[...(group.data.audit||[])].reverse().flatMap(a=>a.entity===change.record_id?[a.after,a.before]:[]).find((x:any)=>x&&typeof x==='object'&&x.id===change.record_id&&typeof x.date==='string') as any;
         const entry=projected||{record_type:'expense',group_id:group.id,group_type:group.data.kind,
           expense_id:change.record_id,member_id:group.person,key:[group.id,change.record_id,group.person],
-          date:null,title:null,category:null,currency:group.data.settlement,consumed_minor:0,paid_minor:0,deleted:true};
+          date:historical?.date??null,title:null,category:null,currency:group.data.settlement,consumed_minor:0,paid_minor:0,deleted:true};
         return [{...entry,change_seq:change.seq,updated_at:change.changed_at}];
       }
+      if(change.kind!=='payment')throw new SourceContractError('record_type');
       const p=group.data.payments.find(x=>x.id===change.record_id);
       const entry=p&&paymentEntry(group,p);
-      return entry?[{...entry,change_seq:change.seq,updated_at:change.changed_at}]:[];
+      if(!entry)throw new SourceContractError('payment_id');
+      return [{...entry,change_seq:change.seq,updated_at:change.changed_at}];
     });
     const more=(results.results as any[]).length>size;
     const next:Cursor={...cursor,after:String(more?slice.at(-1)!.seq:max.seq)};
-    return reply({schema_version:1,mode:'incremental',entries,next_cursor:await makeCursor(next,config.POCKET_SYNC_TOKEN),has_more:more});
-  }catch(error){console.error(error);return reply({error:'temporarily_unavailable'},503,{'Retry-After':'30'});}
+    return reply({schema_version:1,mode:'incremental',entries:entries.map(checkedEntry),next_cursor:await makeCursor(next,config.POCKET_SYNC_TOKEN),has_more:more});
+  }catch(error){
+    if(error instanceof SourceContractError)return reply({error:'invalid_source_record',field:error.field,retry_same_cursor:true},503);
+    console.error(error);return reply({error:'temporarily_unavailable'},503,{'Retry-After':'30'});
+  }
 }
