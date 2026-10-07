@@ -38,15 +38,6 @@ import {
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
   AlertDialog,
   AlertDialogContent,
   AlertDialogHeader,
@@ -79,8 +70,9 @@ import ExpenseEditor from "./expense-editor";
 import TripPlanner from "./trip-planner";
 import MotionLayer from "./motion-layer";
 import TripAlbum from "./trip-album";
-import {AppearancePanel,WorkspaceChrome,monthBounds} from "./workspace-design";
-import {useWorkspace,ExperienceSettings,TemplateShelf,PersonalHub,SettlementPreview,PayoutDetails,TravelFunding,feedback} from "./experience";
+import {Search,PanelRight} from "lucide-react";
+import {AppearancePanel,WorkspaceChrome,QuickNavigator,monthBounds} from "./workspace-design";
+import {useWorkspace,TemplateShelf,PersonalHub,SettlementPreview,PayoutDetails,TravelFunding,feedback} from "./experience";
 export type RecordT = {
   memberKeys?: Record<string,string>;
   id: string;
@@ -183,6 +175,9 @@ export default function TripApp({ shared = false, authenticatedEmail = "", authe
   const [inviteToken,setInviteToken]=useState(''),[invitePrompt,setInvitePrompt]=useState(false),[newInviteLink,setNewInviteLink]=useState('');
   const [celebrate,setCelebrate]=useState(false);
   const [appearanceOpen,setAppearanceOpen]=useState(false);
+  const [quickOpen,setQuickOpen]=useState(false),[railOpen,setRailOpen]=useState(false);
+  useEffect(()=>{setRailOpen(localStorage.getItem("tripshare-context-rail")==="open");const shortcut=(event:KeyboardEvent)=>{if((event.metaKey||event.ctrlKey)&&event.key.toLowerCase()==="k"){event.preventDefault();setQuickOpen(v=>!v)}};window.addEventListener("keydown",shortcut);return()=>window.removeEventListener("keydown",shortcut)},[]);
+  function toggleRail(){setRailOpen(v=>{localStorage.setItem("tripshare-context-rail",v?"closed":"open");return !v})}
 
   useEffect(()=>{const invitation=new URLSearchParams(window.location.hash.slice(1)).get('invite');if(invitation&&!shared){setInviteToken(invitation);setInvitePrompt(true);history.replaceState(null,'',window.location.pathname+window.location.search)}},[shared]);
   function celebrateSave(){feedback(workspace.data.sound,workspace.data.haptics);setCelebrate(true);setTimeout(()=>setCelebrate(false),1400)}
@@ -697,8 +692,14 @@ setPlannerDirty(false);setTemplateDirty(false);
       );
     });
   }
-  const chrome=<WorkspaceChrome records={records} selected={rec?.id||""} onGroup={choose} onAppearance={()=>setAppearanceOpen(true)} style={workspace.data.style} palette={paletteLabels[palette]} event={e} member={!!rec?.personal}/>;
+  function navigate(next:string){
+    if(editing.current){setConfirm({title:"Leave unsaved input?",description:"Your unsaved changes will be discarded.",run:()=>{clearUnsavedInput();setTab(next)}})}else setTab(next);
+  }
+  function requestAdd(){if(editing.current){setConfirm({title:"Replace unsaved input?",description:"Your unsaved changes will be discarded before starting a new expense.",run:()=>{clearUnsavedInput();add()}})}else add()}
+  const destinations=rec?.personal?["My spending"]:e?["Dashboard",...(e.kind==="trip"?["Trip Plan"]:[]),"Expenses","Settlement",...(hasPersonalAccess?["My spending"]:[]),...(rec.owner&&!shared?["Settings"]:[])]:[];
+  const chrome=<WorkspaceChrome records={records} selected={rec?.id||""} onGroup={choose} onAppearance={()=>setAppearanceOpen(true)} onSearch={()=>setQuickOpen(true)} onNavigate={navigate} destinations={destinations} tab={tab} style={workspace.data.style} palette={paletteLabels[palette]} event={e} member={!!rec?.personal} railOpen={railOpen} onRailClose={toggleRail}/>;
   const appearance=<AppearancePanel open={appearanceOpen} onOpenChange={setAppearanceOpen} workspace={workspace} palette={palette} labels={paletteLabels} mode={theme} motion={motionMode} onChange={(p,m,v)=>saveAppearance(p as PaletteName,m as ThemeMode,v as MotionMode)} shared={shared}/>;
+  const quickNavigator=<QuickNavigator open={quickOpen} onOpenChange={setQuickOpen} records={records} destinations={destinations} onGroup={choose} onNavigate={navigate} onAdd={can("addExpense")?requestAdd:undefined} onAppearance={()=>setAppearanceOpen(true)}/>;
   function spendingOverview() { return !shared ? <PersonalHub records={records} workspace={workspace} onGroup={choose}/> : null; }
   if(rec?.personal){
     const view=rec.personal;
@@ -706,7 +707,7 @@ setPlannerDirty(false);setTemplateDirty(false);
     const payoutEvent={...e!,people:[...e!.people,...Array.from(new Map(view.transfers.flatMap(t=>[{id:t.from,name:t.fromName,active:true},{id:t.to,name:t.toName,active:true}]).filter(p=>p.id!==rec.person).map(p=>[p.id,p])).values())]};
     const owe=view.transfers.filter(t=>t.from===rec.person).reduce((n,t)=>n+t.amount,0);
     const receive=view.transfers.filter(t=>t.to===rec.person).reduce((n,t)=>n+t.amount,0);
-    return <div className="app member-view workspace-app">{chrome}{appearance}<MotionLayer scene={rec.id} mode={motionMode} style={workspace.data.style} palette={palette}/><header><a className="brand" href="/">tripshare<span className="brand-dot">.</span></a><strong>{view.name} · {e?.kind==='trip'?'Trip':'Daily Group'}</strong><button className="icon-button" aria-label="Appearance" onClick={()=>setAppearanceOpen(true)}><Palette size={18}/></button></header>
+    return <div className={"app member-view workspace-app"+(railOpen?" rail-open":"")}>{chrome}{appearance}{quickNavigator}<MotionLayer scene={rec.id} mode={motionMode} style={workspace.data.style} palette={palette}/><header><a className="brand" href="/">tripshare<span className="brand-dot">.</span></a><strong>{view.name} · {e?.kind==='trip'?'Trip':'Daily Group'}</strong><div className="header-right"><button className="quick-launch" aria-label="Search groups and actions" onClick={()=>setQuickOpen(true)}><Search size={17}/></button><button className="icon-button rail-toggle" aria-label="Toggle group context" aria-expanded={railOpen} onClick={toggleRail}><PanelRight size={18}/></button><button className="icon-button" aria-label="Appearance" onClick={()=>setAppearanceOpen(true)}><Palette size={18}/></button></div></header>
       <main>{invitePrompt&&<section className="panel"><h2>New group invitation</h2><button className="primary" disabled={busy} onClick={async()=>{if(await send("acceptInvite",{token:inviteToken})){setInvitePrompt(false);setInviteToken("")}}}>Accept as {user}</button><button className="secondary" onClick={()=>setInvitePrompt(false)}>Dismiss</button></section>}{error&&<p className="message error" role="alert">{error}</p>}{spendingOverview()}<section className="panel"><h1>{e?.name}</h1><p>Your own spending and outstanding payments</p>
         <select aria-label="Choose event" value={rec.id} onChange={x=>setId(x.target.value)}>{records.map(x=><option value={x.id} key={x.id}>{x.data.name}</option>)}</select>
         <div className="stats personal-stats"><div className="stat featured"><span>Consumed · selected dates</span><strong>{fmt(monthExpenses.reduce((n,b)=>n+b.consumed,0))}</strong></div><div className="stat"><span>Paid · selected dates</span><strong>{fmt(monthExpenses.reduce((n,b)=>n+b.paid,0))}</strong></div><div className="stat"><span>Need to pay · all time</span><strong>{fmt(owe)}</strong></div><div className="stat"><span>Need to receive · all time</span><strong>{fmt(receive)}</strong></div></div>
@@ -714,9 +715,9 @@ setPlannerDirty(false);setTemplateDirty(false);
       <section className="panel"><h2>My settlement</h2>{view.transfers.map(t=><div key={t.from+':'+t.to} className="expense-row"><strong>{t.fromName} → {t.toName}: {fmt(t.amount)}</strong>{t.to!==rec.person&&<PayoutDetails group={rec.id} person={t.to} event={payoutEvent} session={authenticatedSession} editable={false}/>}</div>)}{!view.transfers.length&&<p>All settled.</p>}<PayoutDetails group={rec.id} person={rec.person} event={payoutEvent} session={authenticatedSession} editable/><h3>Repayment history</h3>{view.payments.map(p=><p key={p.id}>{p.date} · {p.fromName} → {p.toName} · {fmt(p.amount)}</p>)}</section>{e?.kind==='trip'&&<TripAlbum group={rec.id} session={authenticatedSession} canUpload={false}/>}</main></div>;
   }
   return (
-    <div className="app workspace-app">
+    <div className={"app workspace-app"+(railOpen?" rail-open":"")}>
       <MotionLayer scene={`${rec?.id || "empty"}-${tab}-${workspace.data.style}-${palette}`} mode={motionMode} style={workspace.data.style} palette={palette} celebrate={celebrate} />
-      {chrome}{appearance}
+      {chrome}{appearance}{quickNavigator}
       <header>
         <a className="brand" href={shared ? "#" : "/"}>
           <span className="brandmark">
@@ -725,6 +726,8 @@ setPlannerDirty(false);setTemplateDirty(false);
           tripshare<span className="brand-dot">.</span>
         </a>
         <div className="header-right">
+          <button className="quick-launch" onClick={()=>setQuickOpen(true)} aria-label="Search groups and actions"><Search size={16}/><span>Jump to…</span><kbd>⌘ / Ctrl K</kbd></button>
+          <button className="icon-button rail-toggle" onClick={toggleRail} aria-expanded={railOpen} aria-label="Toggle group context"><PanelRight size={18}/></button>
           {!shared && !standalone && (
             <button
               className="icon-button install-app"
@@ -755,7 +758,7 @@ setPlannerDirty(false);setTemplateDirty(false);
           </span>
           {e && rec.owner && (
             <Pick
-              label="Viewing member"
+              label="Viewing"
               value={me}
               options={e.people}
               onChange={(p) => {
@@ -841,7 +844,7 @@ setPlannerDirty(false);setTemplateDirty(false);
               </div>
               <div className="top-actions">
                 {can("addExpense") && (
-                  <button className="primary" onClick={() => add()}>
+                  <button className="primary" onClick={requestAdd}>
                     <Plus size={18} /> Add expense
                   </button>
                 )}
@@ -891,8 +894,6 @@ setPlannerDirty(false);setTemplateDirty(false);
                 </>}
               </div>
             )}
-            {(tab === "Dashboard" || tab === "My spending") && spendingOverview()}
-            {!shared && e && can("addExpense") && (tab === "Dashboard" || !!templateSource) && <TemplateShelf key={rec.id} workspace={workspace} event={e} group={rec.id} canAdd={can("addExpense")} busy={busy} source={templateSource} onDirty={setTemplateDirty} onSaved={()=>setTemplateSource(null)} onRecord={async entity=>{if(await send("expense",{entity})){setNotice("Expense recorded. Template unchanged.");celebrateSave();return true}return false}}/>}
             {e && (
               <Tabs
                 value={tab}
@@ -942,6 +943,8 @@ setPlannerDirty(false);setTemplateDirty(false);
                 </TabsList>
               </Tabs>
             )}
+            {(tab === "Dashboard" || tab === "My spending") && spendingOverview()}
+            {!shared && e && can("addExpense") && (tab === "Dashboard" || !!templateSource) && <TemplateShelf key={rec.id} workspace={workspace} event={e} group={rec.id} canAdd={can("addExpense")} busy={busy} source={templateSource} onDirty={setTemplateDirty} onSaved={()=>setTemplateSource(null)} onRecord={async entity=>{if(await send("expense",{entity})){setNotice("Expense recorded. Template unchanged.");celebrateSave();return true}return false}}/>}
             {!shared && ((canCreateEvents && (!e || creating)) || (rec?.owner && !!settings)) && (
               <section className="panel">
                 <h2>
