@@ -40,7 +40,7 @@ export async function POST(request: Request) {
   if (!who) return response({ error: "Sign in to save appearance" }, 401);
   if (request.headers.get("origin") && request.headers.get("origin") !== new URL(request.url).origin)
     return response({ error: "Invalid origin" }, 403);
-  const body = await request.json();
+  const body:any = await request.json();
   const palettes = ["cyberpunk", "cozy", "plum", "abyss", "sahara", "northern", "kodak", "amazon", "interstellar", "kyoto"];
   const modes = ["light", "night"];
   const motions = ["full", "smooth", "battery"];

@@ -43,7 +43,8 @@ export type Payment = {
   from: string;
   to: string;
   amount: number;
-  allocations?: { expense: string; amount: number }[];
+  allocations?: { expense: string; amount: number; from?: string; to?: string }[];
+  simplified?: boolean;
   date: string;
   note: string;
   createdBy: string;
@@ -565,8 +566,8 @@ function applyFixedPayment(claims: DebtClaim[], payment: Payment) {
       if (
         claim.amount &&
         claim.expense === allocation.expense &&
-        claim.from === payment.from &&
-        claim.to === payment.to
+        claim.from === (allocation.from || payment.from) &&
+        claim.to === (allocation.to || payment.to)
       ) {
         const paid = Math.min(left, claim.amount);
         claim.amount -= paid;

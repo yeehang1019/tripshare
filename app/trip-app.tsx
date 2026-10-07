@@ -78,7 +78,10 @@ import { Pick, Field, Amount, Check, People } from "./trip-controls";
 import ExpenseEditor from "./expense-editor";
 import TripPlanner from "./trip-planner";
 import MotionLayer from "./motion-layer";
-type RecordT = {
+import TripAlbum from "./trip-album";
+import {useWorkspace,ExperienceSettings,TemplateShelf,PersonalHub,SettlementPreview,PayoutDetails,TravelFunding,feedback} from "./experience";
+export type RecordT = {
+  memberKeys?: Record<string,string>;
   id: string;
   data: TripEvent;
   owner: boolean;
@@ -87,7 +90,7 @@ type RecordT = {
   revision: number;
   personal?: {name:string;consumed:number;paid:number;unpaid?:number;prepaid?:number;
     transfers:{from:string;to:string;fromName:string;toName:string;amount:number}[];
-    expenses:{id:string;date:string;title:string;category:string;consumed:number;paid:number;paymentStatus?:string;items:{name:string;amount:number}[]}[];
+    expenses:{id:string;date:string;title:string;category:string;consumed:number;paid:number;unpaid?:number;prepaid?:number;paymentStatus?:string;items:{name:string;amount:number}[]}[];
     payments:{id:string;date:string;from:string;to:string;fromName:string;toName:string;amount:number}[]};
 };
 type InstallPrompt = globalThis.Event & {
@@ -164,15 +167,22 @@ export default function TripApp({ shared = false, authenticatedEmail = "", authe
     [groupPeople, setGroupPeople] = useState<string[]>([]),
     [payment, setPayment] = useState<any>(null),
     [settlementScope, setSettlementScope] = useState<"mine" | "everyone">("mine"),
-    [theme, setTheme] = useState<ThemeMode>("light"),
+    [theme, setTheme] = useState<ThemeMode>("night"),
     [palette, setPalette] = useState<PaletteName>("cyberpunk"),
-    [motionMode, setMotionMode] = useState<MotionMode>("smooth"),
+    [motionMode, setMotionMode] = useState<MotionMode>("full"),
     [confirm, setConfirm] = useState<{
       title: string;
       description: string;
       run: () => void;
     } | null>(null);
   const [plannerDirty,setPlannerDirty]=useState(false);
+  const [templateDirty,setTemplateDirty]=useState(false);
+  const workspace=useWorkspace(authenticatedSession,!shared);
+  const [templateSource,setTemplateSource]=useState<Expense|null>(null);
+  const [inviteToken,setInviteToken]=useState(''),[invitePrompt,setInvitePrompt]=useState(false),[newInviteLink,setNewInviteLink]=useState('');
+  const [celebrate,setCelebrate]=useState(false);
+  useEffect(()=>{const invitation=new URLSearchParams(window.location.hash.slice(1)).get('invite');if(invitation&&!shared){setInviteToken(invitation);setInvitePrompt(true);history.replaceState(null,'',window.location.pathname+window.location.search)}},[shared]);
+  function celebrateSave(){feedback(workspace.data.sound,workspace.data.haptics);setCelebrate(true);setTimeout(()=>setCelebrate(false),1400)}
  const rec = records.find((x) => x.id === id) || records[0],
     e = rec?.data;
   const can = (p: Permission) => !shared && !!rec?.permissions.includes(p);
@@ -180,7 +190,7 @@ export default function TripApp({ shared = false, authenticatedEmail = "", authe
   const canViewGroup = !!rec && (shared || rec.owner || rec.permissions.length > 0);
   const editing = useRef(false),
     accessLoaded = useRef(false);
-  editing.current = !!(bill || activity || settings || payment || plannerDirty);
+  editing.current = !!(bill || activity || settings || payment || plannerDirty || templateDirty);
   const token = useRef(""),
     pinRef = useRef("");
   pinRef.current = pin;
@@ -198,7 +208,7 @@ export default function TripApp({ shared = false, authenticatedEmail = "", authe
       } else r = await fetch("/api/trips", {
         headers: authenticatedSession ? { "X-TripShare-Session": authenticatedSession } : {},
       });
-      const j = await r.json();
+      const j:any = await r.json();
       if (j.needsPin) {
         setNeedsPin(true);
         if (j.error) setError(j.error);
@@ -224,19 +234,21 @@ export default function TripApp({ shared = false, authenticatedEmail = "", authe
     const savedTheme = localStorage.getItem("tripshare-theme");
     const savedPalette = localStorage.getItem("tripshare-palette");
     const savedMotion = localStorage.getItem("tripshare-motion");
-    setTheme(savedTheme === "night" ? "night" : "light");
+    const upgradedMotion=localStorage.getItem("tripshare-motion-upgraded")==="yes";
+    localStorage.setItem("tripshare-motion-upgraded","yes");
+    setTheme(savedTheme === "light" ? "light" : "night");
     const restoredPalette = resolvePalette(savedPalette);
     if (restoredPalette) setPalette(restoredPalette);
-    if (["full", "smooth", "battery"].includes(savedMotion || "")) setMotionMode(savedMotion as MotionMode);
+    if (["full", "smooth", "battery"].includes(savedMotion || "") && (upgradedMotion||savedMotion==="battery")) setMotionMode(savedMotion as MotionMode);
     if (!shared && authenticatedSession) {
       fetch("/api/preferences", { headers: { "X-TripShare-Session": authenticatedSession } })
         .then((response) => response.ok ? response.json() : null)
-        .then((preference) => {
+        .then((preference:any) => {
           if (!preference) return;
           const syncedPalette = resolvePalette(preference.palette);
           if (syncedPalette) setPalette(syncedPalette);
           if (["light", "night"].includes(preference.mode)) setTheme(preference.mode);
-          if (["full", "smooth", "battery"].includes(preference.motion)) setMotionMode(preference.motion);
+          if (["full", "smooth", "battery"].includes(preference.motion) && (upgradedMotion||preference.motion==="battery")) setMotionMode(preference.motion);
         })
         .catch(() => {});
     }
@@ -306,7 +318,7 @@ export default function TripApp({ shared = false, authenticatedEmail = "", authe
     setTab(!rec.owner && !shared && rec.permissions.length === 0 && rec.person ? "My spending" : "Dashboard");
     setBill(null);
     setActivity(null);
-setPlannerDirty(false);
+setPlannerDirty(false);setTemplateDirty(false);
     setSettings(null);
     setAccessInfo({ grants: [], shares: [] });
     accessLoaded.current = false;
@@ -339,7 +351,7 @@ setPlannerDirty(false);
           ...extra,
         }),
       });
-      const j = await r.json();
+      const j:any = await r.json();
       if (!r.ok) throw Error(j.error || "Save failed");
       if (j.id) setId(j.id);
       if (refresh) await load();
@@ -395,10 +407,10 @@ setPlannerDirty(false);
   function clearUnsavedInput() {
     setBill(null);
     setActivity(null);
-    setPlannerDirty(false);
+    setPlannerDirty(false);setTemplateDirty(false);
     setPayment(null);
     setSettings(null);
-    setCreating(false);
+    setCreating(false);setTemplateSource(null);
   }
   function choose(id: string) {
     if (editing.current) {
@@ -483,15 +495,7 @@ setPlannerDirty(false);
     currency.receive += group.receive;
     return totals;
   }, {}));
-  const spendingTotals = Object.entries(crossGroupBalances.reduce<Record<string, { consumed: number; paid: number; unpaid: number; prepaid: number }>>((totals, group) => {
-    const currency = totals[group.currency] ||= { consumed: 0, paid: 0, unpaid: 0, prepaid: 0 };
-    currency.consumed += group.consumed;
-    currency.paid += group.paid;
-    currency.unpaid += group.unpaid;
-    currency.prepaid += group.prepaid;
-    return totals;
-  }, {}));
-  const unselectedOwnerGroups = !shared ? records.filter((record) => record.owner && !crossGroupBalances.some((group) => group.id === record.id)).length : 0;
+  const unselectedOwnerGroups = !shared ? records.filter(record=>record.owner&&!crossGroupBalances.some(group=>group.id===record.id)).length:0;
   const filtered =
     e?.expenses.filter(
       (b) =>
@@ -681,7 +685,7 @@ setPlannerDirty(false);
               </button>
             )}
             {!shared && can("addExpense") && (
-              <button className="text-button" onClick={() => duplicateExpense(b)}><Copy size={15}/> Duplicate</button>
+              <><button className="text-button" onClick={() => duplicateExpense(b)}><Copy size={15}/> Duplicate</button><button className="text-button" onClick={()=>{setTemplateSource(b);setTab("Dashboard");setTimeout(()=>document.querySelector(".template-shelf")?.scrollIntoView({behavior:"smooth"}),80)}}>Save as template</button></>
             )}
           </div>
           </div>
@@ -689,29 +693,22 @@ setPlannerDirty(false);
       );
     });
   }
-  function spendingOverview() { return (!shared && records.length > 0 && <section className="panel all-spending" aria-label="Total personal spending across groups">
-              <div className="section-title"><h2><Receipt size={20}/> My total spending</h2><small>All time · Daily + Trip</small></div>
-              {spendingTotals.length ? <div className="all-spending-totals">{spendingTotals.map(([currency, total]) => <div key={currency}><span>{currency} · My consumption</span><strong>{money(total.consumed, currency)}</strong><small>Actually paid: {money(total.paid, currency)}</small><small>Postpaid · unpaid to supplier: {money(total.unpaid, currency)}</small><small>Prepaid · not consumed: {money(total.prepaid, currency)}</small></div>)}</div> : <p className="muted">Choose your own member in each group to see your spending total.</p>}
-              {unselectedOwnerGroups > 0 && <p className="muted">{unselectedOwnerGroups} owned group{unselectedOwnerGroups === 1 ? " is" : "s are"} excluded. Open each group and choose your own name under Viewing member.</p>}
-              <details className="all-spending-details"><summary>View spending by group · {crossGroupBalances.length}</summary>
-                {crossGroupBalances.map((group) => <div className="all-spending-row" key={group.id}><span><b>{group.name}</b><small>{group.kind === "daily" ? "Daily group" : "Trip"} · {group.member}</small></span><span><b>{money(group.consumed, group.currency)}</b><small>Actually paid {money(group.paid, group.currency)}</small><small>Unpaid {money(group.unpaid, group.currency)} · Prepaid {money(group.prepaid, group.currency)}</small></span></div>)}
-              </details>
-              <small>Consumption is your share of incurred expenses. Prepaid amounts count when consumed. Supplier bills and member repayments are separate; currencies are shown separately.</small>
-            </section>); }
+  function spendingOverview() { return !shared ? <PersonalHub records={records} workspace={workspace} onGroup={choose}/> : null; }
   if(rec?.personal){
     const view=rec.personal;
+    const payoutEvent={...e!,people:[...e!.people,...Array.from(new Map(view.transfers.flatMap(t=>[{id:t.from,name:t.fromName,active:true},{id:t.to,name:t.toName,active:true}]).filter(p=>p.id!==rec.person).map(p=>[p.id,p])).values())]};
     const owe=view.transfers.filter(t=>t.from===rec.person).reduce((n,t)=>n+t.amount,0);
     const receive=view.transfers.filter(t=>t.to===rec.person).reduce((n,t)=>n+t.amount,0);
-    return <div className="app member-view"><header><a className="brand" href="/">tripshare<span className="brand-dot">.</span></a><strong>{view.name} · {e?.kind==='trip'?'Trip':'Daily Group'}</strong></header>
-      <main>{spendingOverview()}<section className="panel"><h1>{e?.name}</h1><p>Your own spending and outstanding payments</p>
+    return <div className="app member-view"><MotionLayer scene={rec.id} mode={motionMode} style={workspace.data.style} palette={palette}/><header><a className="brand" href="/">tripshare<span className="brand-dot">.</span></a><strong>{view.name} · {e?.kind==='trip'?'Trip':'Daily Group'}</strong></header>
+      <main>{invitePrompt&&<section className="panel"><h2>New group invitation</h2><button className="primary" disabled={busy} onClick={async()=>{if(await send("acceptInvite",{token:inviteToken})){setInvitePrompt(false);setInviteToken("")}}}>Accept as {user}</button><button className="secondary" onClick={()=>setInvitePrompt(false)}>Dismiss</button></section>}{error&&<p className="message error" role="alert">{error}</p>}<ExperienceSettings workspace={workspace}/><div className="checks member-appearance"><Pick label="Colour theme" value={palette} options={Object.entries(paletteLabels).map(([id,name])=>({id,name}))} onChange={p=>saveAppearance(p as PaletteName,theme,motionMode)}/><Pick label="Mode" value={theme} options={[{id:'light',name:'Light'},{id:'night',name:'Night'}]} onChange={m=>saveAppearance(palette,m as ThemeMode,motionMode)}/><Pick label="Motion" value={motionMode} options={[{id:'full',name:'Ultra motion'},{id:'smooth',name:'Balanced'},{id:'battery',name:'Minimal'}]} onChange={m=>saveAppearance(palette,theme,m as MotionMode)}/></div>{spendingOverview()}<section className="panel"><h1>{e?.name}</h1><p>Your own spending and outstanding payments</p>
         <select aria-label="Choose event" value={rec.id} onChange={x=>setId(x.target.value)}>{records.map(x=><option value={x.id} key={x.id}>{x.data.name}</option>)}</select>
         <div className="stats personal-stats"><div className="stat featured"><span>Total consumed</span><strong>{fmt(view.consumed)}</strong></div><div className="stat"><span>Actually paid</span><strong>{fmt(view.paid)}</strong></div><div className="stat"><span>Need to pay</span><strong>{fmt(owe)}</strong></div><div className="stat"><span>Need to receive</span><strong>{fmt(receive)}</strong></div></div>
       </section><section className="panel"><h2>My expenses</h2>{view.expenses.map(b=><details key={b.id} className="expense-row"><summary><strong>{b.title}</strong> · {b.date} · {b.category} · {b.paymentStatus || "paid"} · My share {fmt(b.consumed)} · Paid {fmt(b.paid)}</summary><ul>{b.items.map((item,i)=><li key={i}>{item.name} · {fmt(item.amount)}</li>)}</ul></details>)}{!view.expenses.length&&<p>No personal expenses yet.</p>}</section>
-      <section className="panel"><h2>My settlement</h2>{view.transfers.map(t=><div key={t.from+':'+t.to} className="expense-row"><strong>{t.fromName} → {t.toName}: {fmt(t.amount)}</strong></div>)}{!view.transfers.length&&<p>All settled.</p>}<h3>Repayment history</h3>{view.payments.map(p=><p key={p.id}>{p.date} · {p.fromName} → {p.toName} · {fmt(p.amount)}</p>)}</section></main></div>;
+      <section className="panel"><h2>My settlement</h2>{view.transfers.map(t=><div key={t.from+':'+t.to} className="expense-row"><strong>{t.fromName} → {t.toName}: {fmt(t.amount)}</strong>{t.to!==rec.person&&<PayoutDetails group={rec.id} person={t.to} event={payoutEvent} session={authenticatedSession} editable={false}/>}</div>)}{!view.transfers.length&&<p>All settled.</p>}<PayoutDetails group={rec.id} person={rec.person} event={payoutEvent} session={authenticatedSession} editable/><h3>Repayment history</h3>{view.payments.map(p=><p key={p.id}>{p.date} · {p.fromName} → {p.toName} · {fmt(p.amount)}</p>)}</section>{e?.kind==='trip'&&<TripAlbum group={rec.id} session={authenticatedSession} canUpload={false}/>}</main></div>;
   }
   return (
     <div className="app">
-      <MotionLayer scene={`${rec?.id || "empty"}-${tab}`} mode={motionMode} />
+      <MotionLayer scene={`${rec?.id || "empty"}-${tab}-${workspace.data.style}-${palette}`} mode={motionMode} style={workspace.data.style} palette={palette} celebrate={celebrate} />
       <header>
         <a className="brand" href={shared ? "#" : "/"}>
           <span className="brandmark">
@@ -766,7 +763,7 @@ setPlannerDirty(false);
               <DropdownMenuSeparator />
               <DropdownMenuLabel>Motion</DropdownMenuLabel>
               <DropdownMenuRadioGroup value={motionMode} onValueChange={(value) => saveAppearance(palette, theme, value as MotionMode)}>
-                <DropdownMenuRadioItem value="full" onSelect={(event) => event.preventDefault()}>Full motion</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="full" onSelect={(event) => event.preventDefault()}>Ultra motion</DropdownMenuRadioItem>
                 <DropdownMenuRadioItem value="smooth" onSelect={(event) => event.preventDefault()}>Smooth</DropdownMenuRadioItem>
                 <DropdownMenuRadioItem value="battery" onSelect={(event) => event.preventDefault()}>Battery saver</DropdownMenuRadioItem>
               </DropdownMenuRadioGroup>
@@ -811,6 +808,8 @@ setPlannerDirty(false);
         </AlertDialogContent>
       </AlertDialog>
       <main>
+        {!shared && <ExperienceSettings workspace={workspace}/>}
+        {invitePrompt&&<section className="panel invitation-prompt"><h2>Join your friend’s group</h2><p>Accept this invitation to bind your signed-in account to the member selected by the group owner. You will see your own spending and payments.</p><button className="primary" disabled={busy} onClick={async()=>{if(await send("acceptInvite",{token:inviteToken})){setInvitePrompt(false);setInviteToken("");setNotice("You joined the group.")}}}>Accept as {user}</button><button className="secondary" onClick={()=>{setInvitePrompt(false);setInviteToken("")}}>Dismiss</button></section>}
         {error && (
           <div className="message error" role="alert">
             {error}
@@ -915,12 +914,13 @@ setPlannerDirty(false);
                 </>}
               </div>
             )}
-            {spendingOverview()}
+            {(tab === "Dashboard" || tab === "My spending") && spendingOverview()}
+            {!shared && e && can("addExpense") && (tab === "Dashboard" || !!templateSource) && <TemplateShelf key={rec.id} workspace={workspace} event={e} group={rec.id} canAdd={can("addExpense")} busy={busy} source={templateSource} onDirty={setTemplateDirty} onSaved={()=>setTemplateSource(null)} onRecord={async entity=>{if(await send("expense",{entity})){setNotice("Expense recorded. Template unchanged.");celebrateSave();return true}return false}}/>}
             {e && (
               <Tabs
                 value={tab}
                 onValueChange={(v) => {
-                  if (bill || activity || settings || payment || plannerDirty) {
+                  if (bill || activity || settings || payment || plannerDirty || templateDirty) {
                     setConfirm({
                       title: "Leave unsaved input?",
                       description: "Your unsaved changes will be discarded.",
@@ -1125,7 +1125,7 @@ setPlannerDirty(false);
                               )
                             ) {
                               setSettings(null);
-                              setCreating(false);
+                              setCreating(false);setTemplateSource(null);
                               setTab("Dashboard");
                               setNotice("Event saved.");
                             }
@@ -1138,7 +1138,7 @@ setPlannerDirty(false);
                             className="secondary"
                             onClick={() => {
                               setSettings(null);
-                              setCreating(false);
+                              setCreating(false);setTemplateSource(null);
                             }}
                           >
                             Cancel
@@ -1384,7 +1384,7 @@ setPlannerDirty(false);
                       ) {
                         setBill(null);
                         setTab("Expenses");
-                        setNotice("Expense saved. All balances updated.");
+                        setNotice("Expense saved. All balances updated.");celebrateSave();
                         return true;
                       }
                       return false;
@@ -1392,12 +1392,12 @@ setPlannerDirty(false);
                   />
                 )}
                 {tab === "Trip Plan" && canViewGroup && e.kind === "trip" && (
-                  <TripPlanner key={rec.id} event={e} busy={busy} canPlan={can("plan")} canExpense={can("addExpense")} draft={activity} setDraft={setActivity} onDirty={setPlannerDirty}
+                  <><TravelFunding event={e}/><TripPlanner key={rec.id} event={e} busy={busy} canPlan={can("plan")} canExpense={can("addExpense")} draft={activity} setDraft={setActivity} onDirty={setPlannerDirty}
                     onBegin={()=>setDraftRevision(rec.revision)}
                     onSave={async entity=>!!(await send("activity",{entity,revision:draftRevision}))}
                     onAction={(action,entity)=>send(action,{entity})}
                     onDelete={id=>ask("Remove this plan?","Linked expenses remain in your ledger.","deleteActivity",id)}
-                    onExpense={a=>add("simple",a)} onShare={whatsapp}/>
+                    onExpense={a=>add("simple",a)} onShare={whatsapp}/>{!shared&&<TripAlbum group={rec.id} session={authenticatedSession} canUpload={can("plan")}/>}</>
                 )}
                 {((tab === "Expenses" && canViewGroup) || (tab === "My spending" && hasPersonalAccess)) && (
                   <>
@@ -1524,6 +1524,9 @@ setPlannerDirty(false);
                       </div>
                       <button className="secondary" onClick={() => whatsapp(shareText())}><Bell size={17}/> WhatsApp summary</button>
                     </div>
+                    {!shared && <SettlementPreview event={e} canPay={can("settle")} busy={busy} onPayment={p=>{setPayment({...p,id:crypto.randomUUID(),date:today(),note:'Simplified transfer'});setDraftRevision(rec.revision)}}/>}
+                    {payment?.simplified&&<section className="panel payment-editor"><h3>Confirm simplified payment: {name(payment.from)} → {name(payment.to)}</h3><p>Record only after the money actually moved. Original expense links are preserved.</p><div className="fields"><Field label="Amount"><Amount value={payment.amount} currency={e.settlement} onChange={amount=>setPayment({...payment,amount:amount||0})}/></Field><Field label="Date"><input type="date" value={payment.date} onChange={v=>setPayment({...payment,date:v.target.value})}/></Field></div><div className="checks"><button className="primary" disabled={busy} onClick={async()=>{if(await send('payment',{entity:payment,revision:draftRevision})){setPayment(null);setNotice('Simplified payment recorded against original expenses.');celebrateSave()}}}>Confirm actual payment</button><button className="secondary" onClick={()=>setPayment(null)}>Cancel</button></div></section>}
+                    {rec.person && <PayoutDetails group={rec.id} person={rec.person} event={e} session={authenticatedSession} editable/>}
                     <div className="scope-switch" role="group" aria-label="Settlement view">
                       {hasPersonalAccess && <button className={settlementScope === "mine" ? "active" : ""} onClick={()=>setSettlementScope("mine")}><UserRound size={17}/> Mine</button>}
                       {!isMember && <button className={settlementScope === "everyone" ? "active" : ""} onClick={()=>setSettlementScope("everyone")}><UsersRound size={17}/> Everyone</button>}
@@ -1577,6 +1580,7 @@ setPlannerDirty(false);
                             </button>
                             <button className="text-button" onClick={async()=>{await navigator.clipboard.writeText(`${e.name}: ${name(p.from)} → ${name(p.to)} ${fmt(p.amount)}`);setNotice("Payment details copied.")}}><Copy size={16}/> Copy</button>
                           </div>
+                          {!shared&&<PayoutDetails group={rec.id} person={p.to} event={e} session={authenticatedSession} editable={p.to===rec.person}/>}
                           <details className="settlement-breakdown">
                             <summary><ListFilter size={16}/> View expense details</summary>
                             {settlementDetails(e,p.from,p.to).map((detail) => {
@@ -1587,7 +1591,7 @@ setPlannerDirty(false);
                               </div>;
                             })}
                           </details>
-                          {payment && payment.from === p.from && payment.to === p.to && (
+                          {payment && !payment.simplified && payment.from === p.from && payment.to === p.to && (
                             <div className="payment-editor">
                               <div className="payment-editor-head"><div><small>RECORD PAYMENT</small><h3>{name(payment.from)} → {name(payment.to)}</h3></div><b>{fmt(payment.amount)}</b></div>
                               <div className="payment-fields">
@@ -1596,7 +1600,7 @@ setPlannerDirty(false);
                                 <Field label="Note / method"><input value={payment.note} placeholder="Cash, DuitNow…" onChange={(v) => setPayment({ ...payment, note: v.target.value })}/></Field>
                               </div>
                               <p className="muted">Record only after the money has actually been paid.</p>
-                              <div className="checks"><button className="primary" disabled={busy} onClick={async()=>{if(await send("payment",{entity:payment,revision:draftRevision})){setPayment(null);setNotice("Payment recorded and balance updated.");}}}>Confirm payment</button><button className="secondary" onClick={()=>setPayment(null)}>Cancel</button></div>
+                              <div className="checks"><button className="primary" disabled={busy} onClick={async()=>{if(await send("payment",{entity:payment,revision:draftRevision})){setPayment(null);setNotice("Payment recorded and balance updated.");celebrateSave();}}}>Confirm payment</button><button className="secondary" onClick={()=>setPayment(null)}>Cancel</button></div>
                             </div>
                           )}
                         </div>
@@ -1778,12 +1782,12 @@ setPlannerDirty(false);
                       </div>
                       <div className="panel">
                         <h2>Event & exports</h2>
-                        {rec.owner&&<button className="secondary danger-text" disabled={busy} onClick={()=>{const eventId=rec.id,revision=rec.revision,eventName=e.name;setConfirm({title:`Delete ${eventName}?`,description:'Permanently delete this Trip / Daily Group, including all expenses, repayment history, itinerary, bookings and checklist. Sharing links and admin access will also be removed. Export a backup below first if you want to keep a copy. This cannot be undone.',run:async()=>{if(await send('deleteEvent',{id:eventId,revision,confirmName:eventName})){setId('');setTab('Dashboard');setBill(null);setActivity(null);setPayment(null);setSettings(null);setPlannerDirty(false);setCreating(false);setNotice(eventName+' deleted.')}}})}}>Delete {e.kind==='trip'?'Trip':'Daily Group'}</button>}
+                        {rec.owner&&<button className="secondary danger-text" disabled={busy} onClick={()=>{const eventId=rec.id,revision=rec.revision,eventName=e.name;setConfirm({title:`Delete ${eventName}?`,description:'Permanently delete this Trip / Daily Group, including all expenses, repayment history, itinerary, bookings and checklist. Sharing links and admin access will also be removed. Export a backup below first if you want to keep a copy. This cannot be undone.',run:async()=>{if(await send('deleteEvent',{id:eventId,revision,confirmName:eventName})){setId('');setTab('Dashboard');setBill(null);setActivity(null);setPayment(null);setSettings(null);setPlannerDirty(false);setTemplateDirty(false);setCreating(false);setNotice(eventName+' deleted.')}}})}}>Delete {e.kind==='trip'?'Trip':'Daily Group'}</button>}
                         {rec.owner && (
                           <button
                             className="secondary"
                             onClick={() => {
-                              setCreating(false);
+                              setCreating(false);setTemplateSource(null);
                               setSettings(structuredClone(e));
                             }}
                           >
@@ -2078,6 +2082,7 @@ setPlannerDirty(false);
                                 onChange={setTargetPerson}
                               />
                             </Field>
+                            <div className="invite-builder"><h3>Invite a friend</h3><p className="muted">Choose the member above. Leave email empty for a one-use invite link, or enter their email to restrict who can accept. Invites give personal Member access only.</p><button className="secondary" disabled={busy||!targetPerson} onClick={async()=>{const j=await send('createInvite',{person:targetPerson,email:target},false);if(j){setNewInviteLink(window.location.origin+'/#invite='+encodeURIComponent(j.token));const info=await send('accessInfo',{},false);if(info)setAccessInfo(info)}}}>Create 7-day invitation</button>{newInviteLink&&<div className="checks"><input aria-label="Invitation link" readOnly value={newInviteLink}/><button className="secondary" onClick={async()=>{try{await navigator.clipboard.writeText(newInviteLink);setNotice('Invitation copied. Share it with the intended friend.')}catch{setNotice('Select and copy the invitation link.')}}}>Copy invitation</button></div>}{(accessInfo.invitations||[]).map((invite:any)=><div className="split-row" key={invite.token}><span>{name(invite.person)}<small>{invite.email||'One-use link'} · {invite.accepted_email?'Accepted':'Pending'}</small></span><button className="text-button" disabled={busy} onClick={async()=>{if(await send('revokeInvite',{token:invite.token},false)){setNewInviteLink('');const info=await send('accessInfo',{},false);if(info)setAccessInfo(info)}}}>Revoke link</button></div>)}</div>
                             <p className="muted">Members see only their own spending and settlement. Event Admins can manage this event, including expenses and repayments, but cannot create another event or change access.</p>
                             <details>
                               <summary>Custom permissions</summary>

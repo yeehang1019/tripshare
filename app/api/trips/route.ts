@@ -12,6 +12,8 @@ import {
   Expense,
   Permission,
 } from "@/lib/ledger";
+import { settlementPlan, simplifiedAllocations } from "@/lib/settlement-plan";
+import { linkedPeople } from "@/lib/workspace-store";
 export const dynamic = "force-dynamic";
 const response = (data: unknown, status = 200) =>
   Response.json(data, {
@@ -68,6 +70,7 @@ export async function GET(r: Request) {
   const who = await identity(r);
   if (!who) return response({ error: "Sign in to manage your events" }, 401);
   try {
+
     const rows = await database()
       .prepare(
         "SELECT DISTINCT t.* FROM trips t WHERE t.owner=? OR t.owner_email=? OR EXISTS(SELECT 1 FROM grants g WHERE g.trip=t.id AND g.email=?) OR EXISTS(SELECT 1 FROM members m WHERE m.trip=t.id AND m.user=?)",
@@ -78,9 +81,10 @@ export async function GET(r: Request) {
     for (const row of rows.results as any[]) {
       const a = await access(row, who);
       const data = normalize(JSON.parse(row.data));
+      const memberKeys=await linkedPeople(database(),row.id);
       if (!a.owner && !a.permissions.length) {
         if (a.person && data.people.some(p => p.id === a.person))
-          trips.push(memberRecord(row.id, row.revision, data, a.person));
+          {const record=memberRecord(row.id,row.revision,data,a.person);const visible=new Set([a.person,...record.personal.transfers.flatMap(t=>[t.from,t.to])]);trips.push({...record,memberKeys:Object.fromEntries(Object.entries(memberKeys).filter(([id])=>visible.has(id)))});}
         continue;
       }
       if (!a.owner) {
@@ -94,7 +98,7 @@ export async function GET(r: Request) {
           createdBy: payment.createdBy === who.email ? who.email : "",
         }));
       }
-      trips.push({ id: row.id, revision: row.revision, data, ...a });
+      trips.push({ id: row.id, revision: row.revision, data, memberKeys, ...a });
     }
     return response({ trips, user: who.email, canCreate: await appOwner(who) });
   } catch (e) {
@@ -115,7 +119,7 @@ export async function POST(r: Request) {
   try {
     if (Number(r.headers.get("content-length") || 0) > 4000000)
       return response({ error: "Request too large" }, 413);
-    const b = await r.json(),
+    const b:any = await r.json(),
       db = database();
     if (["create", "import"].includes(b.action)) {
       await db
@@ -151,12 +155,42 @@ export async function POST(r: Request) {
         .run();
       return response({ id });
     }
+    if(b.action==='acceptInvite'){
+
+      const invite:any=await db.prepare('SELECT * FROM member_invitations WHERE token=? AND expires_at>?').bind(String(b.token||''),Date.now()).first();
+      if(!invite||invite.accepted_email&&invite.accepted_email!==actor)return response({error:'This invitation has expired or was already used'},410);
+      if(invite.email&&invite.email!==actor)return response({error:'Sign in with the invited email'},403);
+      const trip:any=await db.prepare('SELECT data FROM trips WHERE id=?').bind(invite.trip).first();
+      if(!trip||!normalize(JSON.parse(trip.data)).people.some(p=>p.id===invite.person))return response({error:'Invitation is no longer valid'},410);
+      const own:any=await db.prepare('SELECT person FROM grants WHERE trip=? AND email=?').bind(invite.trip,actor).first();
+      if(own&&own.person!==invite.person)return response({error:'Your account is already bound to another member. Ask the owner to review it.'},409);
+      const id=invite.trip+':'+actor;
+      const results=await db.batch([
+        db.prepare("INSERT OR IGNORE INTO grants(id,trip,email,permissions,person) SELECT ?,?,?,?,? WHERE NOT EXISTS(SELECT 1 FROM grants WHERE trip=? AND person=? AND email<>?) AND EXISTS(SELECT 1 FROM member_invitations WHERE token=? AND expires_at>? AND (accepted_email IS NULL OR accepted_email=?))").bind(id,invite.trip,actor,'[]',invite.person,invite.trip,invite.person,actor,b.token,Date.now(),actor),
+        db.prepare('UPDATE member_invitations SET accepted_email=? WHERE token=? AND EXISTS(SELECT 1 FROM grants WHERE id=? AND person=?)').bind(actor,b.token,id,invite.person)
+      ]);
+      if(!results[1].meta.changes)return response({error:'This member is already bound. Ask the owner to review it.'},409);
+      return response({ok:true,id:invite.trip});
+    }
     const row: any = await db
       .prepare("SELECT * FROM trips WHERE id=?")
       .bind(b.id)
       .first();
     if (!row) return response({ error: "Event not found" }, 404);
     const a = await access(row, who);
+    if(['createInvite','revokeInvite'].includes(b.action)){
+      if(!a.owner)return response({error:'Owner access required'},403);
+
+      if(b.action==='revokeInvite'){await db.prepare('DELETE FROM member_invitations WHERE token=? AND trip=?').bind(b.token,row.id).run();return response({ok:true})}
+      const data=normalize(JSON.parse(row.data)),person=String(b.person||''),target=String(b.email||'').trim().toLowerCase();
+      if(!data.people.some(p=>p.id===person))throw Error('Choose a member');
+      if(target&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(target))throw Error('Enter a valid email');
+      const bound:any=await db.prepare('SELECT email FROM grants WHERE trip=? AND person=?').bind(row.id,person).first();
+      if(bound)throw Error('This member already has a sign-in account. Manage its existing binding instead.');
+      const token=crypto.randomUUID()+crypto.randomUUID(),expires=Date.now()+7*86400000;
+      await db.prepare('INSERT INTO member_invitations(token,trip,person,email,expires_at) VALUES(?,?,?,?,?)').bind(token,row.id,person,target,expires).run();
+      return response({token,expires_at:expires});
+    }
     if (b.action === "accessInfo") {
       if (!a.owner) return response({ error: "Owner access required" }, 403);
       const grants = await db
@@ -167,7 +201,10 @@ export async function POST(r: Request) {
         .prepare("SELECT token,pin FROM shares WHERE trip=?")
         .bind(row.id)
         .all();
+
+      const invitations=await db.prepare('SELECT token,person,email,expires_at,accepted_email FROM member_invitations WHERE trip=? AND expires_at>?').bind(row.id,Date.now()).all();
       return response({
+        invitations:invitations.results,
         grants: grants.results.map((x: any) => ({
           ...x,
           permissions: JSON.parse(x.permissions),
@@ -197,18 +234,20 @@ export async function POST(r: Request) {
           throw Error("Choose a valid member for this account");
         if (!b.permissions.length && !person)
           throw Error("Choose which member this account belongs to");
-        await db
+        if(person){const bound:any=await db.prepare('SELECT email FROM grants WHERE trip=? AND person=? AND email<>?').bind(row.id,person,target).first();if(bound)throw Error('This member is already linked to another account. Revoke that binding explicitly before reassigning it.');}
+        const savedGrant=await db
           .prepare(
-            "INSERT INTO grants(id,trip,email,permissions,person) VALUES(?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET permissions=excluded.permissions,person=excluded.person",
+            "INSERT INTO grants(id,trip,email,permissions,person) SELECT ?,?,?,?,? WHERE ?='' OR NOT EXISTS(SELECT 1 FROM grants WHERE trip=? AND person=? AND email<>?) ON CONFLICT(id) DO UPDATE SET permissions=excluded.permissions,person=excluded.person",
           )
           .bind(
             row.id + ":" + target,
             row.id,
             target,
             JSON.stringify(b.permissions),
-            person,
+            person,person,row.id,person,target,
           )
           .run();
+        if(!savedGrant.meta.changes)return response({error:'Member binding changed. Refresh and review before saving.'},409);
         return response({ ok: true });
       }
       if (b.action === "revoke") {
@@ -324,11 +363,12 @@ export async function POST(r: Request) {
           return response({ ok: true });
         const p = { ...b.entity, createdBy: actor, deleted: false };
         const outstanding =
-          ledger(data).transfers.find((x) => x.from === p.from && x.to === p.to)
+          (p.simplified ? settlementPlan(data).simplified : ledger(data).transfers).find((x) => x.from === p.from && x.to === p.to)
             ?.amount || 0;
         if (p.amount > outstanding)
           throw Error("Repayment exceeds the amount owed to this person");
-        p.allocations = paymentAllocations(data, p.from, p.to, p.amount);
+        p.simplified=!!p.simplified;
+        p.allocations = p.simplified ? simplifiedAllocations(data,p.from,p.to,p.amount) : paymentAllocations(data, p.from, p.to, p.amount);
         data.payments.push(p);
         after = p;
       } else if (b.action === "undoPayment") {

@@ -11,7 +11,7 @@ import {
   useSpring,
 } from "motion/react";
 
-export default function MotionLayer({ scene, mode = "smooth" }: { scene: string; mode?: "full" | "smooth" | "battery" }) {
+export default function MotionLayer({ scene, mode = "full", style = "arcade", palette = "cyberpunk", celebrate=false }: { scene: string; mode?: "full" | "smooth" | "battery"; style?: "arcade"|"cosmic"|"glass"; palette?:string; celebrate?:boolean }) {
   const reduceMotion = useReducedMotion();
   const [adaptiveLite, setAdaptiveLite] = useState(false);
   const lite = mode !== "full" || adaptiveLite;
@@ -34,7 +34,6 @@ export default function MotionLayer({ scene, mode = "smooth" }: { scene: string;
       frame = requestAnimationFrame(() => {
         const pixels = window.innerWidth * window.innerHeight * Math.max(1, window.devicePixelRatio ** 2);
         const nextLite =
-          window.innerWidth <= 800 ||
           pixels >= 5_000_000 ||
           (navigator.hardwareConcurrency || 8) <= 4;
         setAdaptiveLite(nextLite);
@@ -55,19 +54,19 @@ export default function MotionLayer({ scene, mode = "smooth" }: { scene: string;
     const frame = requestAnimationFrame(() => {
       const visibleCards = Array.from(
         document.querySelectorAll(
-          "main .topline, main .stats > *, main .dashboard-charts > *, main .expense-overview, main .settlement-hero, main .plan-hero",
+          "main .topline, main .hub-stats > *, main .template-tile, main .style-preview, main .stats > *, main .dashboard-charts > *, main .expense-overview, main .settlement-hero, main .plan-hero",
         ),
       ).slice(0, 12);
       if (visibleCards.length) {
         animate(
           visibleCards,
-          { opacity: [0, 1], y: [12, 0], scale: [0.992, 1] },
+          { opacity: [0, 1], y: [mode === "full" ? 38 : 12, 0], scale: [mode === "full" ? .94 : .992, 1] },
           {
             type: "spring",
             stiffness: 310,
             damping: 30,
             mass: 0.72,
-            delay: stagger(0.018, { startDelay: 0.015 }),
+            delay: stagger(mode === "full" ? .045 : .018, { startDelay: 0.015 }),
           },
         );
       }
@@ -111,10 +110,26 @@ export default function MotionLayer({ scene, mode = "smooth" }: { scene: string;
     return () => window.removeEventListener("pointermove", move);
   }, [battery, glowX, glowY, lite, pointerX, pointerY, reduceMotion]);
 
+  useEffect(()=>{
+    if(reduceMotion||battery||mode!=='full'||!window.matchMedia('(pointer:fine)').matches)return;
+    let frame=0,last:HTMLElement|null=null;
+    const reset=()=>{if(last){last.style.removeProperty('--tilt-x');last.style.removeProperty('--tilt-y');last=null}};
+    const move=(event:PointerEvent)=>{cancelAnimationFrame(frame);frame=requestAnimationFrame(()=>{const target=(event.target as HTMLElement).closest<HTMLElement>('.hub-stat,.template-tile,.style-preview,.stat');if(target!==last)reset();if(!target)return;last=target;const rect=target.getBoundingClientRect();target.style.setProperty('--tilt-x',((event.clientY-rect.top)/rect.height-.5)*-5+'deg');target.style.setProperty('--tilt-y',((event.clientX-rect.left)/rect.width-.5)*5+'deg')})};
+    window.addEventListener('pointermove',move,{passive:true});window.addEventListener('pointerleave',reset);
+    return()=>{cancelAnimationFrame(frame);reset();window.removeEventListener('pointermove',move);window.removeEventListener('pointerleave',reset)};
+  },[reduceMotion,battery,mode]);
   const still = reduceMotion || battery ? { x: 0, y: 0, rotate: 0, scale: 1 } : undefined;
 
+  if(reduceMotion || battery)return <div className="motion-world motion-still" aria-hidden="true"/>;
   return (
     <div className={`motion-world${lite ? " motion-lite" : ""}`} aria-hidden="true">
+      <div className={`neon-particles ${palette==='plum'||palette==='kyoto'?'petals':''}`}>
+        {Array.from({length:lite?8:style==='cosmic'?32:20},(_,i)=><motion.i key={palette+':'+i} style={{left:((i*37+9)%100)+'%',top:((i*23+7)%100)+'%',width:style==='cosmic'?2+i%3:3+i%5,height:style==='cosmic'?2+i%3:3+i%5}} animate={{y:[0,-30-i%5*13,0],x:[0,(i%2?1:-1)*(20+i%4*6),0],opacity:[.12,.65,.12],rotate:[0,180,360]}} transition={{duration:8+i%7*2,repeat:Infinity,delay:i*.21,ease:'easeInOut'}}/>)}
+      </div>
+      {style==='arcade'&&<div className="arcade-horizon"><div/></div>}
+      {style==='cosmic'&&<><div className="cosmic-aurora"/><div className="cosmic-planet"/><motion.div className="shooting-star" animate={{x:[0,400],y:[0,230],opacity:[0,.8,0]}} transition={{duration:1.6,repeat:Infinity,repeatDelay:7}}/></>}
+      {style==='glass'&&<div className="glass-ribbons"><i/><i/><i/></div>}
+      <AnimatePresence>{celebrate&&<motion.div className="celebration" initial={{opacity:1}} exit={{opacity:0}}><motion.div className="celebration-ring" initial={{scale:.1,opacity:1}} animate={{scale:3,opacity:0}} transition={{duration:1.1}}/>{Array.from({length:lite?12:28},(_,i)=><motion.i key={i} initial={{x:0,y:0,opacity:1,scale:1}} animate={{x:Math.cos(i*2.4)*(120+i%5*35),y:Math.sin(i*2.4)*(100+i%7*22),opacity:0,rotate:i*50,scale:.3}} transition={{duration:1.1,delay:i*.008}}/>)}</motion.div>}</AnimatePresence>
       <motion.div className="motion-scroll-progress" style={{ scaleX: reduceMotion ? 1 : scrollScale }} />
       {!lite && !battery && <motion.div className="motion-pointer-glow" style={{ x: glowX, y: glowY }} />}
       {!lite && <AnimatePresence mode="popLayout">

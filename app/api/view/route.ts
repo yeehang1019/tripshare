@@ -7,7 +7,7 @@ const reply=(x:unknown,status=200)=>Response.json(x,{status,headers:{'Cache-Cont
 export async function POST(r:Request){try{
   const who=await identity(r);
   if(!who)return reply({error:'Sign in to open shared events'},401);
-  const b=await r.json();
+  const b:any=await r.json();
   if(typeof b.token!=='string'||b.token.length!==72)return reply({error:'Invalid or closed share link'},404);
   const db=database(),s:any=await db.prepare('SELECT s.*,t.data,t.revision,t.owner,t.owner_email,t.id FROM shares s JOIN trips t ON t.id=s.trip WHERE s.token=?').bind(b.token).first();
   if(!s)return reply({error:'Invalid or closed share link'},404);

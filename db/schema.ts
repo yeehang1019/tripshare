@@ -1,4 +1,4 @@
-import {sqliteTable,text,integer,index} from 'drizzle-orm/sqlite-core';
+import {sqliteTable,text,integer,index,primaryKey} from 'drizzle-orm/sqlite-core';
 export const trips=sqliteTable('trips',{id:text('id').primaryKey(),owner:text('owner').notNull(),ownerEmail:text('owner_email'),data:text('data').notNull(),revision:integer('revision').notNull().default(0),invite:text('invite').notNull()},t=>[index('trips_owner_email').on(t.ownerEmail)]);
 export const members=sqliteTable('members',{id:text('id').primaryKey(),trip:text('trip').notNull(),user:text('user').notNull()});
 export const grants=sqliteTable('grants',{id:text('id').primaryKey(),trip:text('trip').notNull(),email:text('email').notNull(),permissions:text('permissions').notNull(),person:text('person').notNull().default('')},t=>[index('grants_email').on(t.email),index('grants_trip').on(t.trip)]);
@@ -24,3 +24,9 @@ export const syncChanges=sqliteTable('sync_changes',{
 export const syncLimits=sqliteTable('sync_limits',{
   key:text('key').primaryKey(), count:integer('count').notNull(),
 },t=>[]);
+
+export const personalWorkspace=sqliteTable('personal_workspace',{email:text('email').primaryKey(),data:text('data').notNull(),revision:integer('revision').notNull().default(0)});
+export const memberInvitations=sqliteTable('member_invitations',{token:text('token').primaryKey(),trip:text('trip').notNull(),person:text('person').notNull(),email:text('email').notNull(),expiresAt:integer('expires_at').notNull(),acceptedEmail:text('accepted_email')},t=>[index('member_invitations_trip').on(t.trip)]);
+export const accountLinks=sqliteTable('account_links',{email:text('email').primaryKey(),identityKey:text('identity_key').notNull().unique()});
+export const payoutCards=sqliteTable('payout_cards',{trip:text('trip').notNull(),person:text('person').notNull(),email:text('email').notNull(),data:text('data').notNull()},t=>[primaryKey({columns:[t.trip,t.person]})]);
+export const tripPhotos=sqliteTable('trip_photos',{id:text('id').primaryKey(),trip:text('trip').notNull(),caption:text('caption').notNull(),mime:text('mime').notNull(),createdAt:text('created_at').notNull()},t=>[index('trip_photos_trip').on(t.trip)]);

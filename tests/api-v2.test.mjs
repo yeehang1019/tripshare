@@ -37,12 +37,18 @@ test('Trip planning persists bookings, dates and tasks; viewers cannot edit and 
 
 async function harness(){const sqlite=new DatabaseSync(':memory:');for(const f of readdirSync(new URL('../drizzle/',import.meta.url)).filter(f=>f.endsWith('.sql')).sort())sqlite.exec(readFileSync(new URL('../drizzle/'+f,import.meta.url),'utf8'));
  const db={prepare(sql){let args=[];return {bind(...v){args=v;return this},async first(){return sqlite.prepare(sql).get(...args)||null},async all(){return {results:sqlite.prepare(sql).all(...args)}},async run(){const r=sqlite.prepare(sql).run(...args);return {meta:{changes:r.changes}}}}},async batch(statements){sqlite.exec('BEGIN');try{const results=[];for(const s of statements)results.push(await s.run());sqlite.exec('COMMIT');return results}catch(e){sqlite.exec('ROLLBACK');throw e}}};
- const integrationEnv={POCKET_SYNC_TOKEN:'test-only-secret',POCKET_SYNC_EMAIL:'b@example.com'};
- const context=createContext({Request,Response,URL,crypto,TextEncoder,Uint8Array,btoa,atob,escape,unescape,console:{error(){}}});const modules={};const synthetic=(name,obj)=>new SyntheticModule(Object.keys(obj),function(){for(const k of Object.keys(obj))this.setExport(k,obj[k])},{context,identifier:name});modules['@/lib/ledger']=synthetic('ledger',ledger);modules['@/db/raw']=synthetic('database',{database:()=>db});modules['cloudflare:workers']=synthetic('env',{env:integrationEnv});
+ const objects=new Map();const bucket={async put(key,bytes){objects.set(key,bytes)},async get(key){return objects.has(key)?{body:objects.get(key)}:null},async delete(key){objects.delete(key)}};
+ const integrationEnv={POCKET_SYNC_TOKEN:'test-only-secret',POCKET_SYNC_EMAIL:'b@example.com',BUCKET:bucket};
+ const context=createContext({Request,Response,URL,crypto,TextEncoder,TextDecoder,File,Uint8Array,btoa,atob,escape,unescape,console:{error(){}}});const modules={};const synthetic=(name,obj)=>new SyntheticModule(Object.keys(obj),function(){for(const k of Object.keys(obj))this.setExport(k,obj[k])},{context,identifier:name});modules['@/lib/ledger']=synthetic('ledger',ledger);modules['@/db/raw']=synthetic('database',{database:()=>db});modules['cloudflare:workers']=synthetic('env',{env:integrationEnv});
  const compile=(path)=>new SourceTextModule(ts.transpileModule(readFileSync(new URL(path,import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022}}).outputText,{context,identifier:path});
+ const store=compile('../lib/workspace-store.ts');modules['@/lib/workspace-store']=store;await store.link(s=>modules[s]);await store.evaluate();
+ const plan=compile('../lib/settlement-plan.ts');modules['@/lib/settlement-plan']=plan;await plan.link(s=>s==='./ledger'?modules['@/lib/ledger']:modules[s]);await plan.evaluate();
  const personal=compile('../lib/personal.ts');modules['@/lib/personal']=personal;await personal.link(s=>s==='./ledger'?modules['@/lib/ledger']:modules[s]);await personal.evaluate();
  const trips=compile('../app/api/trips/route.ts');modules['../trips/route']=trips;await trips.link(s=>modules[s]);await trips.evaluate();const view=compile('../app/api/view/route.ts');await view.link(s=>modules[s]);await view.evaluate();
  const sync=compile('../app/api/integrations/v1/me/entries/route.ts');await sync.link(s=>modules[s]);await sync.evaluate();
+ const workspace=compile('../app/api/workspace/route.ts');await workspace.link(s=>modules[s]);await workspace.evaluate();
+ const payout=compile('../app/api/payout/route.ts');await payout.link(s=>modules[s]);await payout.evaluate();
+ const photos=compile('../app/api/photos/route.ts');await photos.link(s=>modules[s]);await photos.evaluate();
  const req=(data,email='owner@example.com',userId=email)=>new Request('https://trip.test/api/trips',{method:'POST',headers:{'Content-Type':'application/json',...(email?{'oai-authenticated-user-email':email,'oai-authenticated-user-id':userId}:{}),Origin:'https://trip.test'},body:JSON.stringify(data)});
  const post=async(data,email,userId)=>{const r=await trips.namespace.POST(req(data,email,userId));return {status:r.status,...await r.json()}};
  const get=async(email,userId=email)=>{const r=await trips.namespace.GET(new Request('https://trip.test/api/trips',{headers:{'oai-authenticated-user-email':email,'oai-authenticated-user-id':userId}}));return r.json()};
@@ -52,7 +58,12 @@ async function harness(){const sqlite=new DatabaseSync(':memory:');for(const f o
  const postWithSession=async(data,token)=>{const r=await trips.namespace.POST(new Request('https://trip.test/api/trips',{method:'POST',headers:{'Content-Type':'application/json','X-TripShare-Session':token,Origin:'https://trip.test'},body:JSON.stringify(data)}));return {status:r.status,...await r.json()}};
  const read=async(token,pin,email='owner@example.com')=>{const r=await view.namespace.POST(req({token,pin},email));return {status:r.status,...await r.json()}};
  const syncRead=async(cursor='',authorization='Bearer test-only-secret',limit=50)=>{const params=new URLSearchParams({limit:String(limit)});if(cursor)params.set('cursor',cursor);const r=await sync.namespace.GET(new Request('https://trip.test/api/integrations/v1/me/entries?'+params,{headers:{Authorization:authorization}}));return {status:r.status,...await r.json()}};
- return {post,get,getWithCookie,postWithCookie,getWithSession,postWithSession,read,syncRead,integrationEnv,sqlite};}
+ const workspaceRead=async(email='owner@example.com')=>{const r=await workspace.namespace.GET(new Request('https://trip.test/api/workspace',{headers:{'oai-authenticated-user-id':email,'oai-authenticated-user-email':email}}));return {status:r.status,...await r.json()}};
+ const workspaceSave=async(body,email='owner@example.com')=>{const r=await workspace.namespace.POST(req(body,email));return {status:r.status,...await r.json()}};
+ const payoutCall=async(body,email='owner@example.com')=>{const r=await payout.namespace.POST(req(body,email));return {status:r.status,...await r.json()}};
+ const photosRead=async(group,email='owner@example.com',photo='')=>{const r=await photos.namespace.GET(new Request('https://trip.test/api/photos?'+new URLSearchParams({group,...(photo?{photo}:{})}),{headers:{'oai-authenticated-user-id':email,'oai-authenticated-user-email':email}}));return photo?r:{status:r.status,...await r.json()}};
+ const photosSave=async(group,bytes,mime='image/png',email='owner@example.com')=>{const body=new FormData();body.append('photo',new File([bytes],'image.png',{type:mime}));body.append('caption','Private memory');const r=await photos.namespace.POST(new Request('https://trip.test/api/photos?'+new URLSearchParams({group}),{method:'POST',headers:{'oai-authenticated-user-id':email,'oai-authenticated-user-email':email,Origin:'https://trip.test'},body}));return {status:r.status,...await r.json()}};
+ return {photosRead,photosSave,workspaceRead,workspaceSave,payoutCall,post,get,getWithCookie,postWithCookie,getWithSession,postWithSession,read,syncRead,integrationEnv,sqlite};}
 test('API roles, old data migration, stale writes, private read links and revocation',async()=>{const h=await harness(),e=ledger.normalize({name:'Test Trip',people:['YH','ET'],bills:[],payments:[]});let result=await h.post({action:'create',data:e});assert.equal(result.status,200);const id=result.id;assert.equal((await h.post({action:'create',data:e},'')).status,401);
  const b=ledger.blankExpense(e,'YH');b.merchant='Tickets';b.items[0].amount=20000;
  assert.equal((await h.post({action:'expense',id,revision:0,entity:b},'stranger@example.com')).status,403);
@@ -161,4 +172,70 @@ test('Split removal tombstones retain original dates and old cursors can be retr
  h.sqlite.exec(`UPDATE trips SET data=json_set(data,'$.expenses[0].date','2026-02-30')`);
  const bad=await h.syncRead(start.next_cursor,undefined,1);assert.equal(bad.status,503);assert.equal(bad.error,'invalid_source_record');assert.equal(bad.field,'date');assert.equal(bad.next_cursor,undefined);
  h.sqlite.close();
+});
+
+test('Invitations bind the intended account once, enforce email and prevent member takeover',async()=>{
+ const h=await harness(),e=ledger.normalize({name:'Friends',people:['A','B','C'],bills:[],payments:[]}),{id}=await h.post({action:'create',data:e});
+ assert.equal((await h.post({action:'createInvite',id,person:'B'},'stranger@example.com')).status,403);
+ const invite=await h.post({action:'createInvite',id,person:'B',email:'b@example.com'});assert.equal(invite.status,200);
+ assert.equal((await h.post({action:'acceptInvite',token:invite.token},'wrong@example.com')).status,403);
+ assert.equal((await h.post({action:'acceptInvite',token:invite.token},'b@example.com')).status,200);
+ assert.equal((await h.get('b@example.com')).trips[0].person,'B');
+ assert.equal((await h.post({action:'acceptInvite',token:invite.token},'b@example.com')).status,200);
+ assert.equal((await h.post({action:'acceptInvite',token:invite.token},'wrong@example.com')).status,410);
+ assert.equal((await h.post({action:'grant',id,email:'wrong@example.com',person:'B',permissions:[]})).status,400);
+ const link=await h.post({action:'createInvite',id,person:'C'});assert.equal((await h.post({action:'acceptInvite',token:link.token},'c@example.com')).status,200);
+ const group2=(await h.post({action:'create',data:{...e,name:'Other'}})).id;await h.post({action:'grant',id:group2,email:'b@example.com',person:'B',permissions:[]});
+ const records=(await h.get('owner@example.com')).trips;assert.equal(records[0].memberKeys.B,records[1].memberKeys.B);
+ assert.equal(JSON.stringify((await h.get('c@example.com')).trips).includes('b@example.com'),false);
+ h.sqlite.close();
+});
+test('Personal workspace templates persist independently, do not book expenses, and reject stale writes',async()=>{
+ const h=await harness();const read=await h.workspaceRead();assert.equal(read.status,200);
+ const template={id:'route',name:'Any recurring bill',amount:350,currency:'MYR',category:'Transport',group:'',payer:''};
+ const saved=await h.workspaceSave({action:'template',template,revision:0});assert.equal(saved.status,200);assert.equal(saved.data.templates[0].amount,350);
+ assert.equal(h.sqlite.prepare('SELECT count(*) AS n FROM trips').get().n,0);
+ assert.equal((await h.workspaceRead('b@example.com')).data.templates.length,0);
+ assert.equal((await h.workspaceSave({action:'appearance',style:'cosmic',sound:false,haptics:true,revision:0})).status,409);
+ assert.equal((await h.workspaceSave({action:'appearance',style:'cosmic',sound:false,haptics:true,revision:1})).status,200);
+ assert.equal((await h.workspaceRead()).data.style,'cosmic');
+ assert.equal((await h.workspaceSave({action:'template',template:{...template,amount:-1},revision:2})).status,400);
+ h.sqlite.close();
+});
+test('Payout details are visible only to the bound owner and selected group members, even to group owner',async()=>{
+ const h=await harness(),e=ledger.normalize({name:'Private cards',people:['A','B','C'],bills:[],payments:[]}),{id}=await h.post({action:'create',data:e});
+ for(const [person,email]of [['A','owner@example.com'],['B','b@example.com'],['C','c@example.com']])await h.post({action:'grant',id,person,email,permissions:[]});
+ const data={name:'B',bank:'Bank',account:'123',duitnow:'',qr:'',viewers:['C']};
+ assert.equal((await h.payoutCall({action:'save',group:id,person:'B',data},'b@example.com')).status,200);
+ assert.equal((await h.payoutCall({action:'read',group:id,person:'B'},'owner@example.com')).status,403);
+ assert.equal((await h.payoutCall({action:'read',group:id,person:'B'},'c@example.com')).data.account,'123');
+ assert.equal((await h.payoutCall({action:'save',group:id,person:'B',data},'c@example.com')).status,403);
+ await h.post({action:'revoke',id,grant:id+':b@example.com'});
+ assert.equal((await h.payoutCall({action:'read',group:id,person:'B'},'c@example.com')).data,null);
+ h.sqlite.close();
+});
+test('Simplified repayment settles original edges, preserves expense identity and undo restores debts',async()=>{
+ const h=await harness(),e=ledger.normalize({name:'Chain',people:['A','B','C'],bills:[],payments:[]}),{id}=await h.post({action:'create',data:e});
+ const bill=(payer,consumer,id)=>{const b=ledger.blankExpense(e,payer);b.id=id;b.merchant='Example';b.items[0].amount=5000;b.items[0].people=[consumer];b.items[0].weights=[1];return b};
+ await h.post({action:'expense',id,revision:0,entity:bill('B','A','ab')});await h.post({action:'expense',id,revision:1,entity:bill('C','B','bc')});
+ const payment={id:'chain-payment',from:'A',to:'C',amount:5000,date:'2026-10-07',simplified:true,note:''};
+ assert.equal((await h.post({action:'payment',id,revision:2,entity:{...payment,amount:5001}})).status,400);
+ assert.equal((await h.post({action:'payment',id,revision:2,entity:payment})).status,200);
+ const loaded=(await h.get('owner@example.com')).trips[0].data;assert.equal(ledger.ledger(loaded).transfers.length,0);assert.equal(loaded.payments[0].allocations.length,2);assert.equal(ledger.ledger(loaded).total,10000);
+ await h.post({action:'expense',id,revision:3,entity:bill('B','A','new')});let current=(await h.get('owner@example.com')).trips[0].data;assert.equal(ledger.ledger(current).transfers[0].amount,5000);
+ assert.equal((await h.post({action:'undoPayment',id,revision:4,entityId:payment.id})).status,200);current=(await h.get('owner@example.com')).trips[0].data;assert.equal(ledger.ledger(current).transfers.find(t=>t.from==='A'&&t.to==='B').amount,10000);h.sqlite.close();
+});
+
+test('Trip photos use authenticated storage, reject spoofed images and isolate groups',async()=>{
+ const h=await harness(),e=ledger.normalize({name:'Private album',people:['A','B'],bills:[],payments:[]}),{id}=await h.post({action:'create',data:e});
+ await h.post({action:'grant',id,email:'b@example.com',person:'B',permissions:[]});
+ assert.equal((await h.photosRead(id,'outsider@example.com')).status,403);
+ assert.equal((await h.photosSave(id,new TextEncoder().encode('<svg/>'),'image/png')).status,400);
+ const image=new Uint8Array(Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j5YQAAAAASUVORK5CYII=','base64'));
+ assert.equal((await h.photosSave(id,image,'image/png','b@example.com')).status,403);
+ const saved=await h.photosSave(id,image);assert.equal(saved.status,200);
+ assert.equal((await h.photosRead(id,'b@example.com')).photos.length,1);
+ const response=await h.photosRead(id,'b@example.com',saved.id);assert.equal(response.status,200);assert.equal(response.headers.get('cache-control'),'private, no-store');assert.deepEqual(new Uint8Array(await response.arrayBuffer()),image);
+ assert.equal((await h.photosRead(id,'outsider@example.com',saved.id)).status,403);
+ const other=(await h.post({action:'create',data:{...e,name:'Other album'}})).id;assert.equal((await h.photosRead(other,'owner@example.com',saved.id)).status,404);h.sqlite.close();
 });
