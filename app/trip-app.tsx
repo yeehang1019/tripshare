@@ -79,6 +79,7 @@ import ExpenseEditor from "./expense-editor";
 import TripPlanner from "./trip-planner";
 import MotionLayer from "./motion-layer";
 import TripAlbum from "./trip-album";
+import {AppearancePanel,WorkspaceChrome,monthBounds} from "./workspace-design";
 import {useWorkspace,ExperienceSettings,TemplateShelf,PersonalHub,SettlementPreview,PayoutDetails,TravelFunding,feedback} from "./experience";
 export type RecordT = {
   memberKeys?: Record<string,string>;
@@ -181,6 +182,8 @@ export default function TripApp({ shared = false, authenticatedEmail = "", authe
   const [templateSource,setTemplateSource]=useState<Expense|null>(null);
   const [inviteToken,setInviteToken]=useState(''),[invitePrompt,setInvitePrompt]=useState(false),[newInviteLink,setNewInviteLink]=useState('');
   const [celebrate,setCelebrate]=useState(false);
+  const [appearanceOpen,setAppearanceOpen]=useState(false);
+
   useEffect(()=>{const invitation=new URLSearchParams(window.location.hash.slice(1)).get('invite');if(invitation&&!shared){setInviteToken(invitation);setInvitePrompt(true);history.replaceState(null,'',window.location.pathname+window.location.search)}},[shared]);
   function celebrateSave(){feedback(workspace.data.sound,workspace.data.haptics);setCelebrate(true);setTimeout(()=>setCelebrate(false),1400)}
  const rec = records.find((x) => x.id === id) || records[0],
@@ -323,6 +326,7 @@ setPlannerDirty(false);setTemplateDirty(false);
     setAccessInfo({ grants: [], shares: [] });
     accessLoaded.current = false;
   }, [rec?.id]);
+  useEffect(()=>{if(tab==="My spending"){const [a,b]=monthBounds();setStart(a);setEnd(b);setCat("All");setMerchant("");}else if(tab==="Expenses"){setStart("");setEnd("");}},[tab,rec?.id]);
   useEffect(() => {
     if (tab === "Settings" && rec?.owner && !accessLoaded.current) {
       accessLoaded.current = true;
@@ -693,22 +697,26 @@ setPlannerDirty(false);setTemplateDirty(false);
       );
     });
   }
+  const chrome=<WorkspaceChrome records={records} selected={rec?.id||""} onGroup={choose} onAppearance={()=>setAppearanceOpen(true)} style={workspace.data.style} palette={paletteLabels[palette]} event={e} member={!!rec?.personal}/>;
+  const appearance=<AppearancePanel open={appearanceOpen} onOpenChange={setAppearanceOpen} workspace={workspace} palette={palette} labels={paletteLabels} mode={theme} motion={motionMode} onChange={(p,m,v)=>saveAppearance(p as PaletteName,m as ThemeMode,v as MotionMode)} shared={shared}/>;
   function spendingOverview() { return !shared ? <PersonalHub records={records} workspace={workspace} onGroup={choose}/> : null; }
   if(rec?.personal){
     const view=rec.personal;
+    const monthExpenses=view.expenses.filter(b=>(!start||b.date>=start)&&(!end||b.date<=end));
     const payoutEvent={...e!,people:[...e!.people,...Array.from(new Map(view.transfers.flatMap(t=>[{id:t.from,name:t.fromName,active:true},{id:t.to,name:t.toName,active:true}]).filter(p=>p.id!==rec.person).map(p=>[p.id,p])).values())]};
     const owe=view.transfers.filter(t=>t.from===rec.person).reduce((n,t)=>n+t.amount,0);
     const receive=view.transfers.filter(t=>t.to===rec.person).reduce((n,t)=>n+t.amount,0);
-    return <div className="app member-view"><MotionLayer scene={rec.id} mode={motionMode} style={workspace.data.style} palette={palette}/><header><a className="brand" href="/">tripshare<span className="brand-dot">.</span></a><strong>{view.name} · {e?.kind==='trip'?'Trip':'Daily Group'}</strong></header>
-      <main>{invitePrompt&&<section className="panel"><h2>New group invitation</h2><button className="primary" disabled={busy} onClick={async()=>{if(await send("acceptInvite",{token:inviteToken})){setInvitePrompt(false);setInviteToken("")}}}>Accept as {user}</button><button className="secondary" onClick={()=>setInvitePrompt(false)}>Dismiss</button></section>}{error&&<p className="message error" role="alert">{error}</p>}<ExperienceSettings workspace={workspace}/><div className="checks member-appearance"><Pick label="Colour theme" value={palette} options={Object.entries(paletteLabels).map(([id,name])=>({id,name}))} onChange={p=>saveAppearance(p as PaletteName,theme,motionMode)}/><Pick label="Mode" value={theme} options={[{id:'light',name:'Light'},{id:'night',name:'Night'}]} onChange={m=>saveAppearance(palette,m as ThemeMode,motionMode)}/><Pick label="Motion" value={motionMode} options={[{id:'full',name:'Ultra motion'},{id:'smooth',name:'Balanced'},{id:'battery',name:'Minimal'}]} onChange={m=>saveAppearance(palette,theme,m as MotionMode)}/></div>{spendingOverview()}<section className="panel"><h1>{e?.name}</h1><p>Your own spending and outstanding payments</p>
+    return <div className="app member-view workspace-app">{chrome}{appearance}<MotionLayer scene={rec.id} mode={motionMode} style={workspace.data.style} palette={palette}/><header><a className="brand" href="/">tripshare<span className="brand-dot">.</span></a><strong>{view.name} · {e?.kind==='trip'?'Trip':'Daily Group'}</strong><button className="icon-button" aria-label="Appearance" onClick={()=>setAppearanceOpen(true)}><Palette size={18}/></button></header>
+      <main>{invitePrompt&&<section className="panel"><h2>New group invitation</h2><button className="primary" disabled={busy} onClick={async()=>{if(await send("acceptInvite",{token:inviteToken})){setInvitePrompt(false);setInviteToken("")}}}>Accept as {user}</button><button className="secondary" onClick={()=>setInvitePrompt(false)}>Dismiss</button></section>}{error&&<p className="message error" role="alert">{error}</p>}{spendingOverview()}<section className="panel"><h1>{e?.name}</h1><p>Your own spending and outstanding payments</p>
         <select aria-label="Choose event" value={rec.id} onChange={x=>setId(x.target.value)}>{records.map(x=><option value={x.id} key={x.id}>{x.data.name}</option>)}</select>
-        <div className="stats personal-stats"><div className="stat featured"><span>Total consumed</span><strong>{fmt(view.consumed)}</strong></div><div className="stat"><span>Actually paid</span><strong>{fmt(view.paid)}</strong></div><div className="stat"><span>Need to pay</span><strong>{fmt(owe)}</strong></div><div className="stat"><span>Need to receive</span><strong>{fmt(receive)}</strong></div></div>
-      </section><section className="panel"><h2>My expenses</h2>{view.expenses.map(b=><details key={b.id} className="expense-row"><summary><strong>{b.title}</strong> · {b.date} · {b.category} · {b.paymentStatus || "paid"} · My share {fmt(b.consumed)} · Paid {fmt(b.paid)}</summary><ul>{b.items.map((item,i)=><li key={i}>{item.name} · {fmt(item.amount)}</li>)}</ul></details>)}{!view.expenses.length&&<p>No personal expenses yet.</p>}</section>
+        <div className="stats personal-stats"><div className="stat featured"><span>Consumed · selected dates</span><strong>{fmt(monthExpenses.reduce((n,b)=>n+b.consumed,0))}</strong></div><div className="stat"><span>Paid · selected dates</span><strong>{fmt(monthExpenses.reduce((n,b)=>n+b.paid,0))}</strong></div><div className="stat"><span>Need to pay · all time</span><strong>{fmt(owe)}</strong></div><div className="stat"><span>Need to receive · all time</span><strong>{fmt(receive)}</strong></div></div>
+      </section><section className="panel"><h2>My expenses</h2><div className="checks"><Field label="From"><input type="date" value={start} onChange={x=>setStart(x.target.value)}/></Field><Field label="Until"><input type="date" value={end} onChange={x=>setEnd(x.target.value)}/></Field><button className="secondary" onClick={()=>{const [a,b]=monthBounds();setStart(a);setEnd(b)}}>This month</button><button className="secondary" onClick={()=>{setStart("");setEnd("")}}>All time</button></div>{monthExpenses.map(b=><details key={b.id} className="expense-row"><summary><strong>{b.title}</strong> · {b.date} · {b.category} · {b.paymentStatus || "paid"} · My share {fmt(b.consumed)} · Paid {fmt(b.paid)}</summary><ul>{b.items.map((item,i)=><li key={i}>{item.name} · {fmt(item.amount)}</li>)}</ul></details>)}{!monthExpenses.length&&<p>No personal expenses yet.</p>}</section>
       <section className="panel"><h2>My settlement</h2>{view.transfers.map(t=><div key={t.from+':'+t.to} className="expense-row"><strong>{t.fromName} → {t.toName}: {fmt(t.amount)}</strong>{t.to!==rec.person&&<PayoutDetails group={rec.id} person={t.to} event={payoutEvent} session={authenticatedSession} editable={false}/>}</div>)}{!view.transfers.length&&<p>All settled.</p>}<PayoutDetails group={rec.id} person={rec.person} event={payoutEvent} session={authenticatedSession} editable/><h3>Repayment history</h3>{view.payments.map(p=><p key={p.id}>{p.date} · {p.fromName} → {p.toName} · {fmt(p.amount)}</p>)}</section>{e?.kind==='trip'&&<TripAlbum group={rec.id} session={authenticatedSession} canUpload={false}/>}</main></div>;
   }
   return (
-    <div className="app">
+    <div className="app workspace-app">
       <MotionLayer scene={`${rec?.id || "empty"}-${tab}-${workspace.data.style}-${palette}`} mode={motionMode} style={workspace.data.style} palette={palette} celebrate={celebrate} />
+      {chrome}{appearance}
       <header>
         <a className="brand" href={shared ? "#" : "/"}>
           <span className="brandmark">
@@ -738,38 +746,7 @@ setPlannerDirty(false);setTemplateDirty(false);
               <Download size={18} />
             </button>
           )}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="icon-button theme-toggle" aria-label="Appearance" title="Appearance">
-                <Palette size={18} />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="appearance-menu">
-              <DropdownMenuLabel>Theme colour</DropdownMenuLabel>
-              <DropdownMenuRadioGroup value={palette} onValueChange={(value) => saveAppearance(value as PaletteName, theme, motionMode)}>
-                {(Object.keys(paletteLabels) as PaletteName[]).map((value) => (
-                  <DropdownMenuRadioItem key={value} value={value} onSelect={(event) => event.preventDefault()}>
-                    <span className="palette-swatch" data-palette-preview={value} />
-                    {paletteLabels[value]}
-                  </DropdownMenuRadioItem>
-                ))}
-              </DropdownMenuRadioGroup>
-              <DropdownMenuSeparator />
-              <DropdownMenuLabel>Mode</DropdownMenuLabel>
-              <DropdownMenuRadioGroup value={theme} onValueChange={(value) => saveAppearance(palette, value as ThemeMode, motionMode)}>
-                <DropdownMenuRadioItem value="light" onSelect={(event) => event.preventDefault()}><Sun size={15}/> Light</DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="night" onSelect={(event) => event.preventDefault()}><MoonStar size={15}/> Night</DropdownMenuRadioItem>
-              </DropdownMenuRadioGroup>
-              <DropdownMenuSeparator />
-              <DropdownMenuLabel>Motion</DropdownMenuLabel>
-              <DropdownMenuRadioGroup value={motionMode} onValueChange={(value) => saveAppearance(palette, theme, value as MotionMode)}>
-                <DropdownMenuRadioItem value="full" onSelect={(event) => event.preventDefault()}>Ultra motion</DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="smooth" onSelect={(event) => event.preventDefault()}>Smooth</DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="battery" onSelect={(event) => event.preventDefault()}>Battery saver</DropdownMenuRadioItem>
-              </DropdownMenuRadioGroup>
-              {!shared && <p className="appearance-sync">Synced to {user || "your account"}</p>}
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <button className="icon-button theme-toggle" aria-label="Appearance" onClick={()=>setAppearanceOpen(true)}><Palette size={18}/><span className="appearance-label">Appearance</span></button>
           <span className="saved sync-status" title={user || undefined}>
             <span className="sync-role">
               {shared ? "Read-only" : rec?.owner ? "Owner" : rec?.permissions.length ? "Admin" : "Cloud sync"}
@@ -808,7 +785,7 @@ setPlannerDirty(false);setTemplateDirty(false);
         </AlertDialogContent>
       </AlertDialog>
       <main>
-        {!shared && <ExperienceSettings workspace={workspace}/>}
+
         {invitePrompt&&<section className="panel invitation-prompt"><h2>Join your friend’s group</h2><p>Accept this invitation to bind your signed-in account to the member selected by the group owner. You will see your own spending and payments.</p><button className="primary" disabled={busy} onClick={async()=>{if(await send("acceptInvite",{token:inviteToken})){setInvitePrompt(false);setInviteToken("");setNotice("You joined the group.")}}}>Accept as {user}</button><button className="secondary" onClick={()=>{setInvitePrompt(false);setInviteToken("")}}>Dismiss</button></section>}
         {error && (
           <div className="message error" role="alert">
@@ -2237,11 +2214,11 @@ setPlannerDirty(false);setTemplateDirty(false);
           </>
         )}
         <footer>
-          <span>tripshare.</span>
+          <span className="footer-brand">tripshare<span className="brand-dot">.</span><i className="spectrum-line"/></span>
           <p>
             {shared
               ? "Read-only · Never send money without checking the recipient."
-              : "Manual entry. Automatic maths. Online saving."}
+              : "Shared moments. Clear balances. Your own rhythm."}
           </p>
         </footer>
       </main>
