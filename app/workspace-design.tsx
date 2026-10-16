@@ -7,9 +7,9 @@ import type {RecordT} from './trip-app';
 import {calculate,money,type Event} from '@/lib/ledger';
 export function monthBounds(now=new Date()):[string,string]{const year=now.getFullYear(),month=now.getMonth()+1;return [`${year}-${String(month).padStart(2,'0')}-01`,`${year}-${String(month).padStart(2,'0')}-${String(new Date(year,month,0).getDate()).padStart(2,'0')}`]}
 export const completeThemes=[
-  {style:'arcade' as const,palette:'cyberpunk',name:'Neon Odyssey',subtitle:'霓虹游戏 · Electric playground',detail:'Magenta, cyan and violet. Bold panels, crisp highlights and playful feedback.',symbol:'✦'},
-  {style:'glass' as const,palette:'cozy',name:'Cloud Crème',subtitle:'奶油日常 · Soft and effortless',detail:'Vanilla, peach and sage. Gentle surfaces, warm typography and quiet movement.',symbol:'☁'},
-  {style:'cosmic' as const,palette:'interstellar',name:'Apex GT',subtitle:'跑车座舱 · Precision in motion',detail:'Graphite, cobalt and racing orange. Technical details, sharp lines and fast feedback.',symbol:'↗'},
+  {style:'arcade' as const,palette:'cyberpunk',name:'Neon Odyssey',subtitle:'霓虹游戏 · Electric playground',detail:'Soft violet, quiet plum and clear surfaces. Expressive details without visual clutter.',symbol:'✦'},
+  {style:'glass' as const,palette:'cozy',name:'Cloud Crème',subtitle:'奶油日常 · Soft and effortless',detail:'Warm ivory, soft clay and natural accents. Calm surfaces and comfortable contrast.',symbol:'☁'},
+  {style:'cosmic' as const,palette:'interstellar',name:'Apex GT',subtitle:'跑车座舱 · Precision in motion',detail:'Graphite, steel blue and restrained copper. Precise lines and a clean cockpit feel.',symbol:'↗'},
 ];
 export function AppearancePanel({open,onOpenChange,workspace:w,palette,mode,motion,onChange,shared}:{open:boolean;onOpenChange:(v:boolean)=>void;workspace:ReturnType<typeof useWorkspace>;palette:string;labels:Record<string,string>;mode:string;motion:string;onChange:(p:string,m:string,v:string)=>void;shared:boolean}){
   const [saving,setSaving]=useState(false);
