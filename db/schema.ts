@@ -30,3 +30,7 @@ export const memberInvitations=sqliteTable('member_invitations',{token:text('tok
 export const accountLinks=sqliteTable('account_links',{email:text('email').primaryKey(),identityKey:text('identity_key').notNull().unique()});
 export const payoutCards=sqliteTable('payout_cards',{trip:text('trip').notNull(),person:text('person').notNull(),email:text('email').notNull(),data:text('data').notNull()},t=>[primaryKey({columns:[t.trip,t.person]})]);
 export const tripPhotos=sqliteTable('trip_photos',{id:text('id').primaryKey(),trip:text('trip').notNull(),caption:text('caption').notNull(),mime:text('mime').notNull(),createdAt:text('created_at').notNull()},t=>[index('trip_photos_trip').on(t.trip)]);
+export const tripDocuments=sqliteTable('trip_documents',{
+ id:text('id').primaryKey(),trip:text('trip').notNull(),activity:text('activity').notNull().default(''),
+ name:text('name').notNull(),mime:text('mime').notNull(),size:integer('size').notNull(),createdAt:text('created_at').notNull(),
+},t=>[index('trip_documents_trip').on(t.trip)]);

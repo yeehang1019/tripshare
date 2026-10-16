@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState,useMemo } from "react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Event,
@@ -7,6 +7,7 @@ import {
   Item,
   blankItem,
   calculate,
+  duplicateFingerprint,
   categories,
   currencies,
   money,
@@ -53,6 +54,10 @@ export default function ExpenseEditor({
       }
     }
   }
+  const duplicateKeys=useMemo(()=>e.expenses.filter(x=>!x.deleted&&x.id!==initial.id).map(x=>{try{return {id:x.id,key:duplicateFingerprint(x,e.settlement)}}catch{return {id:x.id,key:''}}}),[e.expenses,e.settlement,initial.id]);
+  const [duplicateApproved,setDuplicateApproved]=useState('');
+  let fingerprint='';try{fingerprint=duplicateFingerprint(b,e.settlement)}catch{}
+  const duplicates=duplicateKeys.filter(x=>x.key&&x.key===fingerprint);
   const name = (id: string) => e.people.find((p) => p.id === id)?.name || id;
   const setPeople = (i: number, people: string[]) =>
     item(i, { people, weights: people.map(() => 1), split: "equal" });
@@ -620,10 +625,12 @@ export default function ExpenseEditor({
             onChange={setConfirmed}
           />
         )}
+        {duplicates.length>0&&<div className="duplicate-warning" role="status"><b>Possible duplicate · {duplicates.length} similar bill{duplicates.length===1?'':'s'}</b><p>The same description, date, currency and amount already exist in records you can view.</p><Check label="This is a separate expense; save it anyway" checked={duplicateApproved===fingerprint} onChange={v=>setDuplicateApproved(v?fingerprint:'')}/></div>}
         <button
           className="primary save"
           disabled={
             busy ||
+            (duplicates.length>0&&duplicateApproved!==fingerprint) ||
             !c ||
             !!error ||
             !b.merchant.trim() ||

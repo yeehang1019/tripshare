@@ -70,6 +70,9 @@ import ExpenseEditor from "./expense-editor";
 import TripPlanner from "./trip-planner";
 import MotionLayer from "./motion-layer";
 import TripAlbum from "./trip-album";
+import {PeopleAccess,ChangeHistory,NotificationBell,SettlementExport} from "./collaboration";
+import {TravelKit,BookingFiles} from "./travel-kit";
+import {newPlan} from "@/lib/trip-plan";
 import {SpaceSwitch,SpaceBridge,TripLanding,spaceDestinations,tripRecords,resolveSpaceRoute,type Space} from "./space-navigation";
 import {Search,PanelRight} from "lucide-react";
 import {AppearancePanel,WorkspaceChrome,QuickNavigator,completeThemes,monthBounds} from "./workspace-design";
@@ -78,13 +81,16 @@ export type RecordT = {
   memberKeys?: Record<string,string>;
   id: string;
   data: TripEvent;
+  planning?:TripEvent;
+  entryContext?:TripEvent;
+  ownEntries?:Expense[];
   owner: boolean;
   permissions: Permission[];
   person: string;
   revision: number;
   personal?: {name:string;consumed:number;paid:number;unpaid?:number;prepaid?:number;
     transfers:{from:string;to:string;fromName:string;toName:string;amount:number}[];
-    expenses:{id:string;date:string;title:string;category:string;consumed:number;paid:number;unpaid?:number;prepaid?:number;paymentStatus?:string;items:{name:string;amount:number}[]}[];
+    expenses:{id:string;date:string;title:string;category:string;consumed:number;paid:number;unpaid?:number;prepaid?:number;paymentStatus?:string;activity?:string;items:{name:string;amount:number}[]}[];
     payments:{id:string;date:string;from:string;to:string;fromName:string;toName:string;amount:number}[]};
 };
 type InstallPrompt = globalThis.Event & {
@@ -176,6 +182,8 @@ export default function TripApp({ shared = false, authenticatedEmail = "", authe
   const [activityFilter,setActivityFilter]=useState("");
   useEffect(()=>{spaceIntent.current=space},[space]);
   const [plannerDirty,setPlannerDirty]=useState(false);
+  const [kitDirty,setKitDirty]=useState(false);
+  const [payerFilter,setPayerFilter]=useState(""),[statusFilter,setStatusFilter]=useState("All");
   const [templateDirty,setTemplateDirty]=useState(false);
   const workspace=useWorkspace(authenticatedSession,!shared);
   const [templateSource,setTemplateSource]=useState<Expense|null>(null);
@@ -190,13 +198,14 @@ export default function TripApp({ shared = false, authenticatedEmail = "", authe
   useEffect(()=>{const invitation=new URLSearchParams(window.location.hash.slice(1)).get('invite');if(invitation&&!shared){setInviteToken(invitation);setInvitePrompt(true);history.replaceState(null,'',window.location.pathname+window.location.search)}},[shared]);
   function celebrateSave(){feedback(workspace.data.sound,workspace.data.haptics);setCelebrate(true);setTimeout(()=>setCelebrate(false),1400)}
  const rec = records.find((x) => x.id === id) || records[0],
-    e = rec?.data;
+    e = (tab==="Trip Plan"?rec?.planning:undefined)||rec?.data;
   const can = (p: Permission) => !shared && !!rec?.permissions.includes(p);
   const isMember = !!rec && !shared && !rec.owner && rec.permissions.length === 0 && !!rec.person;
-  const canViewGroup = !!rec && (shared || rec.owner || rec.permissions.length > 0);
+  const canViewGroup = !!rec && !rec.personal && (shared || rec.owner || rec.permissions.includes("viewAll") || rec.permissions.includes("editAll"));
+  const canViewTrip=!!e&&e.kind==="trip"&&(canViewGroup||!!rec?.planning);
   const editing = useRef(false),
     accessLoaded = useRef(false);
-  editing.current = !!(bill || activity || settings || payment || plannerDirty || templateDirty);
+  editing.current = !!(bill || activity || settings || payment || plannerDirty || kitDirty || templateDirty);
   const token = useRef(""),
     pinRef = useRef("");
   pinRef.current = pin;
@@ -316,16 +325,17 @@ export default function TripApp({ shared = false, authenticatedEmail = "", authe
         ? e.people.some((p) => p.id === pref) ? pref! : e.people[0]?.id || ""
         : e.people.some((p) => p.id === rec.person) ? rec.person : "",
     );
+    setPayerFilter("");setStatusFilter("All");
     setActivityFilter("");
     setStart("");
     setEnd("");
     setCat("All");
     setMerchant("");
     setSettlementScope(rec.owner || (!shared && !!rec.person) ? "mine" : "everyone");
-    setTab(spaceIntent.current==="trip"&&e.kind==="trip"&&!rec.personal?"Trip Plan":!rec.owner && !shared && rec.permissions.length === 0 && rec.person ? "My spending" : "Dashboard");
+    setTab(spaceIntent.current==="trip"&&e.kind==="trip"&&(!rec.personal||!!rec.planning)?"Trip Plan":!rec.owner && !shared && rec.permissions.length === 0 && rec.person ? "My spending" : "Dashboard");
     setBill(null);
     setActivity(null);
-setPlannerDirty(false);setTemplateDirty(false);
+setPlannerDirty(false);setKitDirty(false);setTemplateDirty(false);
     setSettings(null);
     setAccessInfo({ grants: [], shares: [] });
     accessLoaded.current = false;
@@ -355,7 +365,7 @@ setPlannerDirty(false);setTemplateDirty(false);
     }
   }, [tab, rec?.id, rec?.owner]);
   const name = (p: string) => e?.people.find((x) => x.id === p)?.name || p;
-  useEffect(()=>setExpenseLimit(50),[rec?.id,tab,start,end,cat,merchant]);
+  useEffect(()=>setExpenseLimit(50),[rec?.id,tab,start,end,cat,merchant,payerFilter,statusFilter]);
   const hasPersonalAccess = !!e && (rec.owner || (!shared && e.people.some((p) => p.id === rec.person)));
   const fmt = (n: number) => money(n, e?.settlement || "MYR");
   async function send(action: string, extra: any = {}, refresh = true) {
@@ -389,8 +399,9 @@ setPlannerDirty(false);setTemplateDirty(false);
   }
   function add(mode: "simple" | "itemized" = "simple", a?: Activity) {
     if (!e || !can("addExpense")) return;
-    const payer = e.people.find((p) => p.id === me)?.id || e.people[0].id;
-    const b = blankExpense(e, payer);
+    const context=rec.entryContext||e;
+    const payer = context.people.find((p) => p.id === me)?.id || context.people[0].id;
+    const b = blankExpense(context, payer);
     b.mode = mode;
     if (mode === "itemized") {
       b.items[0].people = [payer];
@@ -432,14 +443,14 @@ setPlannerDirty(false);setTemplateDirty(false);
   function clearUnsavedInput() {
     setBill(null);
     setActivity(null);
-    setPlannerDirty(false);setTemplateDirty(false);
+    setPlannerDirty(false);setKitDirty(false);setTemplateDirty(false);
     setPayment(null);
     setSettings(null);
     setCreating(false);setTemplateSource(null);
   }
   function choose(id:string){
     const target=records.find(r=>r.id===id);
-    const next=spaceIntent.current==='trip'&&target?.data.kind==='trip'&&!target.personal?'Trip Plan':target?.personal?'My spending':'Dashboard';
+    const next=spaceIntent.current==='trip'&&target?.data.kind==='trip'&&(!target.personal||target.planning)?'Trip Plan':target?.personal?'My spending':'Dashboard';
     const run=()=>{clearUnsavedInput();setFocusActivity('');setId(id);setTab(next)};
     if(editing.current)setConfirm({title:'Leave unsaved input?',description:'Your unsaved changes will be discarded.',run});else run();
   }
@@ -516,6 +527,8 @@ setPlannerDirty(false);setTemplateDirty(false);
       (b) =>
         !b.deleted &&
         (!activityFilter||b.activity===activityFilter) &&
+        (!payerFilter||b.payers.some(p=>p.person===payerFilter)) &&
+        (statusFilter==="All"||(b.paymentStatus||"paid")===statusFilter) &&
         (!start || b.date >= start) &&
         (!end || b.date <= end) &&
         (cat === "All" || cat === b.category) &&
@@ -719,7 +732,7 @@ setPlannerDirty(false);setTemplateDirty(false);
     const run=()=>{
       clearUnsavedInput();spaceIntent.current=next;setFocusActivity(next==="trip"?activityId:"");setActivityFilter(next==="money"?activityId:"");
       if(next==='trip'){
-        if(e?.kind!=='trip'||rec?.personal){const first=tripRecords(records)[0];if(first)setId(first.id)}
+        if(e?.kind!=='trip'||rec?.personal&&!rec?.planning){const first=tripRecords(records)[0];if(first)setId(first.id)}
         setTab('Trip Plan');
       }else setTab(rec?.personal?'My spending':activityId?'Expenses':'Dashboard');
     };
@@ -728,22 +741,51 @@ setPlannerDirty(false);setTemplateDirty(false);
   const destinations=spaceDestinations(rec,space,shared);
   const spaceRecords=space==='trip'?(shared?records.filter(r=>r.data.kind==='trip'):tripRecords(records)):records;
   const switcher=<SpaceSwitch space={space} onChange={switchSpace}/>;
+  const confirmationDialog=(<AlertDialog
+        open={!!confirm}
+        onOpenChange={(v) => {
+          if (!v) setConfirm(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{confirm?.title}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirm?.description}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                const run = confirm?.run;
+                setConfirm(null);
+                run?.();
+              }}
+            >
+              Confirm
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>);
+  const notificationBell=!shared?<NotificationBell session={authenticatedSession} workspace={workspace} onGroup={choose}/>:null;
   const chrome=<WorkspaceChrome records={spaceRecords} selected={rec?.id||""} onGroup={choose} onAppearance={()=>setAppearanceOpen(true)} onSearch={()=>setQuickOpen(true)} onNavigate={navigate} destinations={destinations} tab={tab} style={workspace.data.style} palette={paletteLabels[palette]} event={e} member={!!rec?.personal} railOpen={railOpen} onRailClose={toggleRail} space={space} spaceSwitch={switcher}/>;
   const appearance=<AppearancePanel open={appearanceOpen} onOpenChange={setAppearanceOpen} workspace={workspace} palette={palette} labels={paletteLabels} mode={theme} motion={motionMode} onChange={(p,m,v)=>saveAppearance(p as PaletteName,m as ThemeMode,v as MotionMode)} shared={shared}/>;
   const quickNavigator=<QuickNavigator open={quickOpen} onOpenChange={setQuickOpen} records={spaceRecords} destinations={destinations} onGroup={choose} onNavigate={navigate} onAdd={can("addExpense")?requestAdd:undefined} onAppearance={()=>setAppearanceOpen(true)}/>;
   function spendingOverview() { return !shared ? <PersonalHub records={records} workspace={workspace} onGroup={choose} viewerKey={me}/> : null; }
   if(rec?.personal&&space!=="trip"){
     const view=rec.personal;
-    const monthExpenses=view.expenses.filter(b=>(!start||b.date>=start)&&(!end||b.date<=end));
+    const monthExpenses=view.expenses.filter(b=>(!start||b.date>=start)&&(!end||b.date<=end)&&(cat==='All'||b.category===cat)&&(statusFilter==='All'||(b.paymentStatus||'paid')===statusFilter)&&(!merchant||b.title.toLowerCase().includes(merchant.toLowerCase()))&&(!payerFilter||b.paid>0)&&(!activityFilter||b.activity===activityFilter));
     const payoutEvent={...e!,people:[...e!.people,...Array.from(new Map(view.transfers.flatMap(t=>[{id:t.from,name:t.fromName,active:true},{id:t.to,name:t.toName,active:true}]).filter(p=>p.id!==rec.person).map(p=>[p.id,p])).values())]};
     const owe=view.transfers.filter(t=>t.from===rec.person).reduce((n,t)=>n+t.amount,0);
     const receive=view.transfers.filter(t=>t.to===rec.person).reduce((n,t)=>n+t.amount,0);
-    return <div data-space={space} className={"app member-view workspace-app"+(railOpen?" rail-open":"")}>{chrome}{appearance}{quickNavigator}<MotionLayer scene={rec.id} mode={motionMode} style={workspace.data.style} palette={completeThemes.find(t=>t.style===workspace.data.style)!.palette}/><header><a className="brand" href="/">tripshare<span className="brand-dot">.</span></a><strong>{view.name} · {e?.kind==='trip'?'Trip':'Daily Group'}</strong><div className="header-right"><button className="quick-launch" aria-label="Search groups and actions" onClick={()=>setQuickOpen(true)}><Search size={17}/></button><button className="icon-button rail-toggle" aria-label="Toggle group context" aria-expanded={railOpen} onClick={toggleRail}><PanelRight size={18}/></button><button className="icon-button mobile-appearance" aria-label="Appearance" onClick={()=>setAppearanceOpen(true)}><Palette size={18}/></button></div></header>
-      <main><div className="mobile-space-switch">{switcher}</div>{invitePrompt&&<section className="panel"><h2>New group invitation</h2><button className="primary" disabled={busy} onClick={async()=>{if(await send("acceptInvite",{token:inviteToken})){setInvitePrompt(false);setInviteToken("")}}}>Accept as {user}</button><button className="secondary" onClick={()=>setInvitePrompt(false)}>Dismiss</button></section>}{error&&<p className="message error" role="alert">{error}</p>}{spendingOverview()}<section className="panel"><h1>{e?.name}</h1><p>Your own spending and outstanding payments</p>
+    return <div data-space={space} className={"app member-view workspace-app"+(railOpen?" rail-open":"")}>{chrome}{appearance}{quickNavigator}{confirmationDialog}<MotionLayer scene={rec.id} mode={motionMode} style={workspace.data.style} palette={completeThemes.find(t=>t.style===workspace.data.style)!.palette}/><header><a className="brand" href="/">tripshare<span className="brand-dot">.</span></a><strong>{view.name} · {e?.kind==='trip'?'Trip':'Daily Group'}</strong><div className="header-right">{notificationBell}<button className="quick-launch" aria-label="Search groups and actions" onClick={()=>setQuickOpen(true)}><Search size={17}/></button><button className="icon-button rail-toggle" aria-label="Toggle group context" aria-expanded={railOpen} onClick={toggleRail}><PanelRight size={18}/></button><button className="icon-button mobile-appearance" aria-label="Appearance" onClick={()=>setAppearanceOpen(true)}><Palette size={18}/></button></div></header>
+      <main><div className="mobile-space-switch">{switcher}</div>{invitePrompt&&<section className="panel"><h2>New group invitation</h2><button className="primary" disabled={busy} onClick={async()=>{if(await send("acceptInvite",{token:inviteToken})){setInvitePrompt(false);setInviteToken("")}}}>Accept as {user}</button><button className="secondary" onClick={()=>setInvitePrompt(false)}>Dismiss</button></section>}{error&&<p className="message error" role="alert">{error}</p>}{can("addExpense")&&!bill&&<button className="primary personal-add" onClick={requestAdd}><Plus size={18}/> Add shared expense</button>}{bill&&<ExpenseEditor key={bill.id} event={{...(rec.entryContext||rec.planning||e!),expenses:rec.ownEntries||[]}} initial={bill} busy={busy} onCancel={()=>setBill(null)} onSave={async entity=>{if(await send('expense',{entity,revision:draftRevision})){setBill(null);celebrateSave();return true}return false}}/>}{spendingOverview()}{rec.entryContext&&can('addExpense')&&!bill&&<TemplateShelf key={rec.id} workspace={workspace} event={{...rec.entryContext,expenses:rec.ownEntries||[]}} group={rec.id} canAdd busy={busy} onDirty={setTemplateDirty} onSaved={()=>{}} onRecord={async entity=>{if(await send('expense',{entity})){celebrateSave();return true}return false}}/>}<section className="panel"><h1>{e?.name}</h1><p>Your own spending and outstanding payments</p>
         <select aria-label="Choose event" value={rec.id} onChange={x=>setId(x.target.value)}>{records.map(x=><option value={x.id} key={x.id}>{x.data.name}</option>)}</select>
         <div className="stats personal-stats"><div className="stat featured"><span>Consumed · selected dates</span><strong>{fmt(monthExpenses.reduce((n,b)=>n+b.consumed,0))}</strong></div><div className="stat"><span>Paid · selected dates</span><strong>{fmt(monthExpenses.reduce((n,b)=>n+b.paid,0))}</strong></div><div className="stat"><span>Need to pay · all time</span><strong>{fmt(owe)}</strong></div><div className="stat"><span>Need to receive · all time</span><strong>{fmt(receive)}</strong></div></div>
-      </section><section className="panel"><h2>My expenses</h2><div className="checks"><Field label="From"><input type="date" value={start} onChange={x=>setStart(x.target.value)}/></Field><Field label="Until"><input type="date" value={end} onChange={x=>setEnd(x.target.value)}/></Field><button className="secondary" onClick={()=>{const [a,b]=monthBounds();setStart(a);setEnd(b)}}>This month</button><button className="secondary" onClick={()=>{setStart("");setEnd("")}}>All time</button></div>{monthExpenses.slice(0,expenseLimit).map(b=><details key={b.id} className="expense-row"><summary><strong>{b.title}</strong> · {b.date} · {b.category} · {b.paymentStatus || "paid"} · My share {fmt(b.consumed)} · Paid {fmt(b.paid)}</summary><ul>{b.items.map((item,i)=><li key={i}>{item.name} · {fmt(item.amount)}</li>)}</ul></details>)}{!monthExpenses.length&&<p>No personal expenses yet.</p>}{monthExpenses.length>expenseLimit&&<button className="secondary" onClick={()=>setExpenseLimit(n=>n+50)}>Show 50 more · {monthExpenses.length} matching expenses</button>}</section>
-      <section className="panel"><h2>My settlement</h2>{view.transfers.map(t=><div key={t.from+':'+t.to} className="expense-row"><strong>{t.fromName} → {t.toName}: {fmt(t.amount)}</strong>{t.to!==rec.person&&<PayoutDetails group={rec.id} person={t.to} event={payoutEvent} session={authenticatedSession} editable={false}/>}</div>)}{!view.transfers.length&&<p>All settled.</p>}<PayoutDetails group={rec.id} person={rec.person} event={payoutEvent} session={authenticatedSession} editable/><h3>Repayment history</h3>{view.payments.map(p=><p key={p.id}>{p.date} · {p.fromName} → {p.toName} · {fmt(p.amount)}</p>)}</section>{e?.kind==='trip'&&<TripAlbum group={rec.id} session={authenticatedSession} canUpload={false}/>}</main></div>;
+      </section><section className="panel"><h2>My expenses</h2><div className="checks"><Field label="From"><input type="date" value={start} onChange={x=>setStart(x.target.value)}/></Field><Field label="Until"><input type="date" value={end} onChange={x=>setEnd(x.target.value)}/></Field><Field label="Description"><input value={merchant} onChange={x=>setMerchant(x.target.value)}/></Field><Pick label="Category" value={cat} options={['All',...categories]} onChange={setCat}/><Pick label="Payment timing" value={statusFilter} options={['All','paid','prepaid','postpaid']} onChange={setStatusFilter}/><Pick label="Cash payer" value={payerFilter} options={[{id:'',name:'Any payer'},{id:rec.person||'mine',name:'I paid'}]} onChange={setPayerFilter}/>
+<button className="secondary" onClick={()=>{const [a,b]=monthBounds();setStart(a);setEnd(b)}}>This month</button><button className="secondary" onClick={()=>{setStart("");setEnd("")}}>All time</button></div>{monthExpenses.slice(0,expenseLimit).map(b=><details key={b.id} className="expense-row"><summary><strong>{b.title}</strong> · {b.date} · {b.category} · {b.paymentStatus || "paid"} · My share {fmt(b.consumed)} · Paid {fmt(b.paid)}</summary><ul>{b.items.map((item,i)=><li key={i}>{item.name} · {fmt(item.amount)}</li>)}</ul></details>)}{!monthExpenses.length&&<p>No personal expenses yet.</p>}{monthExpenses.length>expenseLimit&&<button className="secondary" onClick={()=>setExpenseLimit(n=>n+50)}>Show 50 more · {monthExpenses.length} matching expenses</button>}</section>
+      <section className="panel"><h2>My settlement</h2>{view.transfers.map(t=><div key={t.from+':'+t.to} className="expense-row"><strong>{t.fromName} → {t.toName}: {fmt(t.amount)}</strong>{t.to!==rec.person&&<PayoutDetails group={rec.id} person={t.to} event={payoutEvent} session={authenticatedSession} editable={false}/>}</div>)}{!view.transfers.length&&<p>All settled.</p>}<PayoutDetails group={rec.id} person={rec.person} event={payoutEvent} session={authenticatedSession} editable/><h3>Repayment history</h3>{view.payments.map(p=><p key={p.id}>{p.date} · {p.fromName} → {p.toName} · {fmt(p.amount)}</p>)}</section>{!!rec.ownEntries?.length&&<section className="panel"><h2>My submitted bills</h2><p>You can edit bills you created. This does not reveal other people’s full ledger.</p>{rec.ownEntries.filter(b=>!b.deleted).map(b=><div className="split-row" key={b.id}><span>{b.merchant}<small>{b.date} · {b.currency}</small></span><button className="secondary" onClick={()=>{if(editing.current)setConfirm({title:"Replace unsaved input?",description:"Your unsaved changes will be discarded.",run:()=>{clearUnsavedInput();edit(b)}});else edit(b)}}>Edit my bill</button></div>)}</section>}<SettlementExport event={payoutEvent} transfers={view.transfers}/><ChangeHistory key={rec.id} record={rec} onAction={send} user={user}/><button className="mobile-quick-add primary" hidden={!can('addExpense')||!!bill} onClick={requestAdd} aria-label="Add shared expense"><Plus size={23}/></button></main></div>;
   }
   return (
     <div data-space={space} className={"app workspace-app"+(railOpen?" rail-open":"")}>
@@ -757,6 +799,7 @@ setPlannerDirty(false);setTemplateDirty(false);
           tripshare<span className="brand-dot">.</span>
         </a><span className="space-header-label">{space==='trip'?'Trip':'Money'}</span>
         <div className="header-right">
+          {notificationBell}
           <button className="quick-launch" onClick={()=>setQuickOpen(true)} aria-label="Search groups and actions"><Search size={16}/><span>Jump to…</span><kbd>⌘ / Ctrl K</kbd></button>
           <button className="icon-button rail-toggle" onClick={toggleRail} aria-expanded={railOpen} aria-label="Toggle group context"><PanelRight size={18}/></button>
           {!shared && !standalone && (
@@ -869,7 +912,7 @@ setPlannerDirty(false);setTemplateDirty(false);
                 </p>
                 <h1>{space==="trip"&&(e?.kind!=="trip"||rec?.personal)?"Your trips":e?.name || (space==="trip"?"Your trips":"Your shared money")}</h1>
                 <p className="muted">
-                  {space==='trip'&&(e?.kind!=='trip'||rec?.personal)?'Trips you can plan · spending stays in Money.':e
+                  {space==='trip'&&(e?.kind!=='trip'||rec?.personal&&!rec.planning)?'Trips you can plan · spending stays in Money.':e
                     ? `${e.people.length} people · ${e.kind === "daily" ? "Daily group" : [e.start, e.end].filter(Boolean).join(" — ") || "Trip"} · Settle in ${e.settlement}`
                     : "Trips, daily groups, and every shared expense."}
                 </p>
@@ -955,8 +998,10 @@ setPlannerDirty(false);setTemplateDirty(false);
                 </TabsList>
               </Tabs>
             )}
-            {space==="trip"&&(e?.kind!=="trip"||rec?.personal)&&<TripLanding records={records} onChoose={choose}/>}
+            {space==="trip"&&(e?.kind!=="trip"||rec?.personal&&!rec.planning)&&<TripLanding records={records} onChoose={choose}/>}
             {space==="money"&&e?.kind==="trip"&&canViewGroup&&!creating&&!settings&&<SpaceBridge event={e} space="money" onOpen={()=>switchSpace('trip')}/>}
+            {space==="money"&&tab==="People & Access"&&rec?.owner&&<PeopleAccess key={rec.id} record={rec} onAction={send}/>}
+            {space==="money"&&tab==="History"&&rec&&<ChangeHistory key={rec.id} record={rec} onAction={send} user={user} initialOpen/>}
             {space==="money"&&tab==="Dashboard"&&e?.kind==="trip"&&canViewGroup&&<details className="money-funding-summary"><summary><Wallet size={17}/> Trip funding · linked plan estimates</summary><TravelFunding event={e}/></details>}
             {(tab === "Dashboard" || tab === "My spending") && spendingOverview()}
             {!shared && e && can("addExpense") && (tab === "Dashboard" || !!templateSource) && <TemplateShelf key={rec.id} workspace={workspace} event={e} group={rec.id} canAdd={can("addExpense")} busy={busy} source={templateSource} onDirty={setTemplateDirty} onSaved={()=>setTemplateSource(null)} onRecord={async entity=>{if(await send("expense",{entity})){setNotice("Expense recorded. Quick Pick kept for next time.");celebrateSave();return true}return false}}/>}
@@ -1347,13 +1392,13 @@ setPlannerDirty(false);setTemplateDirty(false);
                     }}
                   /></>
                 )}
-                {tab === "Trip Plan" && canViewGroup && e.kind === "trip" && (
-                  <><SpaceBridge event={e} space="trip" onOpen={()=>switchSpace("money")}/><TripPlanner key={rec.id} event={e} busy={busy} canPlan={can("plan")} canExpense={can("addExpense")} draft={activity} setDraft={setActivity} onDirty={setPlannerDirty}
-                    onBegin={()=>setDraftRevision(rec.revision)}
+                {tab === "Trip Plan" && canViewTrip && e.kind === "trip" && (
+                  <><SpaceBridge event={e} personal={rec.personal} space="trip" onOpen={()=>switchSpace("money")}/><TripPlanner key={rec.id} event={e} busy={busy} canPlan={can("plan")} canExpense={can("addExpense")} draft={activity} setDraft={setActivity} onDirty={setPlannerDirty}
+                    showFinancial={!rec.personal} onBegin={()=>setDraftRevision(rec.revision)}
                     onSave={async entity=>!!(await send("activity",{entity,revision:draftRevision}))}
                     onAction={(action,entity)=>send(action,{entity})}
                     onDelete={id=>ask("Remove this plan?","Linked expenses remain in your ledger.","deleteActivity",id)}
-                    onExpense={a=>add("simple",a)} focusActivity={focusActivity} onOpenMoney={id=>switchSpace("money",id)} onShare={whatsapp}/>{!shared&&<TripAlbum group={rec.id} session={authenticatedSession} canUpload={can("plan")}/>}</>
+                    onExpense={a=>add("simple",a)} focusActivity={focusActivity} onOpenMoney={id=>switchSpace("money",id)} onShare={whatsapp}/><TravelKit key={"kit-"+rec.id} event={e} canEdit={can("plan")} busy={busy} onDirty={setKitDirty} onSave={async entity=>!!(await send("travelKit",{entity}))} onAddActivity={async p=>{const entity={...newPlan(e,"Activity",e.start||today()),name:p.name,location:p.name,url:p.url,notes:p.notes};return !!(await send("activity",{entity}))}}/>{!shared&&<BookingFiles key={"files-"+rec.id} group={rec.id} event={e} session={authenticatedSession} canUpload={can("plan")}/ >}{!shared&&<TripAlbum key={"album-"+rec.id} group={rec.id} session={authenticatedSession} canUpload={can("plan")}/>}</>
                 )}
                 {((tab === "Expenses" && canViewGroup) || (tab === "My spending" && hasPersonalAccess)) && (
                   <>
@@ -1392,6 +1437,8 @@ setPlannerDirty(false);setTemplateDirty(false);
                           onChange={setCat}
                         />
                       </Field>
+                      <Field label="Paid by"><Pick label="Paid by" value={payerFilter} options={[{id:'',name:'Anyone'},...e.people]} onChange={setPayerFilter}/></Field><Field label="Payment timing"><Pick label="Payment timing" value={statusFilter} options={[{id:'All',name:'All statuses'},{id:'paid',name:'Paid'},{id:'postpaid',name:'Postpaid · unpaid supplier'},{id:'prepaid',name:'Prepaid · not consumed'}]} onChange={setStatusFilter}/></Field>
+                      {e.kind==='trip'&&<Field label="Trip activity"><Pick label="Trip activity" value={activityFilter} options={[{id:'',name:'All activities'},...e.activities.map(a=>({id:a.id,name:a.name}))]} onChange={setActivityFilter}/></Field>}
                       <Field label="Merchant">
                         <input
                           value={merchant}
@@ -1402,7 +1449,7 @@ setPlannerDirty(false);setTemplateDirty(false);
                       <button
                         className="text-button"
                         onClick={() => {
-                          setActivityFilter("");
+                          setPayerFilter("");setStatusFilter("All");setActivityFilter("");
                           setStart("");
                           setEnd("");
                           setCat("All");
@@ -1485,6 +1532,7 @@ setPlannerDirty(false);setTemplateDirty(false);
                     {!shared && <SettlementPreview event={e} canPay={can("settle")} busy={busy} onPayment={p=>{setPayment({...p,id:crypto.randomUUID(),date:today(),note:'Simplified transfer'});setDraftRevision(rec.revision)}}/>}
                     {payment?.simplified&&<section className="panel payment-editor"><h3>Confirm simplified payment: {name(payment.from)} → {name(payment.to)}</h3><p>Record only after the money actually moved. Original expense links are preserved.</p><div className="fields"><Field label="Amount"><Amount value={payment.amount} currency={e.settlement} onChange={amount=>setPayment({...payment,amount:amount||0})}/></Field><Field label="Date"><input type="date" value={payment.date} onChange={v=>setPayment({...payment,date:v.target.value})}/></Field></div><div className="checks"><button className="primary" disabled={busy} onClick={async()=>{if(await send('payment',{entity:payment,revision:draftRevision})){setPayment(null);setNotice('Simplified payment recorded against original expenses.');celebrateSave()}}}>Confirm actual payment</button><button className="secondary" onClick={()=>setPayment(null)}>Cancel</button></div></section>}
                     {rec.person && <PayoutDetails group={rec.id} person={rec.person} event={e} session={authenticatedSession} editable/>}
+                    {(rec.owner||can('export'))&&<SettlementExport event={e} transfers={visibleTransfers}/>}
                     <div className="scope-switch" role="group" aria-label="Settlement view">
                       {hasPersonalAccess && <button className={settlementScope === "mine" ? "active" : ""} onClick={()=>setSettlementScope("mine")}><UserRound size={17}/> Mine</button>}
                       {!isMember && <button className={settlementScope === "everyone" ? "active" : ""} onClick={()=>setSettlementScope("everyone")}><UsersRound size={17}/> Everyone</button>}
@@ -1523,7 +1571,7 @@ setPlannerDirty(false);setTemplateDirty(false);
                                   setDraftRevision(rec.revision);
                                 }}
                               >
-                                <HandCoins size={16}/> Record payment
+                                <HandCoins size={16}/> Record full / partial payment
                               </button>
                             )}
                             <button
@@ -1740,7 +1788,7 @@ setPlannerDirty(false);setTemplateDirty(false);
                       </div>
                       <div className="panel">
                         <h2>Event & exports</h2>
-                        {rec.owner&&<button className="secondary danger-text" disabled={busy} onClick={()=>{const eventId=rec.id,revision=rec.revision,eventName=e.name;setConfirm({title:`Delete ${eventName}?`,description:'Permanently delete this Trip / Daily Group, including all expenses, repayment history, itinerary, bookings and checklist. Sharing links and admin access will also be removed. Export a backup below first if you want to keep a copy. This cannot be undone.',run:async()=>{if(await send('deleteEvent',{id:eventId,revision,confirmName:eventName})){setId('');setTab('Dashboard');setBill(null);setActivity(null);setPayment(null);setSettings(null);setPlannerDirty(false);setTemplateDirty(false);setCreating(false);setNotice(eventName+' deleted.')}}})}}>Delete {e.kind==='trip'?'Trip':'Daily Group'}</button>}
+                        {rec.owner&&<button className="secondary danger-text" disabled={busy} onClick={()=>{const eventId=rec.id,revision=rec.revision,eventName=e.name;setConfirm({title:`Delete ${eventName}?`,description:'Permanently delete this Trip / Daily Group, including all expenses, repayment history, itinerary, bookings and checklist. Sharing links and admin access will also be removed. Export a backup below first if you want to keep a copy. This cannot be undone.',run:async()=>{if(await send('deleteEvent',{id:eventId,revision,confirmName:eventName})){setId('');setTab('Dashboard');setBill(null);setActivity(null);setPayment(null);setSettings(null);setPlannerDirty(false);setKitDirty(false);setTemplateDirty(false);setCreating(false);setNotice(eventName+' deleted.')}}})}}>Delete {e.kind==='trip'?'Trip':'Daily Group'}</button>}
                         {rec.owner && (
                           <button
                             className="secondary"
@@ -1901,223 +1949,7 @@ setPlannerDirty(false);setTemplateDirty(false);
                         )}
                       </div>
                     </section>
-                    {rec.owner && (
-                      <section className="panel">
-                        <div className="section-title">
-                          <h2>Sharing & admin access</h2>
-                          <span className="pill">OWNER CONTROL</span>
-                        </div>
-                        <p className="muted">
-                          Readers can view all event spending and itinerary
-                          details. Selecting a name only changes the displayed
-                          summary; it never grants edit permission. Admin access
-                          requires the matching signed-in email. Site-level
-                          access still applies.
-                        </p>
-                        <div className="two-col">
-                          <div>
-                            <h3>Read-only link</h3>
-                            <Field label="Optional PIN · 6–12 digits">
-                              <input
-                                type="password"
-                                inputMode="numeric"
-                                value={pin}
-                                onChange={(v) => setPin(v.target.value)}
-                              />
-                            </Field>
-                            <div className="checks">
-                              <button
-                                className="secondary"
-                                disabled={busy}
-                                onClick={() =>
-                                  setConfirm({
-                                    title: "Create a new read-only link?",
-                                    description:
-                                      "Any previous link will stop working. Anyone with the new link and PIN can view this event.",
-                                    run: async () => {
-                                      const j = await send(
-                                        "share",
-                                        { pin },
-                                        false,
-                                      );
-                                      if (j) {
-                                        setShareToken(j.token);
-                                        setAccessInfo({
-                                          ...accessInfo,
-                                          shares: [
-                                            { token: j.token, hasPin: !!pin },
-                                          ],
-                                        });
-                                        setNotice(
-                                          "Read-only link created. Share the PIN separately.",
-                                        );
-                                      }
-                                    },
-                                  })
-                                }
-                              >
-                                Create / rotate link
-                              </button>
-                              <button
-                                className="text-button danger-text"
-                                disabled={busy}
-                                onClick={async () => {
-                                  if (await send("closeShare", {}, false)) {
-                                    setShareToken("");
-                                    setAccessInfo({
-                                      ...accessInfo,
-                                      shares: [],
-                                    });
-                                    setNotice("All read-only links closed.");
-                                  }
-                                }}
-                              >
-                                Disable link
-                              </button>
-                            </div>
-                            {accessInfo.shares.map((s: any) => (
-                              <div key={s.token}>
-                                <p className="muted">
-                                  {s.hasPin
-                                    ? "PIN protected"
-                                    : "Anyone with the link"}{" "}
-                                  · Read-only
-                                </p>
-                                <button
-                                  className="secondary"
-                                  onClick={async () => {
-                                    try {
-                                      await navigator.clipboard.writeText(
-                                        viewLink(s.token),
-                                      );
-                                      setNotice("Read-only link copied.");
-                                    } catch {
-                                      setNotice(viewLink(s.token));
-                                    }
-                                  }}
-                                >
-                                  Copy link
-                                </button>{" "}
-                                <button
-                                  className="secondary"
-                                  onClick={() =>
-                                    whatsapp(
-                                      `${e.name}\nView itinerary, expenses and settlement:\n${viewLink(s.token)}`,
-                                    )
-                                  }
-                                >
-                                  WhatsApp
-                                </button>
-                              </div>
-                            ))}
-                          </div>
-                          <div id="member-access">
-                            <h3>Member login & role</h3>
-                            <p className="muted">Everyone in the member list is a Member automatically. An email is required only when that person needs to sign in. Promote selected members to Event Admin when needed.</p>
-                            <Field label="Their sign-in email">
-                              <input
-                                type="email"
-                                value={target}
-                                onChange={(v) => setTarget(v.target.value)}
-                              />
-                            </Field>
-                            <Field label="Role preset">
-                              <Pick
-                                label="Role"
-                                value={role}
-                                options={Object.keys(roles)}
-                                onChange={(r) => {
-                                  setRole(r);
-                                  setPermissions(roles[r]);
-                                }}
-                              />
-                            </Field>
-                            <Field label="Link account to member">
-                              <Pick
-                                label="Member"
-                                value={targetPerson}
-                                options={[{ id: "", name: "Not linked" }, ...e.people.map((p) => ({ id: p.id, name: p.name }))]}
-                                onChange={setTargetPerson}
-                              />
-                            </Field>
-                            <div className="invite-builder"><h3>Invite a friend</h3><p className="muted">Choose the member above. Leave email empty for a one-use invite link, or enter their email to restrict who can accept. Invites give personal Member access only.</p><button className="secondary" disabled={busy||!targetPerson} onClick={async()=>{const j=await send('createInvite',{person:targetPerson,email:target},false);if(j){setNewInviteLink(window.location.origin+'/#invite='+encodeURIComponent(j.token));const info=await send('accessInfo',{},false);if(info)setAccessInfo(info)}}}>Create 7-day invitation</button>{newInviteLink&&<div className="checks"><input aria-label="Invitation link" readOnly value={newInviteLink}/><button className="secondary" onClick={async()=>{try{await navigator.clipboard.writeText(newInviteLink);setNotice('Invitation copied. Share it with the intended friend.')}catch{setNotice('Select and copy the invitation link.')}}}>Copy invitation</button></div>}{(accessInfo.invitations||[]).map((invite:any)=><div className="split-row" key={invite.token}><span>{name(invite.person)}<small>{invite.email||'One-use link'} · {invite.accepted_email?'Accepted':'Pending'}</small></span><button className="text-button" disabled={busy} onClick={async()=>{if(await send('revokeInvite',{token:invite.token},false)){setNewInviteLink('');const info=await send('accessInfo',{},false);if(info)setAccessInfo(info)}}}>Revoke link</button></div>)}</div>
-                            <p className="muted">Members see only their own spending and settlement. Event Admins can manage this event, including expenses and repayments, but cannot create another event or change access.</p>
-                            <details>
-                              <summary>Custom permissions</summary>
-                              {permissionKeys.map((p) => (
-                                <Check
-                                  key={p}
-                                  label={p}
-                                  checked={permissions.includes(p)}
-                                  onChange={(v) =>
-                                    setPermissions(
-                                      v
-                                        ? [...permissions, p]
-                                        : permissions.filter((x) => x !== p),
-                                    )
-                                  }
-                                />
-                              ))}
-                            </details>
-                            <button
-                              className="primary"
-                              disabled={busy || !target.trim()}
-                              onClick={async () => {
-                                if (
-                                  await send(
-                                    "grant",
-                                    { email: target, permissions, person: targetPerson },
-                                    false,
-                                  )
-                                ) {
-                                  setTarget("");
-                                  setTargetPerson("");
-                                  const j = await send("accessInfo", {}, false);
-                                  if (j) setAccessInfo(j);
-                                  setNotice(
-                                    "Access saved. No invitation message was sent; share the site link with this person.",
-                                  );
-                                }
-                              }}
-                            >
-                              Save permissions
-                            </button>
-                            {accessInfo.grants.map((g: any) => (
-                              <div className="split-row" key={g.id}>
-                                <span>
-                                  {g.email}
-                                  <small>
-                                    {g.permissions.join(", ") || "Member · own data only"}
-                                    {g.person ? ` · ${name(g.person)}` : " · Personal page not linked"}
-                                  </small>
-                                </span>
-                                <button
-                                  className="text-button"
-                                  onClick={async () => {
-                                    if (
-                                      await send(
-                                        "revoke",
-                                        { grant: g.id },
-                                        false,
-                                      )
-                                    ) {
-                                      const j = await send(
-                                        "accessInfo",
-                                        {},
-                                        false,
-                                      );
-                                      if (j) setAccessInfo(j);
-                                    }
-                                  }}
-                                >
-                                  Revoke
-                                </button>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </section>
-                    )}
+                    {rec.owner&&<section className="panel"><h2>Members and permissions</h2><p>Account binding, invitations and roles now have a dedicated workspace.</p><button className="secondary" onClick={()=>navigate('People & Access')}>Open People & Access</button></section>}
                     {(rec.owner || rec.permissions.length > 0) && (
                       <section className="two-col">
                         <div className="panel">
@@ -2194,6 +2026,7 @@ setPlannerDirty(false);setTemplateDirty(false);
             )}
           </>
         )}
+        {space==='money'&&can('addExpense')&&!bill&&!payment&&!settings&&<button className="mobile-quick-add primary" onClick={requestAdd} aria-label="Add shared expense"><Plus size={23}/></button>}
         <footer>
           <span className="footer-brand">tripshare<span className="brand-dot">.</span><i className="spectrum-line"/></span>
           <p>
@@ -2203,33 +2036,7 @@ setPlannerDirty(false);setTemplateDirty(false);
           </p>
         </footer>
       </main>
-      <AlertDialog
-        open={!!confirm}
-        onOpenChange={(v) => {
-          if (!v) setConfirm(null);
-        }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{confirm?.title}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {confirm?.description}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                const run = confirm?.run;
-                setConfirm(null);
-                run?.();
-              }}
-            >
-              Confirm
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {confirmationDialog}
     </div>
   );
 }

@@ -11,6 +11,10 @@ after(()=>vite.close());
 const experience=await vite.ssrLoadModule('/app/experience.tsx');
 const design=await vite.ssrLoadModule('/app/workspace-design.tsx');
 const spaces=await vite.ssrLoadModule('/app/space-navigation.tsx');
+const travel=await vite.ssrLoadModule('/app/travel-kit.tsx');
+const exportsModule=await vite.ssrLoadModule('/lib/exports.ts');
+const collaboration=await vite.ssrLoadModule('/app/collaboration.tsx');
+const ExpenseEditor=(await vite.ssrLoadModule('/app/expense-editor.tsx')).default;
 const {PersonalHub,TemplateShelf,SettlementPreview}=experience;
 const workspace={data:{style:'arcade',sound:false,haptics:false,fx:{MYR:1},templates:[]},ready:true,busy:false,error:'',save:async()=>null};
 test('Personal hub counts incurred consumption once and separates friends from unpaid supplier bills',()=>{
@@ -51,7 +55,7 @@ test('All six complete theme modes keep text and primary buttons readable',()=>{
 test('Trip and Money have distinct navigation and personal members keep personal scope',()=>{
  const e=normalize({name:'Trip',people:['A'],bills:[],payments:[]});const r={id:'trip',data:e,owner:true,permissions:[],person:'A'};
  assert.deepEqual(spaces.spaceDestinations(r,'trip'),['Trip Plan']);
- assert.deepEqual(spaces.spaceDestinations(r,'money'),['Dashboard','Expenses','Settlement','My spending','Settings']);
+ assert.deepEqual(spaces.spaceDestinations(r,'money'),['Dashboard','Expenses','Settlement','My spending','People & Access','Settings','History']);
  assert.deepEqual(spaces.spaceDestinations({...r,owner:false,personal:{expenses:[]}},'money'),['My spending']);
  assert.doesNotMatch(spaces.spaceDestinations(r,'money').join(','),/Trip Plan/);
 });
@@ -70,4 +74,23 @@ test('Linked Trip consumption excludes estimates, deposits, deleted bills and re
 });
 test('Trip landing never displays daily or restricted group content',()=>{
  const e=normalize({name:'House secret',people:['A'],bills:[],payments:[]});const html=renderToStaticMarkup(React.createElement(spaces.TripLanding,{records:[{id:'daily',data:{...e,kind:'daily'},owner:true,permissions:[]},{id:'restricted',data:{...e,kind:'trip'},owner:false,permissions:[],personal:{expenses:[]}}],onChoose(){}}));assert.doesNotMatch(html,/House secret/);assert.match(html,/No trip planning spaces available/);
+});
+
+test('Owner has a dedicated People & Access workspace; collaborators never see it',()=>{
+ const e=normalize({name:'Friends',people:['A','B'],bills:[],payments:[]});const owner={id:'group',data:e,owner:true,permissions:[],person:'A',revision:0};
+ const html=renderToStaticMarkup(React.createElement(collaboration.PeopleAccess,{record:owner,onAction:async()=>null}));assert.match(html,/Only you add people/);assert.match(html,/Add person/);assert.match(html,/Exact GPT sign-in email/);
+ assert.equal(renderToStaticMarkup(React.createElement(collaboration.PeopleAccess,{record:{...owner,owner:false},onAction:async()=>null})), '');
+ assert.equal(spaces.spaceDestinations({...owner,owner:false,permissions:['plan']},'money').includes('People & Access'),false);
+});
+test('Duplicate bill hint compares a real amount and requires explicit acknowledgment',()=>{
+ const e=normalize({name:'House',people:['A'],bills:[],payments:[]}),first=blankExpense(e,'A');first.merchant='Coffee';first.items[0].amount=800;e.expenses=[first];const copy={...first,id:'new-entry',merchant:' coffee '};
+ const html=renderToStaticMarkup(React.createElement(ExpenseEditor,{event:e,initial:copy,busy:false,onSave:async()=>true,onCancel(){}}));assert.match(html,/Possible duplicate/);assert.match(html,/This is a separate expense/);assert.match(html,/class="primary save" disabled/);assert.equal(e.expenses.length,1);
+});
+test('Travel kit and handbook keep planning separate from the ledger and escape text',()=>{
+ const e=normalize({name:'Trip <script>alert(1)</script>',people:['A'],bills:[],payments:[]});e.travel={favorites:[{id:'f',name:'Cafe',url:'https://example.com',notes:'Breakfast'}],meeting:{place:'Hotel lobby',time:'09:00 local',notes:'Bring ID',url:''},packing:[{id:'p',name:'Passport',person:'A',done:false}]};
+ const html=renderToStaticMarkup(React.createElement(travel.TravelKit,{event:e,canEdit:true,busy:false,onSave:async()=>true,onDirty(){},onAddActivity:async()=>true}));assert.match(html,/Save a place/);assert.match(html,/Travel handbook/);assert.equal(e.expenses.length,0);
+ const handbook=exportsModule.handbookHTML(e);assert.match(handbook,/Hotel lobby/);assert.match(handbook,/Passport/);assert.match(handbook,/&lt;script&gt;/);assert.doesNotMatch(handbook,/<script>/);assert.doesNotMatch(handbook,/trips\/.*token=/);
+});
+test('Settlement exports offer current outstanding CSV and printable statements',()=>{
+ const e=normalize({name:'Trip',people:['A','B'],bills:[],payments:[]});const html=renderToStaticMarkup(React.createElement(collaboration.SettlementExport,{event:e,transfers:[{from:'B',to:'A',amount:250}]}));assert.match(html,/Settlement CSV/);assert.match(html,/Printable statement/);assert.equal(e.payments.length,0);
 });

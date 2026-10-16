@@ -43,12 +43,14 @@ async function harness(){const sqlite=new DatabaseSync(':memory:');for(const f o
  const compile=(path)=>new SourceTextModule(ts.transpileModule(readFileSync(new URL(path,import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022}}).outputText,{context,identifier:path});
  const store=compile('../lib/workspace-store.ts');modules['@/lib/workspace-store']=store;await store.link(s=>modules[s]);await store.evaluate();
  const plan=compile('../lib/settlement-plan.ts');modules['@/lib/settlement-plan']=plan;await plan.link(s=>s==='./ledger'?modules['@/lib/ledger']:modules[s]);await plan.evaluate();
- const personal=compile('../lib/personal.ts');modules['@/lib/personal']=personal;await personal.link(s=>s==='./ledger'?modules['@/lib/ledger']:modules[s]);await personal.evaluate();
+ const personal=compile('../lib/personal.ts');modules['@/lib/personal']=personal;modules['@/lib/personal']=personal;await personal.link(s=>s==='./ledger'?modules['@/lib/ledger']:modules[s]);await personal.evaluate();
  const trips=compile('../app/api/trips/route.ts');modules['../trips/route']=trips;await trips.link(s=>modules[s]);await trips.evaluate();const view=compile('../app/api/view/route.ts');await view.link(s=>modules[s]);await view.evaluate();
  const sync=compile('../app/api/integrations/v1/me/entries/route.ts');await sync.link(s=>modules[s]);await sync.evaluate();
  const workspace=compile('../app/api/workspace/route.ts');await workspace.link(s=>modules[s]);await workspace.evaluate();
  const payout=compile('../app/api/payout/route.ts');await payout.link(s=>modules[s]);await payout.evaluate();
  const photos=compile('../app/api/photos/route.ts');await photos.link(s=>modules[s]);await photos.evaluate();
+ const documents=compile('../app/api/documents/route.ts');await documents.link(s=>modules[s]);await documents.evaluate();
+ const notifications=compile('../app/api/notifications/route.ts');modules['@/lib/personal']=personal;await notifications.link(s=>modules[s]);await notifications.evaluate();
  const req=(data,email='owner@example.com',userId=email)=>new Request('https://trip.test/api/trips',{method:'POST',headers:{'Content-Type':'application/json',...(email?{'oai-authenticated-user-email':email,'oai-authenticated-user-id':userId}:{}),Origin:'https://trip.test'},body:JSON.stringify(data)});
  const post=async(data,email,userId)=>{const r=await trips.namespace.POST(req(data,email,userId));return {status:r.status,...await r.json()}};
  const get=async(email,userId=email)=>{const r=await trips.namespace.GET(new Request('https://trip.test/api/trips',{headers:{'oai-authenticated-user-email':email,'oai-authenticated-user-id':userId}}));return r.json()};
@@ -63,7 +65,10 @@ async function harness(){const sqlite=new DatabaseSync(':memory:');for(const f o
  const payoutCall=async(body,email='owner@example.com')=>{const r=await payout.namespace.POST(req(body,email));return {status:r.status,...await r.json()}};
  const photosRead=async(group,email='owner@example.com',photo='')=>{const r=await photos.namespace.GET(new Request('https://trip.test/api/photos?'+new URLSearchParams({group,...(photo?{photo}:{})}),{headers:{'oai-authenticated-user-id':email,'oai-authenticated-user-email':email}}));return photo?r:{status:r.status,...await r.json()}};
  const photosSave=async(group,bytes,mime='image/png',email='owner@example.com')=>{const body=new FormData();body.append('photo',new File([bytes],'image.png',{type:mime}));body.append('caption','Private memory');const r=await photos.namespace.POST(new Request('https://trip.test/api/photos?'+new URLSearchParams({group}),{method:'POST',headers:{'oai-authenticated-user-id':email,'oai-authenticated-user-email':email,Origin:'https://trip.test'},body}));return {status:r.status,...await r.json()}};
- return {photosRead,photosSave,workspaceRead,workspaceSave,payoutCall,post,get,getWithCookie,postWithCookie,getWithSession,postWithSession,read,syncRead,integrationEnv,sqlite};}
+ const documentRead=async(group,email='owner@example.com',id='')=>{const r=await documents.namespace.GET(new Request('https://trip.test/api/documents?'+new URLSearchParams({group,id}),{headers:{'oai-authenticated-user-id':email,'oai-authenticated-user-email':email}}));return id?r:{status:r.status,...await r.json()}};
+ const documentSave=async(group,bytes,email='owner@example.com',activity='')=>{const body=new FormData();body.append('file',new File([bytes],'booking.pdf',{type:'application/pdf'}));body.append('activity',activity);const r=await documents.namespace.POST(new Request('https://trip.test/api/documents?'+new URLSearchParams({group}),{method:'POST',headers:{'oai-authenticated-user-id':email,'oai-authenticated-user-email':email,Origin:'https://trip.test'},body}));return {status:r.status,...await r.json()}};
+ const notificationRead=async(email)=>{const r=await notifications.namespace.GET(new Request('https://trip.test/api/notifications',{headers:{'oai-authenticated-user-id':email,'oai-authenticated-user-email':email}}));return {status:r.status,...await r.json()}};
+ return {documentRead,documentSave,notificationRead,photosRead,photosSave,workspaceRead,workspaceSave,payoutCall,post,get,getWithCookie,postWithCookie,getWithSession,postWithSession,read,syncRead,integrationEnv,sqlite};}
 test('API roles, old data migration, stale writes, private read links and revocation',async()=>{const h=await harness(),e=ledger.normalize({name:'Test Trip',people:['YH','ET'],bills:[],payments:[]});let result=await h.post({action:'create',data:e});assert.equal(result.status,200);const id=result.id;assert.equal((await h.post({action:'create',data:e},'')).status,401);
  const b=ledger.blankExpense(e,'YH');b.merchant='Tickets';b.items[0].amount=20000;
  assert.equal((await h.post({action:'expense',id,revision:0,entity:b},'stranger@example.com')).status,403);
@@ -73,7 +78,7 @@ test('API roles, old data migration, stale writes, private read links and revoca
  assert.equal((await h.post({action:'expense',id,revision:1,entity:b},'helper@example.com')).status,403);
  assert.equal((await h.post({action:'grant',id,email:'stranger@example.com',permissions:['editAll']},'helper@example.com')).status,403);
  const own={...b,id:crypto.randomUUID()};assert.equal((await h.post({action:'expense',id,revision:1,entity:own},'helper@example.com')).status,200);
- const helperLoaded=await h.get('helper@example.com');assert.equal(helperLoaded.trips.length,1);assert.equal(helperLoaded.trips[0].person,e.people[1].id);assert.equal(helperLoaded.canCreate,false);assert.equal(helperLoaded.trips[0].data.audit.length,0);assert.equal(helperLoaded.trips[0].data.expenses[0].createdBy,'');assert.equal(helperLoaded.trips[0].data.expenses[1].createdBy,'helper@example.com');
+ const helperLoaded=await h.get('helper@example.com');assert.equal(helperLoaded.trips.length,1);assert.equal(helperLoaded.trips[0].person,e.people[1].id);assert.equal(helperLoaded.canCreate,false);assert.equal(helperLoaded.trips[0].data.audit.length,0);assert.equal(helperLoaded.trips[0].data.expenses.length,0);assert.equal(helperLoaded.trips[0].ownEntries.length,1);assert.equal(helperLoaded.trips[0].ownEntries[0].createdBy,'helper@example.com');assert.ok(helperLoaded.trips[0].entryContext);
  assert.equal((await h.post({action:'create',data:e},'helper@example.com')).status,403);
  assert.equal((await h.post({action:'import',data:e},'helper@example.com')).status,403);
  const share=await h.post({action:'share',id,pin:'628400'});assert.equal(share.status,200);assert.equal((await h.read(share.token)).needsPin,true);assert.equal((await h.read(share.token,'wrong')).status,401);const shown=await h.read(share.token,'628400');assert.equal(shown.status,200);assert.equal(shown.trip.data.expenses.length,2);assert.equal(shown.trip.data.audit.length,0);assert.deepEqual(shown.trip.permissions,[]);assert.equal(shown.trip.data.expenses[0].createdBy,'');
@@ -184,7 +189,7 @@ test('Invitations bind the intended account once, enforce email and prevent memb
  assert.equal((await h.post({action:'acceptInvite',token:invite.token},'b@example.com')).status,200);
  assert.equal((await h.post({action:'acceptInvite',token:invite.token},'wrong@example.com')).status,410);
  assert.equal((await h.post({action:'grant',id,email:'wrong@example.com',person:'B',permissions:[]})).status,400);
- const link=await h.post({action:'createInvite',id,person:'C'});assert.equal((await h.post({action:'acceptInvite',token:link.token},'c@example.com')).status,200);
+ assert.equal((await h.post({action:'createInvite',id,person:'C'})).status,400);const link=await h.post({action:'createInvite',id,person:'C',email:'c@example.com'});assert.equal((await h.post({action:'acceptInvite',token:link.token},'c@example.com')).status,200);
  const group2=(await h.post({action:'create',data:{...e,name:'Other'}})).id;await h.post({action:'grant',id:group2,email:'b@example.com',person:'B',permissions:[]});
  const records=(await h.get('owner@example.com')).trips;assert.equal(records[0].memberKeys.B,records[1].memberKeys.B);
  assert.equal(JSON.stringify((await h.get('c@example.com')).trips).includes('b@example.com'),false);
@@ -238,4 +243,65 @@ test('Trip photos use authenticated storage, reject spoofed images and isolate g
  const response=await h.photosRead(id,'b@example.com',saved.id);assert.equal(response.status,200);assert.equal(response.headers.get('cache-control'),'private, no-store');assert.deepEqual(new Uint8Array(await response.arrayBuffer()),image);
  assert.equal((await h.photosRead(id,'outsider@example.com',saved.id)).status,403);
  const other=(await h.post({action:'create',data:{...e,name:'Other album'}})).id;assert.equal((await h.photosRead(other,'owner@example.com',saved.id)).status,404);h.sqlite.close();
+});
+
+test('Personal Money editing and shared Trip planning do not grant ledger or membership control',async()=>{
+ const h=await harness(),e=ledger.normalize({name:'Private group',people:['A','B','C'],bills:[],payments:[]}),{id}=await h.post({action:'create',data:e});
+ const privateBill=ledger.blankExpense(e,'A');privateBill.merchant='Owner-only purchase';privateBill.items[0].people=['A'];privateBill.items[0].weights=[1];privateBill.items[0].amount=9000;
+ assert.equal((await h.post({action:'expense',id,revision:0,entity:privateBill})).status,200);
+ await h.post({action:'grant',id,email:'c@example.com',person:'C',permissions:['addExpense','editOwn','plan','members']});
+ const mine=ledger.blankExpense(e,'C');mine.merchant='Helper entry';mine.items[0].amount=3000;assert.equal((await h.post({action:'expense',id,revision:1,entity:mine},'c@example.com')).status,200);
+ const record=(await h.get('c@example.com')).trips[0];assert.equal(record.data.expenses.length,0);assert.equal(record.planning.expenses.length,0);assert.equal(record.ownEntries.length,1);assert.ok(record.entryContext.people.length===3);assert.equal(JSON.stringify(record).includes('Owner-only purchase'),false);
+ assert.equal((await h.post({action:'person',id,revision:2,entity:{id:'new',name:'New',active:true}},'c@example.com')).status,403);
+ assert.equal((await h.post({action:'create',data:e},'c@example.com')).status,403);
+ assert.equal((await h.post({action:'expense',id,revision:2,entity:privateBill},'c@example.com')).status,403);
+ const history=await h.post({action:'history',id,revision:2},'c@example.com');assert.equal(history.status,200);assert.equal(JSON.stringify(history).includes('Owner-only purchase'),false);
+ assert.equal((await h.post({action:'person',id,revision:2,entity:{id:'C',name:'C',active:false}})).status,200);
+ assert.equal((await h.get('c@example.com')).trips.length,0);assert.equal((await h.post({action:'activity',id,revision:3,entity:{}},'c@example.com')).status,403);assert.equal((await h.documentRead(id,'c@example.com')).status,403);
+ const original=(await h.get('owner@example.com')).trips[0];assert.equal(original.data.expenses.length,2);assert.ok(original.data.people.some(p=>p.id==='C'&&!p.active));h.sqlite.close();
+});
+test('History restores an expense with original repayment allocations and rejects unrelated editors',async()=>{
+ const h=await harness(),e=ledger.normalize({name:'History',people:['A','B'],bills:[],payments:[]}),{id}=await h.post({action:'create',data:e});await h.post({action:'grant',id,email:'b@example.com',person:'B',permissions:['editOwn']});
+ const b=ledger.blankExpense(e,'A');b.merchant='Original dinner';b.items[0].people=['B'];b.items[0].weights=[1];b.items[0].amount=10000;
+ await h.post({action:'expense',id,revision:0,entity:b});b.items[0].amount=12000;await h.post({action:'expense',id,revision:1,entity:b});
+ const log=(await h.get('owner@example.com')).trips[0].data.audit.at(-1);
+ const payment={id:'part',from:'B',to:'A',amount:4000,date:'2026-10-16',note:'Part payment'};assert.equal((await h.post({action:'payment',id,revision:2,entity:payment})).status,200);
+ assert.equal((await h.post({action:'restoreAudit',id,revision:3,auditId:log.id},'b@example.com')).status,403);
+ assert.equal((await h.post({action:'restoreAudit',id,revision:3,auditId:log.id})).status,200);
+ const current=(await h.get('owner@example.com')).trips[0].data;assert.equal(current.expenses[0].items[0].amount,10000);assert.equal(current.payments.length,1);assert.equal(ledger.ledger(current).transfers[0].amount,6000);assert.equal(current.audit.at(-1).action,'restoreAudit');
+ assert.equal((await h.post({action:'restoreAudit',id,revision:3,auditId:log.id})).status,409);
+ assert.equal((await h.post({action:'deleteExpense',id,revision:4,entityId:b.id})).status,200);const deleted=(await h.get('owner@example.com')).trips[0].data.audit.at(-1);assert.equal((await h.post({action:'restoreAudit',id,revision:5,auditId:deleted.id})).status,200);assert.equal((await h.get('owner@example.com')).trips[0].data.expenses[0].deleted,false);h.sqlite.close();
+});
+test('Travel kit is validated, shared with trip members, and never creates Money debt',async()=>{
+ const h=await harness(),e=ledger.normalize({name:'Travel',people:['A','B'],bills:[],payments:[]}),{id}=await h.post({action:'create',data:e});await h.post({action:'grant',id,email:'b@example.com',person:'B',permissions:[]});
+ const kit={favorites:[{id:'place',name:'Cafe',url:'https://example.com',notes:'Breakfast'}],meeting:{place:'Lobby',time:'09:00 Bangkok time',notes:'Keep together',url:''},packing:[{id:'pack',name:'Passport',done:false,person:'B'}]};
+ assert.equal((await h.post({action:'travelKit',id,revision:0,entity:kit},'b@example.com')).status,403);
+ assert.equal((await h.post({action:'travelKit',id,revision:0,entity:{...kit,favorites:[{...kit.favorites[0],url:'javascript:alert(1)'}]}})).status,400);
+ assert.equal((await h.post({action:'travelKit',id,revision:0,entity:kit})).status,200);
+ const view=(await h.get('b@example.com')).trips[0];assert.equal(view.planning.travel.meeting.place,'Lobby');assert.equal(view.planning.expenses.length,0);assert.equal(view.personal.consumed,0);assert.equal((await h.get('owner@example.com')).trips[0].data.expenses.length,0);h.sqlite.close();
+});
+test('Booking attachments require trip authorization, validate actual bytes and download as attachments',async()=>{
+ const h=await harness(),e=ledger.normalize({name:'Bookings',people:['A','B'],bills:[],payments:[]}),{id}=await h.post({action:'create',data:e});await h.post({action:'grant',id,email:'b@example.com',person:'B',permissions:[]});
+ const pdf=new TextEncoder().encode('%PDF-1.7\nexample');assert.equal((await h.documentSave(id,pdf,'b@example.com')).status,403);assert.equal((await h.documentSave(id,new TextEncoder().encode('<html>fake PDF</html>'))).status,400);assert.equal((await h.documentSave(id,pdf,'owner@example.com','foreign-activity')).status,400);
+ const saved=await h.documentSave(id,pdf);assert.equal(saved.status,200);assert.equal((await h.documentRead(id,'b@example.com')).files[0].name,'booking.pdf');
+ const file=await h.documentRead(id,'b@example.com',saved.id);assert.equal(file.status,200);assert.ok(file.headers.get('content-disposition').startsWith('attachment;'));assert.equal(file.headers.get('x-content-type-options'),'nosniff');assert.equal((await h.documentRead(id,'stranger@example.com',saved.id)).status,403);
+ const other=(await h.post({action:'create',data:{...e,name:'Other'}})).id;assert.equal((await h.documentRead(other,'owner@example.com',saved.id)).status,404);h.sqlite.close();
+});
+test('In-app notifications reveal only related Money changes and disappear after access is revoked',async()=>{
+ const h=await harness(),e=ledger.normalize({name:'Notifications',people:['A','B'],bills:[],payments:[]}),{id}=await h.post({action:'create',data:e});await h.post({action:'grant',id,email:'b@example.com',person:'B',permissions:[]});
+ const bill=ledger.blankExpense(e,'A');bill.merchant='Secret purchase';bill.items[0].people=['A'];bill.items[0].weights=[1];bill.items[0].amount=1000;await h.post({action:'expense',id,revision:0,entity:bill});assert.equal((await h.notificationRead('b@example.com')).notifications.length,0);
+ const related={...bill,id:'related',merchant:'Shared dinner',items:[{...bill.items[0],people:['B']}]};await h.post({action:'expense',id,revision:1,entity:related});const result=await h.notificationRead('b@example.com');assert.equal(result.notifications.length,1);assert.equal(JSON.stringify(result).includes('Secret purchase'),false);assert.equal(JSON.stringify(result).includes('owner@example.com'),false);
+ await h.post({action:'revoke',id,grant:id+':b@example.com'});assert.equal((await h.notificationRead('b@example.com')).notifications.length,0);h.sqlite.close();
+});
+test('Quick Pick pinning and notification read state persist per account with stale-write protection',async()=>{
+ const h=await harness();let w=await h.workspaceRead('b@example.com');const template={id:'fav',name:'Coffee',currency:'MYR',amount:500,category:'Food',group:'',payer:'B',pinned:true};
+ let saved=await h.workspaceSave({revision:w.revision,action:'template',template},'b@example.com');assert.equal(saved.status,200);assert.equal(saved.data.templates[0].pinned,true);
+ const readAt=new Date().toISOString();saved=await h.workspaceSave({revision:saved.revision,action:'notificationsRead',readAt},'b@example.com');assert.equal(saved.status,200);assert.equal((await h.workspaceRead('b@example.com')).data.notificationReadAt,readAt);assert.equal((await h.workspaceRead('c@example.com')).data.notificationReadAt,undefined);assert.equal((await h.workspaceSave({revision:0,action:'notificationsRead',readAt},'b@example.com')).status,409);h.sqlite.close();
+});
+
+test('Revoking login access invalidates accepted invites and inactive members cannot accept old links',async()=>{
+ const h=await harness(),e=ledger.normalize({name:'Invites',people:['A','B'],bills:[],payments:[]}),{id}=await h.post({action:'create',data:e});
+ const first=await h.post({action:'createInvite',id,person:'B',email:'b@example.com'});assert.equal((await h.post({action:'acceptInvite',token:first.token},'b@example.com')).status,200);
+ await h.post({action:'revoke',id,grant:id+':b@example.com'});assert.equal((await h.post({action:'acceptInvite',token:first.token},'b@example.com')).status,410);
+ const second=await h.post({action:'createInvite',id,person:'B',email:'b@example.com'});await h.post({action:'person',id,revision:0,entity:{id:'B',name:'B',active:false}});assert.equal((await h.post({action:'acceptInvite',token:second.token},'b@example.com')).status,410);h.sqlite.close();
 });

@@ -1,5 +1,5 @@
 import { database } from "@/db/raw";
-import { memberRecord } from "@/lib/personal";
+import { memberRecord,collaboratorRecord,auditVisible,personalAuditValue } from "@/lib/personal";
 import {
   normalize,
   validateEvent,
@@ -49,6 +49,8 @@ export async function access(row: any, who: Identity) {
         .prepare("SELECT * FROM grants WHERE trip=? AND email=?")
         .bind(row.id, who.email)
         .first();
+  const current=JSON.parse(row.data),linked=grant?.person&&current.people?.find((p:any)=>p.id===grant.person);
+  if(!owner&&linked?.active===false)return {owner:false,permissions:[] as Permission[],person:'',blocked:true};
   return {
     owner,
     permissions: (owner
@@ -82,9 +84,13 @@ export async function GET(r: Request) {
       const a = await access(row, who);
       const data = normalize(JSON.parse(row.data));
       const memberKeys=await linkedPeople(database(),row.id);
-      if (!a.owner && !a.permissions.length) {
-        if (a.person && data.people.some(p => p.id === a.person))
-          {const record=memberRecord(row.id,row.revision,data,a.person);const visible=new Set([a.person,...record.personal.transfers.flatMap(t=>[t.from,t.to])]);trips.push({...record,memberKeys:Object.fromEntries(Object.entries(memberKeys).filter(([id])=>visible.has(id)))});}
+      if(a.blocked)continue;
+      if (!a.owner && !a.permissions.includes('viewAll')&&!a.permissions.includes('editAll')) {
+        if(a.person&&data.people.some(p=>p.id===a.person)||a.permissions.length){
+          const record=collaboratorRecord(row.id,row.revision,data,a.person,a.permissions,who.email);
+          const visible=new Set([a.person,...record.personal.transfers.flatMap(t=>[t.from,t.to])]);
+          trips.push({...record,memberKeys:Object.fromEntries(Object.entries(memberKeys).filter(([id])=>visible.has(id)))});
+        }
         continue;
       }
       if (!a.owner) {
@@ -161,7 +167,7 @@ export async function POST(r: Request) {
       if(!invite||invite.accepted_email&&invite.accepted_email!==actor)return response({error:'This invitation has expired or was already used'},410);
       if(invite.email&&invite.email!==actor)return response({error:'Sign in with the invited email'},403);
       const trip:any=await db.prepare('SELECT data FROM trips WHERE id=?').bind(invite.trip).first();
-      if(!trip||!normalize(JSON.parse(trip.data)).people.some(p=>p.id===invite.person))return response({error:'Invitation is no longer valid'},410);
+      if(!trip||!normalize(JSON.parse(trip.data)).people.some(p=>p.id===invite.person&&p.active!==false))return response({error:'Invitation is no longer valid'},410);
       const own:any=await db.prepare('SELECT person FROM grants WHERE trip=? AND email=?').bind(invite.trip,actor).first();
       if(own&&own.person!==invite.person)return response({error:'Your account is already bound to another member. Ask the owner to review it.'},409);
       const id=invite.trip+':'+actor;
@@ -178,13 +184,14 @@ export async function POST(r: Request) {
       .first();
     if (!row) return response({ error: "Event not found" }, 404);
     const a = await access(row, who);
+    if(a.blocked)return response({error:"Membership is inactive"},403);
     if(['createInvite','revokeInvite'].includes(b.action)){
       if(!a.owner)return response({error:'Owner access required'},403);
 
       if(b.action==='revokeInvite'){await db.prepare('DELETE FROM member_invitations WHERE token=? AND trip=?').bind(b.token,row.id).run();return response({ok:true})}
       const data=normalize(JSON.parse(row.data)),person=String(b.person||''),target=String(b.email||'').trim().toLowerCase();
-      if(!data.people.some(p=>p.id===person))throw Error('Choose a member');
-      if(target&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(target))throw Error('Enter a valid email');
+      if(!data.people.some(p=>p.id===person&&p.active!==false))throw Error('Choose an active member');
+      if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(target))throw Error('Enter a valid email');
       const bound:any=await db.prepare('SELECT email FROM grants WHERE trip=? AND person=?').bind(row.id,person).first();
       if(bound)throw Error('This member already has a sign-in account. Manage its existing binding instead.');
       const token=crypto.randomUUID()+crypto.randomUUID(),expires=Date.now()+7*86400000;
@@ -232,6 +239,8 @@ export async function POST(r: Request) {
         const person = String(b.person || "");
         if (person && !normalize(JSON.parse(row.data)).people.some((p) => p.id === person))
           throw Error("Choose a valid member for this account");
+        if(b.permissions.includes('settle')&&!b.permissions.includes('viewAll')&&!b.permissions.includes('editAll'))throw Error('Repayment administrators need full group Money visibility');
+        if(b.permissions.includes('addExpense')&&!b.permissions.includes('viewAll')&&!b.permissions.includes('editAll')&&!person)throw Error('Bind a member before granting personal Money editing');
         if (!b.permissions.length && !person)
           throw Error("Choose which member this account belongs to");
         if(person){const bound:any=await db.prepare('SELECT email FROM grants WHERE trip=? AND person=? AND email<>?').bind(row.id,person,target).first();if(bound)throw Error('This member is already linked to another account. Revoke that binding explicitly before reassigning it.');}
@@ -251,10 +260,10 @@ export async function POST(r: Request) {
         return response({ ok: true });
       }
       if (b.action === "revoke") {
-        await db
-          .prepare("DELETE FROM grants WHERE id=? AND trip=?")
-          .bind(b.grant, row.id)
-          .run();
+        await db.batch([
+          db.prepare('DELETE FROM member_invitations WHERE trip=? AND (person=(SELECT person FROM grants WHERE id=? AND trip=?) OR email=(SELECT email FROM grants WHERE id=? AND trip=?))').bind(row.id,b.grant,row.id,b.grant,row.id),
+          db.prepare('DELETE FROM grants WHERE id=? AND trip=?').bind(b.grant,row.id),
+        ]);
         return response({ ok: true });
       }
       if (b.action === "closeShare") {
@@ -298,6 +307,29 @@ export async function POST(r: Request) {
       ]);
       if(!results[3].meta.changes)return response({error:'This event changed. Refresh and review before deleting.'},409);
       return response({ok:true});
+    }
+    if(['person','group','deleteGroup'].includes(b.action)&&!a.owner)return response({error:'Only the owner manages members'},403);
+    if(b.action==='history'){
+      if(!a.owner&&!a.permissions.length&&!a.person)return response({error:'Group access required'},403);
+      const full=a.owner||a.permissions.includes('viewAll')||a.permissions.includes('editAll');
+      return response({entries:data.audit.filter(x=>auditVisible(data,x,a.person,actor,full)).slice(-150).reverse().map(x=>{
+        if(a.owner)return x;
+        if(!full&&x.actor!==actor)return {id:x.id,date:x.date,action:x.action,entity:x.entity,actor:'Group collaborator',before:personalAuditValue(data,x.before,a.person,x.restoredAction||x.action),after:personalAuditValue(data,x.after,a.person,x.restoredAction||x.action)};
+        const sanitize=(value:unknown)=>value===null?null:JSON.parse(JSON.stringify(value,(key,v)=>key==='createdBy'&&v!==actor?'':v));
+        return {...x,actor:x.actor===actor?actor:'Group collaborator',before:sanitize(x.before),after:sanitize(x.after)};
+      })});
+    }
+    const originalAction=b.action;
+    if(b.action==='restoreAudit'){
+      const log=data.audit.find(x=>x.id===b.auditId);
+      if(!log||!log.before)return response({error:'This change cannot be restored from history'},400);
+      const kind=log.restoredAction||log.action;
+      if(kind==='deleteExpense'){b.action='restoreExpense';b.entityId=(log.before as any).id;}else if(kind==='restoreExpense'){b.action='deleteExpense';b.entityId=(log.before as any).id;}else if(['expense','restoreAudit'].includes(kind)&&typeof (log.before as any)?.items!=='undefined'){
+        b.action='expense';b.entity=log.before;
+      }else if(['activity','deleteActivity'].includes(kind)){b.action='activity';b.entity=log.before;}
+      else if(kind==='travelKit'){b.action='travelKit';b.entity=log.before;}
+      else if(kind==='planChecklist'){b.action='planChecklist';b.entity={tasks:log.before};}
+      else return response({error:'Use the dedicated repayment or settings controls for this change'},400);
     }
     let before: unknown = null,
       after: unknown = null,
@@ -343,7 +375,7 @@ export async function POST(r: Request) {
         const expense: Expense = {
           ...b.entity,
           createdBy: old?.createdBy || actor,
-          deleted: old?.deleted || false,
+          deleted: originalAction==='restoreAudit'?!!b.entity.deleted:old?.deleted || false,
         };
         before = old || null;
         after = expense;
@@ -377,6 +409,8 @@ export async function POST(r: Request) {
         before = { ...p };
         p.deleted = true;
         after = { ...p };
+      } else if (b.action === "travelKit") {
+        before=data.travel||{favorites:[],meeting:{place:'',time:'',notes:'',url:''},packing:[]};data.travel=b.entity;after=data.travel;
       } else if (b.action === "planBasics") {
         before={destination:data.destination,start:data.start,end:data.end};
         const x=b.entity;
@@ -430,7 +464,8 @@ export async function POST(r: Request) {
       id: crypto.randomUUID(),
       actor,
       date: new Date().toISOString(),
-      action: b.action,
+      action: originalAction,
+      ...(originalAction==='restoreAudit'?{restoredAction:b.action}:{}),
       entity,
       before,
       after,

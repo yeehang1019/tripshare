@@ -76,6 +76,7 @@ export type Activity = {
   people: string[];
 };
 export type Audit = {
+  restoredAction?:string;
   id: string;
   date: string;
   actor: string;
@@ -86,6 +87,7 @@ export type Audit = {
 };
 export type Event = {
   destination?: string;
+  travel?: {favorites:{id:string;name:string;url:string;notes:string}[];meeting:{place:string;time:string;notes:string;url:string};packing:{id:string;name:string;done:boolean;person:string}[]};
   checklist?: {id:string;name:string;done:boolean;person:string;due:string}[];
   schema: 2;
   name: string;
@@ -734,6 +736,16 @@ export function validateEvent(e: Event) {
       "Unknown activity participant",
     );
   }
+  if(e.travel){
+    const t=e.travel;
+    const text=(v:unknown,n:number)=>typeof v==='string'&&v.length<=n;
+    const url=(v:unknown)=>text(v,1500)&&(!v||/^https?:\/\//i.test(String(v)));
+    check(Array.isArray(t.favorites)&&t.favorites.length<=200&&new Set(t.favorites.map(x=>x.id)).size===t.favorites.length,'Check saved places');
+    for(const x of t.favorites)check(text(x.id,150)&&!!x.id&&text(x.name,200)&&!!x.name.trim()&&url(x.url)&&text(x.notes,2000),'Check saved place');
+    check(!!t.meeting&&text(t.meeting.place,300)&&text(t.meeting.time,100)&&text(t.meeting.notes,3000)&&url(t.meeting.url),'Check meeting details');
+    check(Array.isArray(t.packing)&&t.packing.length<=500&&new Set(t.packing.map(x=>x.id)).size===t.packing.length,'Check packing list');
+    for(const x of t.packing)check(text(x.id,150)&&!!x.id&&text(x.name,200)&&!!x.name.trim()&&typeof x.done==='boolean'&&(!x.person||ids.includes(x.person)),'Check packing item');
+  }
   check((e.checklist||[]).length<=500,'Checklist limit reached');
   for(const t of e.checklist||[])check(!!t.id&&typeof t.name==='string'&&!!t.name.trim()&&typeof t.done==='boolean'&&(!t.person||ids.includes(t.person))&&(!t.due||/^\d{4}-\d{2}-\d{2}$/.test(t.due)),'Check checklist task');
   check(new Set((e.checklist||[]).map(t=>t.id)).size===(e.checklist||[]).length,'Duplicate checklist tasks');
@@ -754,6 +766,7 @@ export const permissionKeys = [
   "plan",
   "members",
   "export",
+  "viewAll",
 ] as const;
 export type Permission = (typeof permissionKeys)[number];
 export const roles: Record<string, Permission[]> = {
@@ -765,6 +778,7 @@ export const roles: Record<string, Permission[]> = {
     "editOwn",
     "editAll",
     "settle",
+    "viewAll",
     "plan",
   ],
 };
@@ -786,8 +800,12 @@ export function allowed(
     );
   if (["payment", "undoPayment"].includes(action))
     return perms.includes("settle");
-  if (["activity", "deleteActivity", "planChecklist", "planBasics", "planOrder"].includes(action))
+  if (["activity", "deleteActivity", "planChecklist", "planBasics", "planOrder", "travelKit"].includes(action))
     return perms.includes("plan");
   if (["person", "group", "deleteGroup"].includes(action)) return perms.includes("members");
   return false;
+}
+
+export function duplicateFingerprint(expense:Expense,settlement:string){
+  return [expense.merchant.trim().toLocaleLowerCase().replace(/\s+/g,' '),expense.date,expense.currency,calculate(expense,settlement).cashTotal].join('|');
 }

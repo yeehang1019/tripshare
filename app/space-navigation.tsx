@@ -4,12 +4,12 @@ import {MapPinned,Wallet,ArrowUpRight,ArrowLeftRight,CalendarDays,Link2} from 'l
 import {calculate,money,type Event} from '@/lib/ledger';
 import type {RecordT} from './trip-app';
 export type Space='trip'|'money';
-export function tripRecords(records:RecordT[]){return records.filter(r=>r.data.kind==='trip'&&!r.personal&&(r.owner||r.permissions.length>0))}
+export function tripRecords(records:RecordT[]){return records.filter(r=>r.data.kind==='trip'&&(!!r.planning||!r.personal&&(r.owner||r.permissions.length>0)))}
 export function spaceDestinations(record:RecordT|undefined,space:Space,shared=false){
   if(space==='trip')return ['Trip Plan'];
   if(!record)return [];
   if(record.personal)return ['My spending'];
-  return ['Dashboard','Expenses','Settlement',...(record.owner||(!shared&&record.data.people.some(p=>p.id===record.person))?['My spending']:[]),...(record.owner&&!shared?['Settings']:[])];
+  return ['Dashboard','Expenses','Settlement',...(record.owner||(!shared&&record.data.people.some(p=>p.id===record.person))?['My spending']:[]),...(record.owner&&!shared?['People & Access','Settings']:[]),...(!shared?['History']:[])];
 }
 export function resolveSpaceRoute(records:RecordT[],requested:string|null,group:string|null){
   const space:Space=requested==='trip'?'trip':'money';
@@ -19,9 +19,9 @@ export function resolveSpaceRoute(records:RecordT[],requested:string|null,group:
 export function SpaceSwitch({space,onChange}:{space:Space;onChange:(space:Space)=>void}){
   return <div className="space-switch" role="group" aria-label="Trip and Money workspaces"><button aria-pressed={space==='trip'} onClick={()=>onChange('trip')}><MapPinned size={18}/><span>Trip<small>Plan the journey</small></span></button><button aria-pressed={space==='money'} onClick={()=>onChange('money')}><Wallet size={18}/><span>Money<small>Share the costs</small></span></button></div>;
 }
-export function SpaceBridge({event,space,onOpen}:{event:Event;space:Space;onOpen:()=>void}){
-  const total=useMemo(()=>space==='trip'?event.expenses.filter(b=>!b.deleted).reduce((n,b)=>n+calculate(b,event.settlement).total,0):0,[event,space]);
-  return <section className={'space-bridge '+space} aria-label={space==='trip'?'Linked Money workspace':'Linked Trip workspace'}><span className="space-bridge-icon">{space==='trip'?<Wallet size={21}/>:<MapPinned size={21}/>}</span><div><p>{space==='trip'?'CONNECTED TO MONEY':'CONNECTED TO TRIP'}</p><b>{space==='trip'?money(total,event.settlement)+' recorded consumption':event.destination||event.name}</b><small>{space==='trip'?'From the same bills · repayments are not extra spending':`${[event.start,event.end].filter(Boolean).join(' → ')||'Dates not set'} · itinerary, bookings and photos`}</small></div><button className="secondary" onClick={onOpen}>{space==='trip'?'Open Money':'Open Trip'}<ArrowUpRight size={16}/></button></section>;
+export function SpaceBridge({event,space,onOpen,personal}:{event:Event;space:Space;onOpen:()=>void;personal?:{consumed:number}}){
+  const total=useMemo(()=>space==='trip'?personal?personal.consumed:event.expenses.filter(b=>!b.deleted).reduce((n,b)=>n+calculate(b,event.settlement).total,0):0,[event,space,personal]);
+  return <section className={'space-bridge '+space} aria-label={space==='trip'?'Linked Money workspace':'Linked Trip workspace'}><span className="space-bridge-icon">{space==='trip'?<Wallet size={21}/>:<MapPinned size={21}/>}</span><div><p>{space==='trip'?'CONNECTED TO MONEY':'CONNECTED TO TRIP'}</p><b>{space==='trip'?money(total,event.settlement)+(personal?' your consumption':' recorded consumption'):event.destination||event.name}</b><small>{space==='trip'?'From the same bills · repayments are not extra spending':`${[event.start,event.end].filter(Boolean).join(' → ')||'Dates not set'} · itinerary, bookings and photos`}</small></div><button className="secondary" onClick={onOpen}>{space==='trip'?'Open Money':'Open Trip'}<ArrowUpRight size={16}/></button></section>;
 }
 export function TripLanding({records,onChoose}:{records:RecordT[];onChoose:(id:string)=>void}){
   const trips=tripRecords(records);
