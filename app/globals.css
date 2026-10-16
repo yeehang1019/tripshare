@@ -374,3 +374,25 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible{
 @media(max-width:850px){.person-access-row{grid-template-columns:1fr auto;gap:12px}.person-access-row>div{grid-column:1/-1;grid-row:2}.person-access-row>.text-button{grid-column:2}.permission-grid{grid-template-columns:1fr}.access-editor{padding:18px}.member-add{flex-wrap:wrap}.member-add>.field{flex-basis:100%}.member-add>button{width:100%}.history-compare{grid-template-columns:1fr}.history-entry>summary{display:block}.history-entry>summary span{display:block;margin-top:5px}.travel-kit .section-title{flex-wrap:wrap;gap:12px}.travel-kit .section-title>.secondary{width:100%;font-size:11px}.kit-tabs button{flex:1;justify-content:center;font-size:10px;padding:9px}.saved-places{grid-template-columns:1fr}.packing-row{gap:8px}.packing-row small{font-size:9px;max-width:70px}.document-row{flex-wrap:wrap}.document-row>span{flex-basis:60%}.document-row>.secondary{margin-left:auto}.settlement-export button{flex:1;justify-content:center}.mobile-quick-add:not([hidden]){display:grid;place-items:center;position:fixed;right:19px;bottom:94px;z-index:38;width:53px;height:53px;border-radius:18px;padding:0!important;box-shadow:0 5px 18px color-mix(in srgb,var(--primary) 25%,transparent)}.member-view .mobile-quick-add:not([hidden]){bottom:22px}.people-access h2{font-size:23px}.scope-explanation{font-size:11px}}
 @media print{.notification-bell,.mobile-quick-add,.member-add,.permission-grid{display:none!important}}
 .history-values{font-size:12px;padding:16px;background:var(--background);border:1px solid var(--border);border-radius:12px;overflow-wrap:anywhere}.history-values dt{font-size:10px;color:var(--muted);text-transform:capitalize;margin-top:9px}.history-values dd{margin:3px 0 10px;color:var(--text)}.history-values p{font-size:12px;line-height:1.8;white-space:pre-wrap}
+
+/* v45: paired surfaces and ink, including Radix controls rendered in portals. */
+:root[data-visual][data-theme]{--surface-soft:color-mix(in srgb,var(--primary) 5%,var(--surface));--text-quiet:var(--muted);--accent-1:var(--accent);--accent-2:var(--secondary);--accent-3:var(--primary);--accent-4:var(--accent);--secondary-foreground:var(--primary-foreground);--accent-foreground:var(--primary-foreground)}
+:root[data-visual][data-theme=light]{color-scheme:light;--destructive:#B42335}
+:root[data-visual][data-theme=night]{color-scheme:dark;--destructive:#FF9CA8}
+:root[data-visual] .workspace-app :is(.plan-money,.plan-tonight,.plan-task-editor,.advanced-options,.payment-editor,.live-result,.settlement-value){background:var(--surface-soft);color:var(--text);border-color:var(--border)}
+:root[data-visual] .workspace-app :is(.plan-entry-body,.plan-metrics>div,.expense-detail-body,.expense-editor,.preview,.quick-sheet,.expense-filters){background:var(--surface);color:var(--text);border-color:var(--border)}
+:root[data-visual] .workspace-app :is(.plan-money b,.plan-time,.plan-route,.expense-amount>b,.plan-day-header h3){color:var(--text)}
+:root[data-visual] .workspace-app :is(.plan-money span,.plan-location,.plan-type,.plan-task small,.expense-meta,.field>span){color:var(--muted)}
+:root[data-visual] .workspace-app :is(.plan-day-tabs button.active,.planner-tabs button[data-state=active]){background:var(--primary)!important;color:var(--primary-foreground)!important;border-color:var(--primary)}
+:root[data-visual] .workspace-app :is(input:not([type=checkbox]),textarea,.pick){background:var(--surface);color:var(--text);border-color:var(--border);caret-color:var(--primary)}
+:root[data-visual] :is([data-slot=select-content],[data-slot=dialog-content],[data-slot=alert-dialog-content]){background:var(--surface);color:var(--text);border-color:var(--border)}
+:root[data-visual] [data-slot=select-item]{color:var(--text)}
+:root[data-visual] [data-slot=select-item]:is([data-highlighted],:focus){background:var(--surface-soft);color:var(--text)}
+:root[data-visual] [data-slot=tabs-list]{background:var(--surface-soft);color:var(--muted)}
+:root[data-visual] [data-slot=tabs-trigger]{color:var(--muted)}
+:root[data-visual] [data-slot=tabs-trigger][data-state=active]{background:var(--surface);color:var(--text)}
+:root[data-visual] .workspace-app .plan-hero{background:linear-gradient(120deg,color-mix(in srgb,var(--secondary) 12%,var(--surface)),color-mix(in srgb,var(--accent) 8%,var(--surface)));border:1px solid var(--border)}
+:root[data-visual] .workspace-app .plan-hero :is(h2,p,.eyebrow){color:var(--text)}
+:root[data-visual] .workspace-app .sidebar-navigation button[aria-current=page]{background:color-mix(in srgb,var(--secondary) 10%,var(--surface));color:var(--text);border-color:var(--secondary)}
+:root[data-visual] .workspace-app .sidebar-navigation button[aria-current=page] svg{color:var(--secondary)}
+:root[data-visual=glass] .workspace-app .brandmark{background:var(--surface-soft);color:var(--primary)}

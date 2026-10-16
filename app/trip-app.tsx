@@ -73,7 +73,7 @@ import TripAlbum from "./trip-album";
 import {PeopleAccess,ChangeHistory,NotificationBell,SettlementExport} from "./collaboration";
 import {TravelKit,BookingFiles} from "./travel-kit";
 import {newPlan} from "@/lib/trip-plan";
-import {SpaceSwitch,SpaceBridge,TripLanding,spaceDestinations,tripRecords,resolveSpaceRoute,type Space} from "./space-navigation";
+import {SpaceSwitch,SpaceBridge,TripLanding,isTripSection,spaceDestinations,tripRecords,resolveSpaceRoute,type Space} from "./space-navigation";
 import {Search,PanelRight} from "lucide-react";
 import {AppearancePanel,WorkspaceChrome,QuickNavigator,completeThemes,monthBounds} from "./workspace-design";
 import {useWorkspace,TemplateShelf,PersonalHub,SettlementPreview,PayoutDetails,TravelFunding,feedback} from "./experience";
@@ -175,7 +175,7 @@ export default function TripApp({ shared = false, authenticatedEmail = "", authe
       description: string;
       run: () => void;
     } | null>(null);
-  const space:Space=tab==="Trip Plan"?"trip":"money";
+  const space:Space=isTripSection(tab)?"trip":"money";
   const spaceIntent=useRef<Space>("money");
   const [focusActivity,setFocusActivity]=useState("");
   const [routeReady,setRouteReady]=useState(false);
@@ -198,7 +198,7 @@ export default function TripApp({ shared = false, authenticatedEmail = "", authe
   useEffect(()=>{const invitation=new URLSearchParams(window.location.hash.slice(1)).get('invite');if(invitation&&!shared){setInviteToken(invitation);setInvitePrompt(true);history.replaceState(null,'',window.location.pathname+window.location.search)}},[shared]);
   function celebrateSave(){feedback(workspace.data.sound,workspace.data.haptics);setCelebrate(true);setTimeout(()=>setCelebrate(false),1400)}
  const rec = records.find((x) => x.id === id) || records[0],
-    e = (tab==="Trip Plan"?rec?.planning:undefined)||rec?.data;
+    e = (isTripSection(tab)?rec?.planning:undefined)||rec?.data;
   const can = (p: Permission) => !shared && !!rec?.permissions.includes(p);
   const isMember = !!rec && !shared && !rec.owner && rec.permissions.length === 0 && !!rec.person;
   const canViewGroup = !!rec && !rec.personal && (shared || rec.owner || rec.permissions.includes("viewAll") || rec.permissions.includes("editAll"));
@@ -1392,13 +1392,13 @@ setPlannerDirty(false);setKitDirty(false);setTemplateDirty(false);
                     }}
                   /></>
                 )}
-                {tab === "Trip Plan" && canViewTrip && e.kind === "trip" && (
-                  <><SpaceBridge event={e} personal={rec.personal} space="trip" onOpen={()=>switchSpace("money")}/><TripPlanner key={rec.id} event={e} busy={busy} canPlan={can("plan")} canExpense={can("addExpense")} draft={activity} setDraft={setActivity} onDirty={setPlannerDirty}
+                {isTripSection(tab) && canViewTrip && e.kind === "trip" && (
+                  <><SpaceBridge event={e} personal={rec.personal} space="trip" onOpen={()=>switchSpace("money")}/>{['Trip Plan','Itinerary','Bookings','Checklist'].includes(tab)&&<TripPlanner section={tab==='Trip Plan'?'Overview':tab} onSectionChange={v=>navigate(v==='Overview'?'Trip Plan':v)} key={rec.id+tab} event={e} busy={busy} canPlan={can("plan")} canExpense={can("addExpense")} draft={activity} setDraft={setActivity} onDirty={setPlannerDirty}
                     showFinancial={!rec.personal} onBegin={()=>setDraftRevision(rec.revision)}
                     onSave={async entity=>!!(await send("activity",{entity,revision:draftRevision}))}
                     onAction={(action,entity)=>send(action,{entity})}
                     onDelete={id=>ask("Remove this plan?","Linked expenses remain in your ledger.","deleteActivity",id)}
-                    onExpense={a=>add("simple",a)} focusActivity={focusActivity} onOpenMoney={id=>switchSpace("money",id)} onShare={whatsapp}/><TravelKit key={"kit-"+rec.id} event={e} canEdit={can("plan")} busy={busy} onDirty={setKitDirty} onSave={async entity=>!!(await send("travelKit",{entity}))} onAddActivity={async p=>{const entity={...newPlan(e,"Activity",e.start||today()),name:p.name,location:p.name,url:p.url,notes:p.notes};return !!(await send("activity",{entity}))}}/>{!shared&&<BookingFiles key={"files-"+rec.id} group={rec.id} event={e} session={authenticatedSession} canUpload={can("plan")}/ >}{!shared&&<TripAlbum key={"album-"+rec.id} group={rec.id} session={authenticatedSession} canUpload={can("plan")}/>}</>
+                    onExpense={a=>add("simple",a)} focusActivity={focusActivity} onOpenMoney={id=>switchSpace("money",id)} onShare={whatsapp}/ >}{tab==="Travel kit"&&<TravelKit key={"kit-"+rec.id} event={e} canEdit={can("plan")} busy={busy} onDirty={setKitDirty} onSave={async entity=>!!(await send("travelKit",{entity}))} onAddActivity={async p=>{const entity={...newPlan(e,"Activity",e.start||today()),name:p.name,location:p.name,url:p.url,notes:p.notes};return !!(await send("activity",{entity}))}}/>}{tab==="Files & photos"&&!shared&&<BookingFiles key={"files-"+rec.id} group={rec.id} event={e} session={authenticatedSession} canUpload={can("plan")}/ >}{tab==="Files & photos"&&!shared&&<TripAlbum key={"album-"+rec.id} group={rec.id} session={authenticatedSession} canUpload={can("plan")}/>}</>
                 )}
                 {((tab === "Expenses" && canViewGroup) || (tab === "My spending" && hasPersonalAccess)) && (
                   <>

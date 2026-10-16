@@ -14,6 +14,7 @@ const spaces=await vite.ssrLoadModule('/app/space-navigation.tsx');
 const travel=await vite.ssrLoadModule('/app/travel-kit.tsx');
 const exportsModule=await vite.ssrLoadModule('/lib/exports.ts');
 const collaboration=await vite.ssrLoadModule('/app/collaboration.tsx');
+const TripPlanner=(await vite.ssrLoadModule('/app/trip-planner.tsx')).default;
 const ExpenseEditor=(await vite.ssrLoadModule('/app/expense-editor.tsx')).default;
 const {PersonalHub,TemplateShelf,SettlementPreview}=experience;
 const workspace={data:{style:'arcade',sound:false,haptics:false,fx:{MYR:1},templates:[]},ready:true,busy:false,error:'',save:async()=>null};
@@ -54,7 +55,7 @@ test('All six complete theme modes keep text and primary buttons readable',()=>{
 
 test('Trip and Money have distinct navigation and personal members keep personal scope',()=>{
  const e=normalize({name:'Trip',people:['A'],bills:[],payments:[]});const r={id:'trip',data:e,owner:true,permissions:[],person:'A'};
- assert.deepEqual(spaces.spaceDestinations(r,'trip'),['Trip Plan']);
+ assert.deepEqual(spaces.spaceDestinations(r,'trip'),['Trip Plan','Itinerary','Bookings','Checklist','Travel kit','Files & photos']);
  assert.deepEqual(spaces.spaceDestinations(r,'money'),['Dashboard','Expenses','Settlement','My spending','People & Access','Settings','History']);
  assert.deepEqual(spaces.spaceDestinations({...r,owner:false,personal:{expenses:[]}},'money'),['My spending']);
  assert.doesNotMatch(spaces.spaceDestinations(r,'money').join(','),/Trip Plan/);
@@ -93,4 +94,15 @@ test('Travel kit and handbook keep planning separate from the ledger and escape 
 });
 test('Settlement exports offer current outstanding CSV and printable statements',()=>{
  const e=normalize({name:'Trip',people:['A','B'],bills:[],payments:[]});const html=renderToStaticMarkup(React.createElement(collaboration.SettlementExport,{event:e,transfers:[{from:'B',to:'A',amount:250}]}));assert.match(html,/Settlement CSV/);assert.match(html,/Printable statement/);assert.equal(e.payments.length,0);
+});
+
+test('Trip sidebar opens dedicated planner sections without duplicating internal navigation',()=>{
+ const e=normalize({name:'Thailand',kind:'trip',people:['A'],bills:[],payments:[]});
+ const props={event:e,busy:false,canPlan:true,canExpense:false,draft:null,setDraft(){},onBegin(){},onSave:async()=>true,onAction:async()=>true,onDelete(){},onExpense(){},onShare(){},onDirty(){}};
+ const bookings=renderToStaticMarkup(React.createElement(TripPlanner,{...props,section:'Bookings'}));
+ assert.match(bookings,/Bookings &amp; reservations/);assert.doesNotMatch(bookings,/Trip essentials|Before you go|planner-tabs/);
+ const checklist=renderToStaticMarkup(React.createElement(TripPlanner,{...props,section:'Checklist'}));
+ assert.match(checklist,/Before you go/);assert.doesNotMatch(checklist,/Bookings &amp; reservations|Trip essentials/);
+ for(const section of spaces.tripSections)assert.equal(spaces.isTripSection(section),true);
+ assert.equal(spaces.isTripSection('Settings'),false);
 });
