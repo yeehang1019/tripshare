@@ -70,6 +70,7 @@ import ExpenseEditor from "./expense-editor";
 import TripPlanner from "./trip-planner";
 import MotionLayer from "./motion-layer";
 import TripAlbum from "./trip-album";
+import {SpaceSwitch,SpaceBridge,TripLanding,spaceDestinations,tripRecords,resolveSpaceRoute,type Space} from "./space-navigation";
 import {Search,PanelRight} from "lucide-react";
 import {AppearancePanel,WorkspaceChrome,QuickNavigator,completeThemes,monthBounds} from "./workspace-design";
 import {useWorkspace,TemplateShelf,PersonalHub,SettlementPreview,PayoutDetails,TravelFunding,feedback} from "./experience";
@@ -168,6 +169,12 @@ export default function TripApp({ shared = false, authenticatedEmail = "", authe
       description: string;
       run: () => void;
     } | null>(null);
+  const space:Space=tab==="Trip Plan"?"trip":"money";
+  const spaceIntent=useRef<Space>("money");
+  const [focusActivity,setFocusActivity]=useState("");
+  const [routeReady,setRouteReady]=useState(false);
+  const [activityFilter,setActivityFilter]=useState("");
+  useEffect(()=>{spaceIntent.current=space},[space]);
   const [plannerDirty,setPlannerDirty]=useState(false);
   const [templateDirty,setTemplateDirty]=useState(false);
   const workspace=useWorkspace(authenticatedSession,!shared);
@@ -309,12 +316,13 @@ export default function TripApp({ shared = false, authenticatedEmail = "", authe
         ? e.people.some((p) => p.id === pref) ? pref! : e.people[0]?.id || ""
         : e.people.some((p) => p.id === rec.person) ? rec.person : "",
     );
+    setActivityFilter("");
     setStart("");
     setEnd("");
     setCat("All");
     setMerchant("");
     setSettlementScope(rec.owner || (!shared && !!rec.person) ? "mine" : "everyone");
-    setTab(!rec.owner && !shared && rec.permissions.length === 0 && rec.person ? "My spending" : "Dashboard");
+    setTab(spaceIntent.current==="trip"&&e.kind==="trip"&&!rec.personal?"Trip Plan":!rec.owner && !shared && rec.permissions.length === 0 && rec.person ? "My spending" : "Dashboard");
     setBill(null);
     setActivity(null);
 setPlannerDirty(false);setTemplateDirty(false);
@@ -322,6 +330,21 @@ setPlannerDirty(false);setTemplateDirty(false);
     setAccessInfo({ grants: [], shares: [] });
     accessLoaded.current = false;
   }, [rec?.id]);
+  useEffect(()=>{
+    if(!loaded||routeReady||shared)return;
+    const params=new URLSearchParams(window.location.search);
+    const route=resolveSpaceRoute(records,params.get('space'),params.get('group'));
+    spaceIntent.current=route.space;if(route.record)setId(route.record.id);
+    setTab(route.space==='trip'?'Trip Plan':route.record?.personal?'My spending':'Dashboard');
+    setFocusActivity(params.get('activity')||'');setRouteReady(true);
+  },[loaded,routeReady,shared]);
+  useEffect(()=>{
+    if(!routeReady||!loaded||shared)return;
+    const url=new URL(window.location.href);url.searchParams.set('space',space);
+    if(rec?.id)url.searchParams.set('group',rec.id);else url.searchParams.delete('group');
+    if(space==='trip'&&focusActivity)url.searchParams.set('activity',focusActivity);else url.searchParams.delete('activity');
+    history.replaceState(history.state,'',url.pathname+url.search+url.hash);
+  },[space,rec?.id,focusActivity,routeReady,loaded,shared]);
   useEffect(()=>{if(tab==="My spending"){const [a,b]=monthBounds();setStart(a);setEnd(b);setCat("All");setMerchant("");}else if(tab==="Expenses"){setStart("");setEnd("");}},[tab,rec?.id]);
   useEffect(() => {
     if (tab === "Settings" && rec?.owner && !accessLoaded.current) {
@@ -386,6 +409,7 @@ setPlannerDirty(false);setTemplateDirty(false);
     setBill(b);
     setDraftRevision(rec.revision);
     setTab("Add expense");
+    spaceIntent.current="money";
   }
   function edit(b: Expense) {
     setBill(structuredClone(b));
@@ -413,21 +437,11 @@ setPlannerDirty(false);setTemplateDirty(false);
     setSettings(null);
     setCreating(false);setTemplateSource(null);
   }
-  function choose(id: string) {
-    if (editing.current) {
-      setConfirm({
-        title: "Leave unsaved input?",
-        description: "Changes that have not been saved will be discarded.",
-        run: () => {
-          clearUnsavedInput();
-          setId(id);
-          setTab("Dashboard");
-        },
-      });
-    } else {
-      setId(id);
-      setTab("Dashboard");
-    }
+  function choose(id:string){
+    const target=records.find(r=>r.id===id);
+    const next=spaceIntent.current==='trip'&&target?.data.kind==='trip'&&!target.personal?'Trip Plan':target?.personal?'My spending':'Dashboard';
+    const run=()=>{clearUnsavedInput();setFocusActivity('');setId(id);setTab(next)};
+    if(editing.current)setConfirm({title:'Leave unsaved input?',description:'Your unsaved changes will be discarded.',run});else run();
   }
   function whatsapp(text: string) {
     window.open(
@@ -501,6 +515,7 @@ setPlannerDirty(false);setTemplateDirty(false);
     e?.expenses.filter(
       (b) =>
         !b.deleted &&
+        (!activityFilter||b.activity===activityFilter) &&
         (!start || b.date >= start) &&
         (!end || b.date <= end) &&
         (cat === "All" || cat === b.category) &&
@@ -619,6 +634,7 @@ setPlannerDirty(false);setTemplateDirty(false);
             </span>
           </summary>
           <div className="expense-detail-body">
+          {b.activity&&canViewGroup&&e!.activities.some(a=>a.id===b.activity)&&<button className="linked-activity-button" onClick={()=>switchSpace('trip',b.activity)}><MapPinned size={16}/> View linked plan · {e!.activities.find(a=>a.id===b.activity)?.name}<ArrowRight size={15}/></button>}
           <p>{personalOnly ? "My final consumption" : "Settlement value"} <b>{fmt(personalOnly ? c.consumed[me] || 0 : c.total)}</b></p>
           {b.currency !== e!.settlement && (
             <p className="muted">
@@ -695,29 +711,42 @@ setPlannerDirty(false);setTemplateDirty(false);
     });
   }
   function navigate(next:string){
-    if(editing.current){setConfirm({title:"Leave unsaved input?",description:"Your unsaved changes will be discarded.",run:()=>{clearUnsavedInput();setTab(next)}})}else setTab(next);
+    const run=()=>{clearUnsavedInput();setActivityFilter('');setFocusActivity('');setTab(next)};
+    if(editing.current)setConfirm({title:'Leave unsaved input?',description:'Your unsaved changes will be discarded.',run});else run();
   }
   function requestAdd(){if(editing.current){setConfirm({title:"Replace unsaved input?",description:"Your unsaved changes will be discarded before starting a new expense.",run:()=>{clearUnsavedInput();add()}})}else add()}
-  const destinations=rec?.personal?["My spending"]:e?["Dashboard",...(e.kind==="trip"?["Trip Plan"]:[]),"Expenses","Settlement",...(hasPersonalAccess?["My spending"]:[]),...(rec.owner&&!shared?["Settings"]:[])]:[];
-  const chrome=<WorkspaceChrome records={records} selected={rec?.id||""} onGroup={choose} onAppearance={()=>setAppearanceOpen(true)} onSearch={()=>setQuickOpen(true)} onNavigate={navigate} destinations={destinations} tab={tab} style={workspace.data.style} palette={paletteLabels[palette]} event={e} member={!!rec?.personal} railOpen={railOpen} onRailClose={toggleRail}/>;
+  function switchSpace(next:Space,activityId=''){
+    const run=()=>{
+      clearUnsavedInput();spaceIntent.current=next;setFocusActivity(next==="trip"?activityId:"");setActivityFilter(next==="money"?activityId:"");
+      if(next==='trip'){
+        if(e?.kind!=='trip'||rec?.personal){const first=tripRecords(records)[0];if(first)setId(first.id)}
+        setTab('Trip Plan');
+      }else setTab(rec?.personal?'My spending':activityId?'Expenses':'Dashboard');
+    };
+    if(editing.current)setConfirm({title:'Switch workspace?',description:'Your unsaved changes will be discarded.',run});else run();
+  }
+  const destinations=spaceDestinations(rec,space,shared);
+  const spaceRecords=space==='trip'?(shared?records.filter(r=>r.data.kind==='trip'):tripRecords(records)):records;
+  const switcher=<SpaceSwitch space={space} onChange={switchSpace}/>;
+  const chrome=<WorkspaceChrome records={spaceRecords} selected={rec?.id||""} onGroup={choose} onAppearance={()=>setAppearanceOpen(true)} onSearch={()=>setQuickOpen(true)} onNavigate={navigate} destinations={destinations} tab={tab} style={workspace.data.style} palette={paletteLabels[palette]} event={e} member={!!rec?.personal} railOpen={railOpen} onRailClose={toggleRail} space={space} spaceSwitch={switcher}/>;
   const appearance=<AppearancePanel open={appearanceOpen} onOpenChange={setAppearanceOpen} workspace={workspace} palette={palette} labels={paletteLabels} mode={theme} motion={motionMode} onChange={(p,m,v)=>saveAppearance(p as PaletteName,m as ThemeMode,v as MotionMode)} shared={shared}/>;
-  const quickNavigator=<QuickNavigator open={quickOpen} onOpenChange={setQuickOpen} records={records} destinations={destinations} onGroup={choose} onNavigate={navigate} onAdd={can("addExpense")?requestAdd:undefined} onAppearance={()=>setAppearanceOpen(true)}/>;
+  const quickNavigator=<QuickNavigator open={quickOpen} onOpenChange={setQuickOpen} records={spaceRecords} destinations={destinations} onGroup={choose} onNavigate={navigate} onAdd={can("addExpense")?requestAdd:undefined} onAppearance={()=>setAppearanceOpen(true)}/>;
   function spendingOverview() { return !shared ? <PersonalHub records={records} workspace={workspace} onGroup={choose} viewerKey={me}/> : null; }
-  if(rec?.personal){
+  if(rec?.personal&&space!=="trip"){
     const view=rec.personal;
     const monthExpenses=view.expenses.filter(b=>(!start||b.date>=start)&&(!end||b.date<=end));
     const payoutEvent={...e!,people:[...e!.people,...Array.from(new Map(view.transfers.flatMap(t=>[{id:t.from,name:t.fromName,active:true},{id:t.to,name:t.toName,active:true}]).filter(p=>p.id!==rec.person).map(p=>[p.id,p])).values())]};
     const owe=view.transfers.filter(t=>t.from===rec.person).reduce((n,t)=>n+t.amount,0);
     const receive=view.transfers.filter(t=>t.to===rec.person).reduce((n,t)=>n+t.amount,0);
-    return <div className={"app member-view workspace-app"+(railOpen?" rail-open":"")}>{chrome}{appearance}{quickNavigator}<MotionLayer scene={rec.id} mode={motionMode} style={workspace.data.style} palette={completeThemes.find(t=>t.style===workspace.data.style)!.palette}/><header><a className="brand" href="/">tripshare<span className="brand-dot">.</span></a><strong>{view.name} · {e?.kind==='trip'?'Trip':'Daily Group'}</strong><div className="header-right"><button className="quick-launch" aria-label="Search groups and actions" onClick={()=>setQuickOpen(true)}><Search size={17}/></button><button className="icon-button rail-toggle" aria-label="Toggle group context" aria-expanded={railOpen} onClick={toggleRail}><PanelRight size={18}/></button><button className="icon-button mobile-appearance" aria-label="Appearance" onClick={()=>setAppearanceOpen(true)}><Palette size={18}/></button></div></header>
-      <main>{invitePrompt&&<section className="panel"><h2>New group invitation</h2><button className="primary" disabled={busy} onClick={async()=>{if(await send("acceptInvite",{token:inviteToken})){setInvitePrompt(false);setInviteToken("")}}}>Accept as {user}</button><button className="secondary" onClick={()=>setInvitePrompt(false)}>Dismiss</button></section>}{error&&<p className="message error" role="alert">{error}</p>}{spendingOverview()}<section className="panel"><h1>{e?.name}</h1><p>Your own spending and outstanding payments</p>
+    return <div data-space={space} className={"app member-view workspace-app"+(railOpen?" rail-open":"")}>{chrome}{appearance}{quickNavigator}<MotionLayer scene={rec.id} mode={motionMode} style={workspace.data.style} palette={completeThemes.find(t=>t.style===workspace.data.style)!.palette}/><header><a className="brand" href="/">tripshare<span className="brand-dot">.</span></a><strong>{view.name} · {e?.kind==='trip'?'Trip':'Daily Group'}</strong><div className="header-right"><button className="quick-launch" aria-label="Search groups and actions" onClick={()=>setQuickOpen(true)}><Search size={17}/></button><button className="icon-button rail-toggle" aria-label="Toggle group context" aria-expanded={railOpen} onClick={toggleRail}><PanelRight size={18}/></button><button className="icon-button mobile-appearance" aria-label="Appearance" onClick={()=>setAppearanceOpen(true)}><Palette size={18}/></button></div></header>
+      <main><div className="mobile-space-switch">{switcher}</div>{invitePrompt&&<section className="panel"><h2>New group invitation</h2><button className="primary" disabled={busy} onClick={async()=>{if(await send("acceptInvite",{token:inviteToken})){setInvitePrompt(false);setInviteToken("")}}}>Accept as {user}</button><button className="secondary" onClick={()=>setInvitePrompt(false)}>Dismiss</button></section>}{error&&<p className="message error" role="alert">{error}</p>}{spendingOverview()}<section className="panel"><h1>{e?.name}</h1><p>Your own spending and outstanding payments</p>
         <select aria-label="Choose event" value={rec.id} onChange={x=>setId(x.target.value)}>{records.map(x=><option value={x.id} key={x.id}>{x.data.name}</option>)}</select>
         <div className="stats personal-stats"><div className="stat featured"><span>Consumed · selected dates</span><strong>{fmt(monthExpenses.reduce((n,b)=>n+b.consumed,0))}</strong></div><div className="stat"><span>Paid · selected dates</span><strong>{fmt(monthExpenses.reduce((n,b)=>n+b.paid,0))}</strong></div><div className="stat"><span>Need to pay · all time</span><strong>{fmt(owe)}</strong></div><div className="stat"><span>Need to receive · all time</span><strong>{fmt(receive)}</strong></div></div>
       </section><section className="panel"><h2>My expenses</h2><div className="checks"><Field label="From"><input type="date" value={start} onChange={x=>setStart(x.target.value)}/></Field><Field label="Until"><input type="date" value={end} onChange={x=>setEnd(x.target.value)}/></Field><button className="secondary" onClick={()=>{const [a,b]=monthBounds();setStart(a);setEnd(b)}}>This month</button><button className="secondary" onClick={()=>{setStart("");setEnd("")}}>All time</button></div>{monthExpenses.slice(0,expenseLimit).map(b=><details key={b.id} className="expense-row"><summary><strong>{b.title}</strong> · {b.date} · {b.category} · {b.paymentStatus || "paid"} · My share {fmt(b.consumed)} · Paid {fmt(b.paid)}</summary><ul>{b.items.map((item,i)=><li key={i}>{item.name} · {fmt(item.amount)}</li>)}</ul></details>)}{!monthExpenses.length&&<p>No personal expenses yet.</p>}{monthExpenses.length>expenseLimit&&<button className="secondary" onClick={()=>setExpenseLimit(n=>n+50)}>Show 50 more · {monthExpenses.length} matching expenses</button>}</section>
       <section className="panel"><h2>My settlement</h2>{view.transfers.map(t=><div key={t.from+':'+t.to} className="expense-row"><strong>{t.fromName} → {t.toName}: {fmt(t.amount)}</strong>{t.to!==rec.person&&<PayoutDetails group={rec.id} person={t.to} event={payoutEvent} session={authenticatedSession} editable={false}/>}</div>)}{!view.transfers.length&&<p>All settled.</p>}<PayoutDetails group={rec.id} person={rec.person} event={payoutEvent} session={authenticatedSession} editable/><h3>Repayment history</h3>{view.payments.map(p=><p key={p.id}>{p.date} · {p.fromName} → {p.toName} · {fmt(p.amount)}</p>)}</section>{e?.kind==='trip'&&<TripAlbum group={rec.id} session={authenticatedSession} canUpload={false}/>}</main></div>;
   }
   return (
-    <div className={"app workspace-app"+(railOpen?" rail-open":"")}>
+    <div data-space={space} className={"app workspace-app"+(railOpen?" rail-open":"")}>
       <MotionLayer scene={`${rec?.id || "empty"}-${tab}-${workspace.data.style}-${palette}`} mode={motionMode} style={workspace.data.style} palette={completeThemes.find(t=>t.style===workspace.data.style)!.palette} celebrate={celebrate} />
       {chrome}{appearance}{quickNavigator}
       <header>
@@ -726,7 +755,7 @@ setPlannerDirty(false);setTemplateDirty(false);
             <Wallet size={22} />
           </span>
           tripshare<span className="brand-dot">.</span>
-        </a>
+        </a><span className="space-header-label">{space==='trip'?'Trip':'Money'}</span>
         <div className="header-right">
           <button className="quick-launch" onClick={()=>setQuickOpen(true)} aria-label="Search groups and actions"><Search size={16}/><span>Jump to…</span><kbd>⌘ / Ctrl K</kbd></button>
           <button className="icon-button rail-toggle" onClick={toggleRail} aria-expanded={railOpen} aria-label="Toggle group context"><PanelRight size={18}/></button>
@@ -790,6 +819,7 @@ setPlannerDirty(false);setTemplateDirty(false);
         </AlertDialogContent>
       </AlertDialog>
       <main>
+        <div className="mobile-space-switch">{switcher}</div>
 
         {invitePrompt&&<section className="panel invitation-prompt"><h2>Join your friend’s group</h2><p>Accept this invitation to bind your signed-in account to the member selected by the group owner. You will see your own spending and payments.</p><button className="primary" disabled={busy} onClick={async()=>{if(await send("acceptInvite",{token:inviteToken})){setInvitePrompt(false);setInviteToken("");setNotice("You joined the group.")}}}>Accept as {user}</button><button className="secondary" onClick={()=>{setInvitePrompt(false);setInviteToken("")}}>Dismiss</button></section>}
         {error && (
@@ -831,21 +861,21 @@ setPlannerDirty(false);setTemplateDirty(false);
             <div className="topline">
               <div>
                 <p className="eyebrow">
-                  {shared
+                  {space==="trip"?"TRIP / PLAN THE JOURNEY":shared
                     ? "SHARED WITH YOU"
                     : e?.kind === "daily"
                       ? "EVERYDAY, TOGETHER"
                       : "YOUR SHARED ADVENTURE"}
                 </p>
-                <h1>{e?.name || "Where are we going?"}</h1>
+                <h1>{space==="trip"&&(e?.kind!=="trip"||rec?.personal)?"Your trips":e?.name || (space==="trip"?"Your trips":"Your shared money")}</h1>
                 <p className="muted">
-                  {e
+                  {space==='trip'&&(e?.kind!=='trip'||rec?.personal)?'Trips you can plan · spending stays in Money.':e
                     ? `${e.people.length} people · ${e.kind === "daily" ? "Daily group" : [e.start, e.end].filter(Boolean).join(" — ") || "Trip"} · Settle in ${e.settlement}`
                     : "Trips, daily groups, and every shared expense."}
                 </p>
               </div>
               <div className="top-actions">
-                {can("addExpense") && (
+                {space==="money" && can("addExpense") && (
                   <button className="primary" onClick={requestAdd}>
                     <Plus size={18} /> Add expense
                   </button>
@@ -854,11 +884,11 @@ setPlannerDirty(false);setTemplateDirty(false);
             </div>
             {!shared && (
               <div className="event-switch">
-                {records.length > 0 && (
+                {spaceRecords.length > 0 && (
                   <Pick
                     label="Event"
                     value={rec.id}
-                    options={records.map((r) => ({
+                    options={spaceRecords.map((r) => ({
                       id: r.id,
                       name:
                         r.data.name +
@@ -870,7 +900,7 @@ setPlannerDirty(false);setTemplateDirty(false);
                   />
                 )}
                 <span className="pill">
-                  {e?.kind === "daily" ? "DAILY GROUP" : "TRIP"}
+                  {space==="trip"?"TRIP WORKSPACE":e?.kind === "daily" ? "DAILY GROUP" : "TRIP GROUP"}
                 </span>
                 {canCreateEvents && <>
                   <button
@@ -883,7 +913,7 @@ setPlannerDirty(false);setTemplateDirty(false);
                   >
                     + New Trip
                   </button>
-                  <button
+                  {space==="money"&&<button
                     className="secondary compact"
                     onClick={() => {
                       setCreating(true);
@@ -892,26 +922,17 @@ setPlannerDirty(false);setTemplateDirty(false);
                     }}
                   >
                     + New Daily Group
-                  </button>
+                  </button>}
                 </>}
               </div>
             )}
-            {e && (
+            {e && destinations.length>1 && (
               <Tabs
                 value={tab}
                 onValueChange={navigate}
               >
                 <TabsList className="navigation" variant="line">
-                  {(isMember
-                    ? ["My spending", "Settlement"]
-                    : [
-                        "Dashboard",
-                        ...(e.kind === "trip" ? ["Trip Plan"] : []),
-                        "Expenses",
-                        "Settlement",
-                        ...(hasPersonalAccess ? ["My spending"] : []),
-                        ...(!shared && rec.owner ? ["Settings"] : []),
-                      ]).map((t) => {
+                  {destinations.map((t) => {
                     const Icon =
                       t === "Dashboard"
                         ? LayoutDashboard
@@ -934,6 +955,9 @@ setPlannerDirty(false);setTemplateDirty(false);
                 </TabsList>
               </Tabs>
             )}
+            {space==="trip"&&(e?.kind!=="trip"||rec?.personal)&&<TripLanding records={records} onChoose={choose}/>}
+            {space==="money"&&e?.kind==="trip"&&canViewGroup&&!creating&&!settings&&<SpaceBridge event={e} space="money" onOpen={()=>switchSpace('trip')}/>}
+            {space==="money"&&tab==="Dashboard"&&e?.kind==="trip"&&canViewGroup&&<details className="money-funding-summary"><summary><Wallet size={17}/> Trip funding · linked plan estimates</summary><TravelFunding event={e}/></details>}
             {(tab === "Dashboard" || tab === "My spending") && spendingOverview()}
             {!shared && e && can("addExpense") && (tab === "Dashboard" || !!templateSource) && <TemplateShelf key={rec.id} workspace={workspace} event={e} group={rec.id} canAdd={can("addExpense")} busy={busy} source={templateSource} onDirty={setTemplateDirty} onSaved={()=>setTemplateSource(null)} onRecord={async entity=>{if(await send("expense",{entity})){setNotice("Expense recorded. Quick Pick kept for next time.");celebrateSave();return true}return false}}/>}
             {!shared && ((canCreateEvents && (!e || creating)) || (rec?.owner && !!settings)) && (
@@ -1097,8 +1121,9 @@ setPlannerDirty(false);setTemplateDirty(false);
                             ) {
                               setSettings(null);
                               setCreating(false);setTemplateSource(null);
-                              setTab("Dashboard");
-                              setNotice("Event saved.");
+                              spaceIntent.current=isNew&&data.kind==='trip'?'trip':'money';
+                              setTab(isNew&&data.kind==='trip'?'Trip Plan':'Dashboard');
+                              setNotice("Group saved. Trip and Money stay linked.");
                             }
                           }}
                         >
@@ -1171,49 +1196,9 @@ setPlannerDirty(false);setTemplateDirty(false);
                       <div className="panel">
                         <div className="section-title">
                           <h2>
-                            {e.kind === "trip" ? <Route size={20}/> : <Sparkles size={20}/>}
-                            {e.kind === "trip"
-                              ? "Trip Plan · day by day"
-                              : "Quick expense"}
+                            <Sparkles size={20}/> Quick expense
                           </h2>
-                          {e.kind === "trip" && (
-                            <button
-                              className="primary"
-                              onClick={() => setTab("Trip Plan")}
-                            >
-                              Open Trip Plan
-                            </button>
-                          )}
                         </div>
-                        {e.kind === "trip" &&
-                          (e.activities.length ? (
-                            e.activities
-                              .slice()
-                              .sort((a, b) =>
-                                (a.date + a.time).localeCompare(
-                                  b.date + b.time,
-                                ),
-                              )
-                              .filter((a) => a.date >= today())
-                              .slice(0, 3)
-                              .map((a) => (
-                                <div className="plan-mini" key={a.id}>
-                                  <CalendarDays size={18} />
-                                  <div>
-                                    <b>{a.name}</b>
-                                    <small>
-                                      {a.date} · {a.time || "Flexible"} ·{" "}
-                                      {a.location}
-                                    </small>
-                                  </div>
-                                </div>
-                              ))
-                          ) : (
-                            <p className="muted">
-                              No itinerary yet. Open Trip Plan to add places,
-                              times and booking links.
-                            </p>
-                          ))}
                         {can("addExpense") && (
                           <div className="quick-grid">
                             {[
@@ -1337,7 +1322,7 @@ setPlannerDirty(false);setTemplateDirty(false);
                   </>
                 )}
                 {tab === "Add expense" && bill && (
-                  <ExpenseEditor
+                  <>{bill.activity&&<div className="space-link-note editor-origin"><MapPinned size={18}/><div><b>Money · linked to your trip</b><p>{e.activities.find(a=>a.id===bill.activity)?.name||'Trip plan'} · {bill.date}. This creates one bill when you save.</p></div><button className="text-button" onClick={()=>switchSpace('trip',bill.activity)}>Return to Trip</button></div>}<ExpenseEditor
                     key={bill.id}
                     event={e}
                     initial={bill}
@@ -1360,15 +1345,15 @@ setPlannerDirty(false);setTemplateDirty(false);
                       }
                       return false;
                     }}
-                  />
+                  /></>
                 )}
                 {tab === "Trip Plan" && canViewGroup && e.kind === "trip" && (
-                  <><TravelFunding event={e}/><TripPlanner key={rec.id} event={e} busy={busy} canPlan={can("plan")} canExpense={can("addExpense")} draft={activity} setDraft={setActivity} onDirty={setPlannerDirty}
+                  <><SpaceBridge event={e} space="trip" onOpen={()=>switchSpace("money")}/><TripPlanner key={rec.id} event={e} busy={busy} canPlan={can("plan")} canExpense={can("addExpense")} draft={activity} setDraft={setActivity} onDirty={setPlannerDirty}
                     onBegin={()=>setDraftRevision(rec.revision)}
                     onSave={async entity=>!!(await send("activity",{entity,revision:draftRevision}))}
                     onAction={(action,entity)=>send(action,{entity})}
                     onDelete={id=>ask("Remove this plan?","Linked expenses remain in your ledger.","deleteActivity",id)}
-                    onExpense={a=>add("simple",a)} onShare={whatsapp}/>{!shared&&<TripAlbum group={rec.id} session={authenticatedSession} canUpload={can("plan")}/>}</>
+                    onExpense={a=>add("simple",a)} focusActivity={focusActivity} onOpenMoney={id=>switchSpace("money",id)} onShare={whatsapp}/>{!shared&&<TripAlbum group={rec.id} session={authenticatedSession} canUpload={can("plan")}/>}</>
                 )}
                 {((tab === "Expenses" && canViewGroup) || (tab === "My spending" && hasPersonalAccess)) && (
                   <>
@@ -1382,6 +1367,7 @@ setPlannerDirty(false);setTemplateDirty(false);
                         <button className="primary" onClick={() => add("simple")}><Plus size={18} /> Add expense</button>
                       )}
                     </section>
+                    {activityFilter&&<div className="space-link-note activity-filter"><MapPinned size={16}/><span>Linked to {e.activities.find(a=>a.id===activityFilter)?.name||'a trip plan'}</span><button className="text-button" onClick={()=>switchSpace('trip',activityFilter)}>View plan</button><button className="text-button" onClick={()=>setActivityFilter('')}>Show all expenses</button></div>}
                     <section className="filters expense-filters">
                       <span className="filter-label"><SlidersHorizontal size={17} /> Filter</span>
                       <Field label="From">
@@ -1416,6 +1402,7 @@ setPlannerDirty(false);setTemplateDirty(false);
                       <button
                         className="text-button"
                         onClick={() => {
+                          setActivityFilter("");
                           setStart("");
                           setEnd("");
                           setCat("All");

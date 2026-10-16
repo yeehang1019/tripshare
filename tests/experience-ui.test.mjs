@@ -10,6 +10,7 @@ const root=fileURLToPath(new URL('..',import.meta.url)),vite=await createServer(
 after(()=>vite.close());
 const experience=await vite.ssrLoadModule('/app/experience.tsx');
 const design=await vite.ssrLoadModule('/app/workspace-design.tsx');
+const spaces=await vite.ssrLoadModule('/app/space-navigation.tsx');
 const {PersonalHub,TemplateShelf,SettlementPreview}=experience;
 const workspace={data:{style:'arcade',sound:false,haptics:false,fx:{MYR:1},templates:[]},ready:true,busy:false,error:'',save:async()=>null};
 test('Personal hub counts incurred consumption once and separates friends from unpaid supplier bills',()=>{
@@ -45,4 +46,28 @@ test('All six complete theme modes keep text and primary buttons readable',()=>{
  const contrast=(a,b)=>{const [low,high]=[luminance(a),luminance(b)].sort((a,b)=>a-b);return (high+.05)/(low+.05)};
  const modes=[...css.matchAll(/:root\[data-visual=(arcade|glass|cosmic)\]\[data-theme=(light|night)\]\{([^}]+)\}/g)];assert.equal(modes.length,6);
  for(const [,style,mode,body] of modes){const tokens=Object.fromEntries([...body.matchAll(/--([\w-]+):(#[A-Fa-f0-9]{6})/g)].map(m=>[m[1],m[2]]));for(const [a,b] of [['text','surface'],['muted','surface'],['primary','primary-foreground']])assert.ok(contrast(tokens[a],tokens[b])>=4.5,style+' '+mode+' '+a);}
+});
+
+test('Trip and Money have distinct navigation and personal members keep personal scope',()=>{
+ const e=normalize({name:'Trip',people:['A'],bills:[],payments:[]});const r={id:'trip',data:e,owner:true,permissions:[],person:'A'};
+ assert.deepEqual(spaces.spaceDestinations(r,'trip'),['Trip Plan']);
+ assert.deepEqual(spaces.spaceDestinations(r,'money'),['Dashboard','Expenses','Settlement','My spending','Settings']);
+ assert.deepEqual(spaces.spaceDestinations({...r,owner:false,personal:{expenses:[]}},'money'),['My spending']);
+ assert.doesNotMatch(spaces.spaceDestinations(r,'money').join(','),/Trip Plan/);
+});
+test('Trip picker excludes daily groups and personal-only snapshots',()=>{
+ const e=normalize({name:'Trip',people:['A'],bills:[],payments:[]});const records=[{id:'trip',data:{...e,kind:'trip'},owner:true,permissions:[]},{id:'daily',data:{...e,kind:'daily'},owner:true,permissions:[]},{id:'personal',data:{...e,kind:'trip'},owner:false,permissions:[],personal:{expenses:[]}}];
+ assert.deepEqual(spaces.tripRecords(records).map(r=>r.id),['trip']);
+ assert.equal(spaces.resolveSpaceRoute(records,'trip','daily').record.id,'trip');
+ assert.equal(spaces.resolveSpaceRoute(records,'money','daily').record.id,'daily');
+ assert.equal(spaces.resolveSpaceRoute(records,'trip','forged-id').record.id,'trip');
+ assert.equal(spaces.resolveSpaceRoute([records[1]],'trip',null).record,undefined);
+});
+test('Linked Trip consumption excludes estimates, deposits, deleted bills and repayments',()=>{
+ const e=normalize({name:'Hotel',people:['A'],bills:[],payments:[]});e.activities=[{id:'hotel',name:'Hotel',date:today(),budget:90000,people:['A']}];
+ const paid=blankExpense(e,'A');paid.items[0].amount=10000;paid.activity='hotel';const deposit=blankExpense(e,'A');deposit.paymentStatus='prepaid';deposit.items[0].amount=2000;const deleted=blankExpense(e,'A');deleted.deleted=true;deleted.items[0].amount=50000;e.expenses=[paid,deposit,deleted];e.payments=[{id:'p',from:'A',to:'B',amount:5000,date:today(),deleted:false}];
+ const before=JSON.stringify(e),html=renderToStaticMarkup(React.createElement(spaces.SpaceBridge,{event:e,space:'trip',onOpen(){}}));assert.match(html,/RM\s*100\.00 recorded consumption/);assert.match(html,/Open Money/);assert.equal(JSON.stringify(e),before);
+});
+test('Trip landing never displays daily or restricted group content',()=>{
+ const e=normalize({name:'House secret',people:['A'],bills:[],payments:[]});const html=renderToStaticMarkup(React.createElement(spaces.TripLanding,{records:[{id:'daily',data:{...e,kind:'daily'},owner:true,permissions:[]},{id:'restricted',data:{...e,kind:'trip'},owner:false,permissions:[],personal:{expenses:[]}}],onChoose(){}}));assert.doesNotMatch(html,/House secret/);assert.match(html,/No trip planning spaces available/);
 });

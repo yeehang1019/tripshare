@@ -2,17 +2,14 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "TripShare · Shared expenses",
-  description: "Simple shared expenses, fair splits, and your spending at a glance.",
+  title: "TripShare · Trip & Money",
+  description: "Plan the journey in Trip. Share expenses and settle fairly in Money. One connected group.",
   manifest: "/manifest.webmanifest",
   applicationName: "TripShare",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
     title: "TripShare",
-  },
-  other: {
-    "codex-preview": "development",
   },
   icons: {
     icon: "/favicon.svg",
