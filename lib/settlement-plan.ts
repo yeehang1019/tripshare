@@ -1,4 +1,4 @@
-import { ledger, settlementDetails, type Event } from './ledger';
+import { ledger, outstandingClaims, type Event } from './ledger';
 
 type Claim = { expense: string; amount: number };
 type Edge = { from: string; to: string; claims: Claim[] };
@@ -8,8 +8,10 @@ export type PlannedTransfer = { from: string; to: string; amount: number; routes
 // Route outstanding claims through existing creditors. No global balance credit:
 // every recorded payment stays attached to its original expenses and debt edges.
 export function settlementPlan(event: Event) {
-  const original = ledger(event).transfers;
-  const edges: Edge[] = original.map(t => ({from:t.from,to:t.to,claims:settlementDetails(event,t.from,t.to).map(c=>({...c}))}));
+  const original = ledger(event).transfers,byPair=new Map<string,Claim[]>();
+  for(const claim of outstandingClaims(event)){const key=claim.from+'\0'+claim.to,list=byPair.get(key)||[];list.push({expense:claim.expense,amount:claim.amount});byPair.set(key,list)}
+  const details=(from:string,to:string)=>(byPair.get(from+'\0'+to)||[]).map(c=>({...c}));
+  const edges: Edge[] = original.map(t => ({from:t.from,to:t.to,claims:details(t.from,t.to).map(c=>({...c}))}));
   const balance = new Map(event.people.map(p=>[p.id,0]));
   original.forEach(t=>{balance.set(t.from,balance.get(t.from)!-t.amount);balance.set(t.to,balance.get(t.to)!+t.amount)});
   const remaining = (e:Edge) => e.claims.reduce((n,c)=>n+c.amount,0);
@@ -37,7 +39,7 @@ export function settlementPlan(event: Event) {
   }
   // Preserve unresolved cycles rather than silently write off anyone's debt.
   for(const edge of edges){const amount=remaining(edge);if(amount){const route={amount,edges:[{...edge,claims:edge.claims.filter(c=>c.amount>0)}]},existing=result.find(t=>t.from===edge.from&&t.to===edge.to);if(existing){existing.amount+=amount;existing.routes.push(route)}else result.push({from:edge.from,to:edge.to,amount,routes:[route]})}}
-  const fallback=original.map(t=>({...t,routes:[{amount:t.amount,edges:[{from:t.from,to:t.to,claims:settlementDetails(event,t.from,t.to)}]}]}));
+  const fallback=original.map(t=>({...t,routes:[{amount:t.amount,edges:[{from:t.from,to:t.to,claims:details(t.from,t.to)}]}]}));
   return { original, simplified:result.length<original.length?result:fallback };
 }
 

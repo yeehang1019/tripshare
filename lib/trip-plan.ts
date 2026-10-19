@@ -17,6 +17,7 @@ export function planWarnings(e:Event):PlanWarning[]{
  const hasSharedPeople=(a:Activity,b:Activity)=>a.people.some(id=>b.people.includes(id));
  warnings.push(...overlapWarnings(e),...transferWarnings(e));
  for(const a of active){if(warnings.length>=20)break;
+   if(a.travelFrom&&eventPlanCancelled(e,a.travelFrom))warnings.push({id:'cancelled-source-'+a.id,activity:a.id,date:a.date,message:`Review transfer to ${a.name}: its previous plan was cancelled.`});
    if(e.start&&e.end&&(a.date<e.start||a.date>e.end||!!a.endDate&&a.endDate>e.end))warnings.push({id:'outside-'+a.id,activity:a.id,date:a.date,message:`${a.name} is outside the trip dates.`});
    if(a.cancelBy&&a.status==='Booked'&&a.cancelBy>=today()&&a.cancelBy<=new Date(Date.parse(today())+7*86400000).toISOString().slice(0,10))warnings.push({id:'cancel-'+a.id,activity:a.id,date:a.date,message:`Review ${a.name}: cancellation deadline ${dateLabel(a.cancelBy)}.`});
  }
@@ -27,3 +28,5 @@ export function filterPlans(activities:Activity[],query:string,status:string,per
  return sortPlan(activities.filter(a=>(!search||[a.name,a.location,a.reference,a.from,a.to,a.notes].join(' ').toLocaleLowerCase().includes(search))&&
    (status==='All statuses'||status==='Active'&&a.status!=='Cancelled'||(a.status||'Planning')===status)&&(!person||a.people.includes(person))&&(type==='All'||a.type===type)));
 }
+
+function eventPlanCancelled(e:Event,id:string){return e.activities.find(a=>a.id===id)?.status==='Cancelled'}

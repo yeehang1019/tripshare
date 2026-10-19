@@ -87,3 +87,7 @@ See `docs/engineering-review.md` for the complete review, tests, schema/rollback
 ## v52 — calmer daily workflows
 
 Adds recoverable local expense/plan drafts, clear save state, single-bill supplier installments, Money action lists and batch category/plan linking. Trip tools add Today/Next, Ticket wallet and reviewed batch date/time shifts; individual schedule changes show their likely impact. Saved places now hold editable practical details and carry them into plans/offline handbooks. Repayment evidence/recipient confirmation is excluded. See engineering-review.md for accounting boundaries, limits and verification.
+
+## v53 — recovery, refunds and travel controls
+
+Adds supplier refunds/cancellation fees on the original bill, owner category budgets, structured flight details and reviewed Plan B switches. Mobile travel shortcuts and editor actions stay accessible. Bulk previews now retain the reviewed revision; refresh keeps selection and requires another preview. Conditional authenticated reads, indexed debt queues and grouped settlement calculations reduce repeated work. Owner checkpoints provide integrity-checked previews/downloads and guarded restores; request references support diagnosis. The engineering review documents measured synthetic results, migration/rollback compatibility and unverified real-device/provider recovery coverage.

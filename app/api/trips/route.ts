@@ -1,3 +1,7 @@
+import {alternativePlan} from '@/lib/plan-alternatives';
+import {checksum,restoredGroup,checkpointDiff} from '@/lib/checkpoints';
+import {InputError,validateInput,trackedRequest,type RequestContext} from '@/lib/request-observability';
+import {readJSON,RequestTooLarge} from '@/lib/http-body';
 import { database } from "@/db/raw";
 import { memberRecord,collaboratorRecord,auditVisible,personalAuditValue } from "@/lib/personal";
 import {
@@ -69,7 +73,8 @@ async function appOwner(who: Identity) {
     .first();
   return !!row;
 }
-export async function GET(r: Request) {
+export async function GET(r:Request){return trackedRequest(r,()=>getTrips(r))}
+async function getTrips(r: Request) {
   const who = await identity(r);
   if (!who) return response({ error: "Sign in to manage your events" }, 401);
   try {
@@ -80,11 +85,13 @@ export async function GET(r: Request) {
       )
       .bind(who.user, who.email, who.email, who.user)
       .all();
+    const canCreate=await appOwner(who),contexts=[];
+    for(const row of rows.results as any[]){const a=await access(row,who);if(a.blocked||!a.owner&&!a.permissions.length&&(!a.person||!JSON.parse(row.data).people.some((p:any)=>p.id===a.person)))continue;const memberKeys=await linkedPeople(database(),row.id);contexts.push({row,a,memberKeys})}
+    const etag='"'+await checksum(JSON.stringify([who.user,who.email,canCreate,contexts.map(({row,a,memberKeys})=>[row.id,row.revision,a,memberKeys])]))+'"';
+    if(r.headers.get('If-None-Match')===etag)return new Response(null,{status:304,headers:{ETag:etag}});
     const trips = [];
-    for (const row of rows.results as any[]) {
-      const a = await access(row, who);
+    for (const {row,a,memberKeys} of contexts) {
       const data = normalize(JSON.parse(row.data));
-      const memberKeys=await linkedPeople(database(),row.id);
       if(a.blocked)continue;
       if (!a.owner && !a.permissions.includes('viewAll')&&!a.permissions.includes('editAll')) {
         if(a.person&&data.people.some(p=>p.id===a.person)||a.permissions.length){
@@ -107,13 +114,13 @@ export async function GET(r: Request) {
       }
       trips.push({ id: row.id, revision: row.revision, data, memberKeys, ...a });
     }
-    return response({ trips, user: who.email, canCreate: await appOwner(who) });
+    return Response.json({trips,user:who.email,canCreate},{headers:{ETag:etag}});
   } catch (e) {
-    console.error(e);
-    return response({ error: "Could not load events. Please retry." }, 503);
+    throw e;
   }
 }
-export async function POST(r: Request) {
+export async function POST(r:Request){const context:RequestContext={};return trackedRequest(r,()=>postTrip(r,context),context)}
+async function postTrip(r: Request,context:RequestContext) {
   const who = await identity(r),
     actor = who?.email || "";
   if (!who || !actor)
@@ -126,7 +133,7 @@ export async function POST(r: Request) {
   try {
     if (Number(r.headers.get("content-length") || 0) > 4000000)
       return response({ error: "Request too large" }, 413);
-    const b:any = await r.json(),
+    const b:any = await readJSON(r,4000000).catch(e=>{if(e instanceof RequestTooLarge)throw e;throw new InputError('Check the submitted JSON')}),
       db = database();
     if (["create", "import"].includes(b.action)) {
       await db
@@ -141,9 +148,9 @@ export async function POST(r: Request) {
         data.expenses = data.expenses.map((x) => ({ ...x, createdBy: actor }));
         data.payments = data.payments.map((x) => ({ ...x, createdBy: actor }));
       }
-      validateEvent(data);
-      if (JSON.stringify(data).length > 3000000)
-        throw Error("Backup is too large");
+      validateInput(()=>validateEvent(data));
+      if (new TextEncoder().encode(JSON.stringify(data)).byteLength > 1900000)
+        throw new InputError("Backup is too large");
       const id = crypto.randomUUID();
       data.audit.push({
         id: crypto.randomUUID(),
@@ -191,10 +198,10 @@ export async function POST(r: Request) {
 
       if(b.action==='revokeInvite'){await db.prepare('DELETE FROM member_invitations WHERE token=? AND trip=?').bind(b.token,row.id).run();return response({ok:true})}
       const data=normalize(JSON.parse(row.data)),person=String(b.person||''),target=String(b.email||'').trim().toLowerCase();
-      if(!data.people.some(p=>p.id===person&&p.active!==false))throw Error('Choose an active member');
-      if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(target))throw Error('Enter a valid email');
+      if(!data.people.some(p=>p.id===person&&p.active!==false))throw new InputError('Choose an active member');
+      if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(target))throw new InputError('Enter a valid email');
       const bound:any=await db.prepare('SELECT email FROM grants WHERE trip=? AND person=?').bind(row.id,person).first();
-      if(bound)throw Error('This member already has a sign-in account. Manage its existing binding instead.');
+      if(bound)throw new InputError('This member already has a sign-in account. Manage its existing binding instead.');
       const token=crypto.randomUUID()+crypto.randomUUID(),expires=Date.now()+7*86400000;
       await db.prepare('INSERT INTO member_invitations(token,trip,person,email,expires_at) VALUES(?,?,?,?,?)').bind(token,row.id,person,target,expires).run();
       return response({token,expires_at:expires});
@@ -231,20 +238,20 @@ export async function POST(r: Request) {
           .trim()
           .toLowerCase();
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(target))
-          throw Error("Enter a valid email");
+          throw new InputError("Enter a valid email");
         if (
           !Array.isArray(b.permissions) ||
           b.permissions.some((p: any) => !permissionKeys.includes(p))
         )
-          throw Error("Invalid permissions");
+          throw new InputError("Invalid permissions");
         const person = String(b.person || "");
         if (person && !normalize(JSON.parse(row.data)).people.some((p) => p.id === person))
-          throw Error("Choose a valid member for this account");
-        if(b.permissions.includes('settle')&&!b.permissions.includes('viewAll')&&!b.permissions.includes('editAll'))throw Error('Repayment administrators need full group Money visibility');
-        if(b.permissions.includes('addExpense')&&!b.permissions.includes('viewAll')&&!b.permissions.includes('editAll')&&!person)throw Error('Bind a member before granting personal Money editing');
+          throw new InputError("Choose a valid member for this account");
+        if(b.permissions.includes('settle')&&!b.permissions.includes('viewAll')&&!b.permissions.includes('editAll'))throw new InputError('Repayment administrators need full group Money visibility');
+        if(b.permissions.includes('addExpense')&&!b.permissions.includes('viewAll')&&!b.permissions.includes('editAll')&&!person)throw new InputError('Bind a member before granting personal Money editing');
         if (!b.permissions.length && !person)
-          throw Error("Choose which member this account belongs to");
-        if(person){const bound:any=await db.prepare('SELECT email FROM grants WHERE trip=? AND person=? AND email<>?').bind(row.id,person,target).first();if(bound)throw Error('This member is already linked to another account. Revoke that binding explicitly before reassigning it.');}
+          throw new InputError("Choose which member this account belongs to");
+        if(person){const bound:any=await db.prepare('SELECT email FROM grants WHERE trip=? AND person=? AND email<>?').bind(row.id,person,target).first();if(bound)throw new InputError('This member is already linked to another account. Revoke that binding explicitly before reassigning it.');}
         const savedGrant=await db
           .prepare(
             "INSERT INTO grants(id,trip,email,permissions,person) SELECT ?,?,?,?,? WHERE ?='' OR NOT EXISTS(SELECT 1 FROM grants WHERE trip=? AND person=? AND email<>?) ON CONFLICT(id) DO UPDATE SET permissions=excluded.permissions,person=excluded.person",
@@ -274,7 +281,7 @@ export async function POST(r: Request) {
       const token = crypto.randomUUID() + crypto.randomUUID();
       const pin = String(b.pin || "");
       if (pin && !/^\d{6,12}$/.test(pin))
-        throw Error("Use a 6–12 digit PIN or leave blank");
+        throw new InputError("Use a 6–12 digit PIN or leave blank");
       const pinHash = pin ? await hashPin(pin, token) : "";
       await db.batch([
         db.prepare("DELETE FROM shares WHERE trip=?").bind(row.id),
@@ -286,16 +293,28 @@ export async function POST(r: Request) {
       ]);
       return response({ token });
     }
-    const data = normalize(JSON.parse(row.data));
+    let data = normalize(JSON.parse(row.data));
+    context.group=row.id;context.action=typeof b.action==='string'&&/^[a-zA-Z]{1,40}$/.test(b.action)?b.action:'invalid';
     attachPaymentAllocations(data);
     if (b.action === 'deleteEvent' && !a.owner)
       return response({error:'Only the owner can delete this event'},403);
     if(b.action==='planBatch'){
       if(data.kind!=='trip'||!a.owner&&!a.permissions.includes('plan'))return response({error:'Trip planning permission required'},403);
       const plans=b.entity?.activities;
-      if(!Array.isArray(plans)||!plans.length||plans.length>100||new Set(plans.map((p:any)=>p.id)).size!==plans.length)throw Error('Add 1–100 unique plans at a time');
+      if(!Array.isArray(plans)||!plans.length||plans.length>100||new Set(plans.map((p:any)=>p.id)).size!==plans.length)throw new InputError('Add 1–100 unique plans at a time');
       if(plans.every((p:any)=>data.activities.some(saved=>saved.id===p.id&&JSON.stringify(saved)===JSON.stringify(p))))return response({ok:true,alreadyApplied:true});
-      if(plans.some((p:any)=>data.activities.some(saved=>saved.id===p.id)))throw Error('Some plan IDs already exist. Reload and review the itinerary.');
+      if(plans.some((p:any)=>data.activities.some(saved=>saved.id===p.id)))throw new InputError('Some plan IDs already exist. Reload and review the itinerary.');
+    }
+    if(b.action==='restoreCheckpoint'){
+      if(!a.owner)return response({error:'Only the owner can restore a checkpoint'},403);
+      if(typeof b.operationId!=='string'||!b.operationId||b.operationId.length>150)throw new InputError('Check the recovery operation identity');
+      const applied=data.audit.find(x=>x.action==='restoreCheckpoint'&&x.entity===b.operationId);
+      if(applied){if((applied.after as any)?.checkpoint!==b.checkpointId)throw new InputError('Recovery operation identity is already used');return response({ok:true,alreadyApplied:true})}
+    }
+    if(b.action==='planAlternative'){
+      if(!a.owner&&!a.permissions.includes('plan'))return response({error:'Trip planning permission required'},403);
+      const existing=data.activities.find(p=>p.id===b.entity?.newId);
+      if(existing){if(existing.alternativeOf===b.entity.sourceId&&existing.alternativeKey===b.entity.alternativeId&&data.activities.find(p=>p.id===b.entity.sourceId)?.status==='Cancelled')return response({ok:true,alreadyApplied:true});throw new InputError('That plan identity is already used')}
     }
     if (row.revision !== b.revision)
       return response(
@@ -306,7 +325,7 @@ export async function POST(r: Request) {
         409,
       );
     if (b.action === 'deleteEvent') {
-      if (b.confirmName !== data.name) throw Error('Event name confirmation does not match');
+      if (b.confirmName !== data.name) throw new InputError('Event name confirmation does not match');
       const results=await db.batch([
         db.prepare('DELETE FROM shares WHERE trip=? AND EXISTS (SELECT 1 FROM trips WHERE id=? AND revision=?)').bind(row.id,row.id,b.revision),
         db.prepare('DELETE FROM grants WHERE trip=? AND EXISTS (SELECT 1 FROM trips WHERE id=? AND revision=?)').bind(row.id,row.id,b.revision),
@@ -341,9 +360,19 @@ export async function POST(r: Request) {
     }
     let before: unknown = null,
       after: unknown = null,
-      entity = String(b.entity?.id || b.entityId || row.id);
+      entity = String(b.action==='restoreCheckpoint'?b.operationId:b.entity?.id || b.entityId || row.id);
+    let recoverySnapshot:any=null;
     const old = data.expenses.find((x) => x.id === entity);
-    if (b.action === "settings") {
+    if(b.action==='restoreCheckpoint'){
+      const saved:any=await db.prepare('SELECT * FROM trip_checkpoints WHERE id=? AND trip=?').bind(b.checkpointId,row.id).first();
+      if(!saved||saved.checksum!==await checksum(saved.data))throw new InputError('Checkpoint is missing or failed its integrity check');
+      if(b.confirmName!==data.name)throw new InputError('Type the current group name to confirm recovery');
+      const restored=validateInput(()=>restoredGroup(data,JSON.parse(saved.data)));before={checkpoint:saved.id,revision:row.revision};after={checkpoint:saved.id,summary:checkpointDiff(data,restored)};recoverySnapshot={id:await checksum(row.id+':'+row.revision),checksum:await checksum(row.data)};data=restored;
+    }else if(b.action==='categoryBudgets'){
+      if(!a.owner)return response({error:'Only the owner can change budget targets'},403);
+      const budget=b.entity;if(!budget||typeof budget.scope!=='string'||!budget.limits)throw new InputError('Check budget targets');
+      before=data.categoryBudgets||[];if(typeof budget.limits!=='object'||Array.isArray(budget.limits)||!(budget.scope==='group'||/^(20\d{2}|2100)-(0[1-9]|1[0-2])$/.test(budget.scope)))throw new InputError('Check budget period and categories');data.categoryBudgets=[...(data.categoryBudgets||[]).filter(x=>x.scope!==budget.scope),...(Object.keys(budget.limits).length?[budget]:[])];after=data.categoryBudgets;
+    }else if (b.action === "settings") {
       if (!a.owner)
         return response({ error: "Only the owner can change settings" }, 403);
       before = {
@@ -358,7 +387,7 @@ export async function POST(r: Request) {
       };
       if (data.expenses.length || data.payments.length) {
         if (b.entity.settlement !== data.settlement)
-          throw Error("Settlement currency is locked after the first record");
+          throw new InputError("Settlement currency is locked after the first record");
       }
       Object.assign(data, {
         name: b.entity.name,
@@ -378,25 +407,28 @@ export async function POST(r: Request) {
           403,
         );
       if(b.action==='planBulk'){
-        if(data.kind!=='trip')throw Error('Choose a trip');
-        const next=shiftPlans(data,b.entity?.ids,b.entity?.days,b.entity?.minutes);
+        if(data.kind!=='trip')throw new InputError('Choose a trip');
+        const next=validateInput(()=>shiftPlans(data,b.entity?.ids,b.entity?.days,b.entity?.minutes));
         before=data.activities.filter(a=>b.entity.ids.includes(a.id));after=next;
         const byId=new Map(next.map(a=>[a.id,a]));data.activities=data.activities.map(a=>byId.get(a.id)||a);
+      }else if(b.action==='planAlternative'){
+        const next=validateInput(()=>alternativePlan(data,b.entity?.sourceId,b.entity?.alternativeId,b.entity?.newId));before=data.activities.find(p=>p.id===b.entity.sourceId);data.activities=data.activities.map(p=>p.id===b.entity.sourceId?{...p,status:'Cancelled'}:p);data.activities.push(next);after=next;
       }else if(b.action==='expenseBatch'){
         const {ids,category,activity}=b.entity||{};
-        if(!Array.isArray(ids)||!ids.length||ids.length>100||new Set(ids).size!==ids.length||ids.some((id:string)=>!data.expenses.some(x=>x.id===id&&!x.deleted)))throw Error('Select 1–100 current bills');
-        if(category===undefined&&activity===undefined)throw Error('Choose a category or plan');
-        if(category!==undefined&&!['Food','Transport','Activity','Shopping','Grocery','Accommodation','Other'].includes(category))throw Error('Invalid category');
-        if(activity!==undefined&&(typeof activity!=='string'||activity&&!data.activities.some(a=>a.id===activity)))throw Error('Linked plan no longer exists');
+        if(!Array.isArray(ids)||!ids.length||ids.length>100||new Set(ids).size!==ids.length||ids.some((id:string)=>!data.expenses.some(x=>x.id===id&&!x.deleted)))throw new InputError('Select 1–100 current bills');
+        if(category===undefined&&activity===undefined)throw new InputError('Choose a category or plan');
+        if(category!==undefined&&!['Food','Transport','Activity','Shopping','Grocery','Accommodation','Other'].includes(category))throw new InputError('Invalid category');
+        if(activity!==undefined&&(typeof activity!=='string'||activity&&!data.activities.some(a=>a.id===activity)))throw new InputError('Linked plan no longer exists');
         before=data.expenses.filter(x=>ids.includes(x.id));
         data.expenses=data.expenses.map(x=>ids.includes(x.id)?{...x,...(category!==undefined?{category}:{}),...(activity!==undefined?{activity}:{})}:x);after=data.expenses.filter(x=>ids.includes(x.id));
       }else if (b.action === "expense") {
-        if(old?.supplierPayments&&JSON.stringify(old.supplierPayments)!==JSON.stringify(b.entity.supplierPayments)&&data.payments.some(p=>!p.deleted&&(!p.allocations||p.allocations.some(a=>a.expense===entity))))throw Error('Undo repayments linked to this bill before changing its supplier payments');
+        if(old?.supplierPayments&&JSON.stringify(old.supplierPayments)!==JSON.stringify(b.entity.supplierPayments)&&data.payments.some(p=>!p.deleted&&(!p.allocations||p.allocations.some(a=>a.expense===entity))))throw new InputError('Undo repayments linked to this bill before changing its supplier payments');
         if (old && (b.entity.paymentStatus || 'paid') !== 'paid' && (old.paymentStatus || 'paid') === 'paid' && data.payments.some(p => !p.deleted && (!p.allocations || p.allocations.some(a => a.expense === entity))))
-          throw Error("Undo repayments linked to this expense before changing it to unpaid or prepaid");
+          throw new InputError("Undo repayments linked to this expense before changing it to unpaid or prepaid");
         const expense: Expense = {
           ...b.entity,
           createdBy: old?.createdBy || actor,
+          adjustmentLedger:old?.adjustmentLedger||old?.refunds?.length||old?.cancellation||b.entity.refunds?.length||b.entity.cancellation?true:undefined,
           deleted: originalAction==='restoreAudit'?!!b.entity.deleted:old?.deleted || false,
         };
         before = old || null;
@@ -408,7 +440,7 @@ export async function POST(r: Request) {
         b.action === "deleteExpense" ||
         b.action === "restoreExpense"
       ) {
-        if (!old) throw Error("Expense not found");
+        if (!old) throw new InputError("Expense not found");
         before = { ...old };
         old.deleted = b.action === "deleteExpense";
         after = { ...old };
@@ -420,14 +452,14 @@ export async function POST(r: Request) {
           (p.simplified ? settlementPlan(data).simplified : ledger(data).transfers).find((x) => x.from === p.from && x.to === p.to)
             ?.amount || 0;
         if (p.amount > outstanding)
-          throw Error("Repayment exceeds the amount owed to this person");
+          throw new InputError("Repayment exceeds the amount owed to this person");
         p.simplified=!!p.simplified;
         p.allocations = p.simplified ? simplifiedAllocations(data,p.from,p.to,p.amount) : paymentAllocations(data, p.from, p.to, p.amount);
         data.payments.push(p);
         after = p;
       } else if (b.action === "undoPayment") {
         const p = data.payments.find((x) => x.id === entity);
-        if (!p) throw Error("Payment not found");
+        if (!p) throw new InputError("Payment not found");
         before = { ...p };
         p.deleted = true;
         after = { ...p };
@@ -436,14 +468,14 @@ export async function POST(r: Request) {
       } else if (b.action === "planBasics") {
         before={destination:data.destination,start:data.start,end:data.end};
         const x=b.entity;
-        if(typeof x.destination!=='string'||x.destination.length>200||!/^\d{4}-\d{2}-\d{2}$/.test(x.start)||!/^\d{4}-\d{2}-\d{2}$/.test(x.end)||x.end<x.start||Date.parse(x.end)-Date.parse(x.start)>366*86400000)throw Error('Choose valid trip dates (up to one year)');
+        if(typeof x.destination!=='string'||x.destination.length>200||!/^\d{4}-\d{2}-\d{2}$/.test(x.start)||!/^\d{4}-\d{2}-\d{2}$/.test(x.end)||x.end<x.start||Date.parse(x.end)-Date.parse(x.start)>366*86400000)throw new InputError('Choose valid trip dates (up to one year)');
         Object.assign(data,{destination:x.destination,start:x.start,end:x.end,...(x.timeZone!==undefined?{timeZone:x.timeZone}:{})});after=b.entity;
       } else if (b.action === "planChecklist") {
-        if(!Array.isArray(b.entity.tasks))throw Error('Invalid checklist');
+        if(!Array.isArray(b.entity.tasks))throw new InputError('Invalid checklist');
         before=data.checklist||[];data.checklist=b.entity.tasks;after=data.checklist;
       } else if (b.action === "planOrder") {
         const ids=b.entity.ids;
-        if(!Array.isArray(ids)||new Set(ids).size!==ids.length||ids.some((id:string)=>!data.activities.some(a=>a.id===id)))throw Error('Invalid itinerary order');
+        if(!Array.isArray(ids)||new Set(ids).size!==ids.length||ids.some((id:string)=>!data.activities.some(a=>a.id===id)))throw new InputError('Invalid itinerary order');
         before=data.activities.map(a=>({id:a.id,order:a.order}));
         data.activities=data.activities.map(a=>ids.includes(a.id)?{...a,order:ids.indexOf(a.id)}:a);after=data.activities.map(a=>({id:a.id,order:a.order}));
       } else if(b.action==='planBatch'){
@@ -457,7 +489,7 @@ export async function POST(r: Request) {
         after = b.entity;
       } else if (b.action === "deleteActivity") {
         before = data.activities.find((x) => x.id === entity) || null;
-        data.activities = data.activities.filter((x) => x.id !== entity).map(x=>{
+        data.activities = data.activities.filter((x) => x.id !== entity).map(x=>{if(x.alternativeOf===entity){x={...x};delete x.alternativeOf;delete x.alternativeKey;}
           const next={...x};if(next.pairedFlight===entity)delete next.pairedFlight;
           if(next.travelFrom===entity){delete next.travelFrom;delete next.travelMinutes;delete next.bufferMinutes;delete next.travelMode}
           return next;
@@ -470,7 +502,7 @@ export async function POST(r: Request) {
         after = b.entity;
       } else if (b.action === "deleteGroup") {
         before=data.groups.find(g=>g.id===entity)||null;
-        if(!before)throw Error('Group not found');
+        if(!before)throw new InputError('Group not found');
         data.groups=data.groups.filter(g=>g.id!==entity);
       } else if (b.action === "group") {
         if (
@@ -480,7 +512,7 @@ export async function POST(r: Request) {
             (p: string) => !data.people.some((x) => x.id === p),
           )
         )
-          throw Error("Choose group name and people");
+          throw new InputError("Choose group name and people");
         before = data.groups.find((x) => x.id === entity) || null;
         data.groups = before
           ? data.groups.map((x) => (x.id === entity ? b.entity : x))
@@ -488,7 +520,7 @@ export async function POST(r: Request) {
         after = b.entity;
       }
     }
-    validateEvent(data);
+    validateInput(()=>validateEvent(data));
     data.audit.push({
       id: crypto.randomUUID(),
       actor,
@@ -499,8 +531,8 @@ export async function POST(r: Request) {
       before,
       after,
     });
-    if (JSON.stringify(data).length > 3000000)
-      throw Error("Event is full. Export a backup and create a new event.");
+    if (new TextEncoder().encode(JSON.stringify(data)).byteLength > 1900000)
+      throw new InputError("Event is full. Export a backup and create a new event.");
     const changes: {kind:string;recordId:string;members:string}[] = [];
     if(b.action==='expenseBatch')for(const x of after as Expense[])changes.push({kind:'expense',recordId:x.id,members:JSON.stringify([...new Set([...x.items.flatMap(i=>i.people),...x.payers.map(p=>p.person),...(x.supplierPayments||[]).map(p=>p.person),...(x.treat?[x.treat]:[]),...(x.voucherOwner?[x.voucherOwner]:[])])])});
     if (['expense','deleteExpense','restoreExpense'].includes(b.action)) {
@@ -515,13 +547,18 @@ export async function POST(r: Request) {
       const p = data.payments.find(x => x.id === entity);
       if (p) changes.push({kind:'payment',recordId:entity,members:JSON.stringify([p.from,p.to])});
     }
-    const now = new Date().toISOString();
+    if(b.action==='restoreCheckpoint'){
+      const previous:Event=JSON.parse(row.data),previousBills=new Map(previous.expenses.map(p=>[p.id,p])),participants=(x?:Expense)=>x?[...x.items.flatMap(i=>i.people),...x.payers.map(p=>p.person),...(x.supplierPayments||[]).map(p=>p.person),...(x.treat?[x.treat]:[]),...(x.voucherOwner?[x.voucherOwner]:[])]:[];
+      for(const x of data.expenses)changes.push({kind:'expense',recordId:x.id,members:JSON.stringify([...new Set([...participants(x),...participants(previousBills.get(x.id))])])});
+      for(const x of data.payments)changes.push({kind:'payment',recordId:x.id,members:JSON.stringify([x.from,x.to])});
+    }
+    if(new TextEncoder().encode(JSON.stringify(changes)).byteLength>1900000)throw new InputError('Recovery change history is too large. Download the backup and use the separate import workflow.');
+    const now = new Date().toISOString(),mutation=crypto.randomUUID();
     const results = await db.batch([
-      db.prepare('UPDATE trips SET data=?,revision=revision+1 WHERE id=? AND revision=?')
-        .bind(JSON.stringify(data), row.id, b.revision),
-      ...changes.map(change => db.prepare(
-        'INSERT INTO sync_changes(trip,kind,record_id,members,changed_at) SELECT ?,?,?,?,? WHERE EXISTS(SELECT 1 FROM trips WHERE id=? AND revision=?)'
-      ).bind(row.id,change.kind,change.recordId,change.members,now,row.id,b.revision+1)),
+      db.prepare('UPDATE trips SET data=?,revision=revision+1,mutation_id=? WHERE id=? AND revision=?')
+        .bind(JSON.stringify(data),mutation,row.id,b.revision),
+      ...(recoverySnapshot?[db.prepare('INSERT OR IGNORE INTO trip_checkpoints(id,trip,revision,data,checksum,created_at) SELECT ?,?,?,?,?,? WHERE EXISTS(SELECT 1 FROM trips WHERE id=? AND revision=? AND mutation_id=?)').bind(recoverySnapshot.id,row.id,row.revision,row.data,recoverySnapshot.checksum,now,row.id,b.revision+1,mutation),db.prepare('DELETE FROM trip_checkpoints WHERE trip=? AND id NOT IN (SELECT id FROM trip_checkpoints WHERE trip=? ORDER BY revision DESC LIMIT 5) AND EXISTS(SELECT 1 FROM trips WHERE id=? AND revision=? AND mutation_id=?)').bind(row.id,row.id,row.id,b.revision+1,mutation)]:[]),
+      db.prepare("INSERT INTO sync_changes(trip,kind,record_id,members,changed_at) SELECT ?,json_extract(value,'$.kind'),json_extract(value,'$.recordId'),json_extract(value,'$.members'),? FROM json_each(?) WHERE EXISTS (SELECT 1 FROM trips WHERE id=? AND revision=? AND mutation_id=?)").bind(row.id,now,JSON.stringify(changes),row.id,b.revision+1,mutation),
     ]);
     const result = results[0];
     if (!result.meta.changes)
@@ -534,13 +571,10 @@ export async function POST(r: Request) {
       );
     return response({ ok: true });
   } catch (e) {
-    console.error(e);
-    return response(
-      {
-        error: e instanceof Error ? e.message : "Could not save. Please retry.",
-      },
-      400,
-    );
+    if(e instanceof InputError)return response({error:e.message},400);
+    if(e instanceof SyntaxError)return response({error:'Check the submitted JSON'},400);
+    if(e instanceof RequestTooLarge)return response({error:'Request too large'},413);
+    throw e;
   }
 }
 export async function hashPin(pin: string, salt: string) {

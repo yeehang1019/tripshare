@@ -14,6 +14,9 @@ export type Item = {
 export type Expense = {
   paymentStatus?: "paid" | "postpaid" | "prepaid";
   paidOn?:string;
+  adjustmentLedger?:boolean;
+  refunds?:{id:string;person:string;amount:number;date:string;reason:string}[];
+  cancellation?:{date:string;fee:number;reason:string};
   supplierPayments?:{id:string;person:string;amount:number;date:string}[];
   id: string;
   date: string;
@@ -53,7 +56,12 @@ export type Payment = {
   createdBy: string;
   deleted: boolean;
 };
+export type Alternative={id:string;name:string;location:string;url:string;notes:string;budget:number;stayMinutes?:number};
 export type Activity = {
+  flightDetails?:{departureTerminal?:string;arrivalTerminal?:string;gate?:string;meetingPoint?:string;baggage?:string;seat?:string;checkInNotes?:string};
+  alternatives?:Alternative[];
+  alternativeOf?:string;
+  alternativeKey?:string;
   timeZone?:string;
   arrivalTimeZone?:string;
   timeChoice?:'earlier'|'later';
@@ -101,6 +109,7 @@ export type Audit = {
   after: unknown;
 };
 export type Event = {
+  categoryBudgets?:{scope:string;limits:Record<string,number>}[];
   timeZone?:string;
   destination?: string;
   travel?: {favorites:{id:string;name:string;url:string;notes:string;stayMinutes?:number;openingHours?:string;parking?:string;transport?:string}[];meeting:{place:string;time:string;notes:string;url:string};packing:{id:string;name:string;done:boolean;person:string}[]};
@@ -445,61 +454,56 @@ export function calculate(b: Expense, settlement: string) {
   const contribution = b.voucherContribution
     ? Math.round(b.voucher * conversion)
     : 0;
-  const total = cashSettle + contribution;
-  const consumed = Object.fromEntries(
-    ids.map((p, i) => [
-      p,
-      allocate(
-        total,
-        ids.map((p) => shares[p]),
-      )[i],
-    ]),
-  );
-  check(
-    b.payers.length > 0 &&
-      new Set(b.payers.map((p) => p.person)).size === b.payers.length,
-    "Select unique payers",
-  );
-  const paidSource = b.supplierPayments ? b.payers.map(()=>0) : b.payers.map((p) =>
-    p.amount === -1 && b.payers.length === 1
-      ? cashTotal
-      : cents(p.amount, "Payment"),
-  );
-  check(
-    !!b.supplierPayments || paidSource.reduce((a, v) => a + v, 0) === cashTotal,
-    "Payments must equal final receipt total",
-  );
+  check(b.payers.length>0&&new Set(b.payers.map(p=>p.person)).size===b.payers.length,'Select unique payers');
+  const paidSource=b.supplierPayments?b.payers.map(()=>0):b.payers.map(p=>p.amount===-1&&b.payers.length===1?cashTotal:cents(p.amount,'Payment'));
+  check(!!b.supplierPayments||paidSource.reduce((a,v)=>a+v,0)===cashTotal,'Payments must equal final receipt total');
   const installments=b.supplierPayments;
   if(installments!==undefined){
     check(Array.isArray(installments)&&installments.length<=100&&new Set(installments.map(p=>p.id)).size===installments.length,'Check supplier payments');
     for(const p of installments)check(typeof p.id==='string'&&!!p.id&&p.id.length<=150&&typeof p.person==='string'&&!!p.person&&validDate(p.date)&&cents(p.amount,'Supplier payment')>0,'Check supplier payment amount, payer and date');
-    const sum=installments.reduce((n,p)=>n+p.amount,0);
-    check(sum<=cashTotal,'Supplier payments exceed the bill total');
-    check(b.paymentStatus!=='postpaid'||sum!==cashTotal||sum===0,'Full supplier payment recorded. Choose Consumed & paid.');
-    check((b.paymentStatus||'paid')!=='paid'||sum===cashTotal,'Paid bill requires full supplier payment');
+    const sum=installments.reduce((n,p)=>n+p.amount,0);check(sum<=cashTotal,'Supplier payments exceed the bill total');
+    if(!b.cancellation){check(b.paymentStatus!=='postpaid'||sum!==cashTotal||sum===0,'Full supplier payment recorded. Choose Consumed & paid.');check((b.paymentStatus||'paid')!=='paid'||sum===cashTotal,'Paid bill requires full supplier payment')}
   }
-  const supplierPaid=installments?installments.reduce((n,p)=>n+p.amount,0):b.paymentStatus==='postpaid'?0:cashTotal;
-  const paidSettle=Math.round(cashSettle*(cashTotal?supplierPaid/cashTotal:0));
-  const paid:Record<string,number>={};
-  if(installments){const values=allocate(paidSettle,installments.map(p=>p.amount));installments.forEach((p,i)=>paid[p.person]=(paid[p.person]||0)+values[i])}
-  else b.payers.forEach((p,i)=>paid[p.person]=allocate(paidSettle,paidSource)[i]);
-  const effectiveContribution=b.paymentStatus==='postpaid'||b.paymentStatus==='prepaid'?0:contribution;
-  const funding = { ...paid };
+  const grossPaid=installments?installments.reduce((n,p)=>n+p.amount,0):b.paymentStatus==='postpaid'?0:cashTotal;
+  const netByPerson:Record<string,number>=Object.create(null);
+  if(installments)installments.forEach(p=>netByPerson[p.person]=(netByPerson[p.person]||0)+p.amount);
+  else b.payers.forEach((p,i)=>netByPerson[p.person]=b.paymentStatus==='postpaid'?0:paidSource[i]);
+  const refunds=b.refunds||[];
+  check(Array.isArray(refunds)&&refunds.length<=100&&new Set(refunds.map(p=>p.id)).size===refunds.length,'Check supplier refunds');
+  for(const refund of [...refunds].sort((a,b)=>a.date.localeCompare(b.date))){
+    check(typeof refund.id==='string'&&!!refund.id&&refund.id.length<=150&&typeof refund.person==='string'&&validDate(refund.date)&&typeof refund.reason==='string'&&refund.reason.length<=500&&cents(refund.amount,'Refund')>0,'Check refund amount, date and reason');
+    check((netByPerson[refund.person]||0)>=refund.amount,'Refund exceeds money paid by this receiver. Review the original payer before recording');
+    if(installments){const available=installments.filter(p=>p.person===refund.person&&p.date<=refund.date).reduce((n,p)=>n+p.amount,0),already=refunds.filter(p=>p.person===refund.person&&(p.date<refund.date||p.date===refund.date&&p.id.localeCompare(refund.id)<=0)).reduce((n,p)=>n+p.amount,0);check(already<=available,'Refund cannot precede the recorded supplier payments')}
+    netByPerson[refund.person]-=refund.amount;
+  }
+  // Supplier refunds restate this bill; friend repayments remain separate records.
+  const refunded=refunds.reduce((n,p)=>n+p.amount,0),supplierPaid=grossPaid-refunded;
+  if(b.cancellation)check(validDate(b.cancellation.date)&&cents(b.cancellation.fee,'Cancellation fee')<=cashTotal&&typeof b.cancellation.reason==='string'&&b.cancellation.reason.length<=500,'Check cancellation date, fee and reason');
+  const netCashTotal=b.cancellation?b.cancellation.fee:cashTotal-refunded;
+  const targetSettle=Math.round(netCashTotal*conversion),paidSettle=Math.round(supplierPaid*conversion),refundDue=b.cancellation?Math.max(0,supplierPaid-netCashTotal):0;
+  const effectivePaymentStatus=b.cancellation?(supplierPaid>=netCashTotal?'paid':'postpaid'):b.paymentStatus||'paid';
+  const effectiveContribution=!b.cancellation&&effectivePaymentStatus==='paid'?contribution:0;
+  const total=targetSettle+(!b.cancellation?contribution:0);
+  const consumed=Object.fromEntries(ids.map((p,i)=>[p,allocate(total,ids.map(id=>shares[id]))[i]]));
+  const responsible=b.treat?{[b.treat]:total}:consumed;
+  const payerIds=Object.keys(netByPerson),paidValues=allocate(paidSettle,payerIds.map(p=>netByPerson[p]));
+  const paid=Object.fromEntries(payerIds.map((p,i)=>[p,paidValues[i]]));
+  // A pending supplier refund is an asset of its payer, not a debt owed by friends.
+  const fundedAmount=b.cancellation?Math.min(paidSettle,targetSettle):paidSettle;
+  const funding=Object.fromEntries(payerIds.map((p,i)=>[p,allocate(fundedAmount,payerIds.map(p=>netByPerson[p]))[i]]));
   if(effectiveContribution)funding[b.voucherOwner]=(funding[b.voucherOwner]||0)+effectiveContribution;
-  const responsible = b.treat ? { [b.treat]: total } : consumed;
-  const owingMembers = Object.keys(responsible);
-  const unpaid = b.paymentStatus === 'postpaid' ? Object.fromEntries(owingMembers.map((p,i)=>[p,allocate(cashSettle-paidSettle,owingMembers.map(id=>responsible[id]))[i]])) : {};
-  const prepaid = b.paymentStatus === 'prepaid' ? { ...paid } : {};
-  if (b.paymentStatus === 'prepaid') {
-    for (const p of Object.keys(consumed)) consumed[p] = 0;
-    for (const p of Object.keys(responsible)) responsible[p] = 0;
-  }
+  const owingMembers=Object.keys(responsible),remaining=Math.max(0,targetSettle-paidSettle);
+  const unpaid=effectivePaymentStatus==='postpaid'?Object.fromEntries(owingMembers.map((p,i)=>[p,allocate(remaining,owingMembers.map(id=>responsible[id]))[i]])):{};
+  const prepaidAmount=effectivePaymentStatus==='prepaid'?paidSettle:b.cancellation?Math.max(0,paidSettle-targetSettle):0;
+  const prepaid=prepaidAmount?Object.fromEntries(payerIds.map((p,i)=>[p,allocate(prepaidAmount,payerIds.map(p=>netByPerson[p]))[i]])):effectivePaymentStatus==='prepaid'?{...paid}:{};
+  if(effectivePaymentStatus==='prepaid'){for(const p of Object.keys(consumed))consumed[p]=0;for(const p of Object.keys(responsible))responsible[p]=0}
   return {
     cashTotal,
     cashSettle,
     supplierPaid,
-    supplierRemaining:cashTotal-supplierPaid,
-    total: b.paymentStatus === 'prepaid' ? 0 : total,
+    supplierRemaining:Math.max(0,netCashTotal-supplierPaid),
+    supplierGrossPaid:grossPaid,refunded,refundDue,netCashTotal,effectivePaymentStatus,settlementReady:effectivePaymentStatus==='paid',
+    total:effectivePaymentStatus==='prepaid'?0:total,
     unpaid,
     prepaid,
     cost,
@@ -527,23 +531,19 @@ function addClaim(
   from: string,
   to: string,
   amount: number,
+  pairs:Map<string,{rows:DebtClaim[];head:number}>,
 ) {
-  if (!amount || from === to) return;
-  for (const reverse of claims) {
-    if (!amount) break;
-    if (reverse.amount && reverse.from === to && reverse.to === from) {
-      const cancelled = Math.min(amount, reverse.amount);
-      reverse.amount -= cancelled;
-      amount -= cancelled;
-    }
-  }
-  if (amount) claims.push({ expense, from, to, amount });
+  if(!amount||from===to)return;
+  // Reverse-pair queues preserve the original FIFO expense allocation order.
+  const reverse=pairs.get(to+'\0'+from);
+  while(amount&&reverse&&reverse.head<reverse.rows.length){const row=reverse.rows[reverse.head];const cancelled=Math.min(amount,row.amount);row.amount-=cancelled;amount-=cancelled;if(!row.amount)reverse.head++}
+  if(amount){const claim={expense,from,to,amount};claims.push(claim);const key=from+'\0'+to;let bucket=pairs.get(key);if(!bucket){bucket={rows:[],head:0};pairs.set(key,bucket)}bucket.rows.push(claim)}
 }
 function claimsBeforePayments(e: Event) {
-  const claims: DebtClaim[] = [];
+  const claims: DebtClaim[] = [],pairs=new Map<string,{rows:DebtClaim[];head:number}>();
   for (const b of e.expenses.filter((x) => !x.deleted)) {
-    if (b.paymentStatus === 'postpaid' || b.paymentStatus === 'prepaid') continue;
-    const c = calculate(b, e.settlement),
+    const c = calculate(b, e.settlement);if(!c.settlementReady)continue;
+    const
       owing = { ...c.responsible },
       funding = { ...c.funding };
     for (const p of Object.keys(owing)) {
@@ -556,7 +556,7 @@ function claimsBeforePayments(e: Event) {
       for (const to of Object.keys(funding)) {
         const amount = Math.min(left, funding[to]);
         if (amount) {
-          addClaim(claims, b.id, from, to, amount);
+          addClaim(claims, b.id, from, to, amount,pairs);
           left -= amount;
           funding[to] -= amount;
         }
@@ -587,7 +587,7 @@ function allocateAgainstClaims(
   }
   return allocations;
 }
-function applyFixedPayment(claims: DebtClaim[], payment: Payment) {
+function applyFixedPayment(claims: DebtClaim[], payment: Payment,creditable:Set<string>) {
   for (const allocation of payment.allocations || []) {
     let left = allocation.amount;
     for (const claim of claims) {
@@ -603,12 +603,19 @@ function applyFixedPayment(claims: DebtClaim[], payment: Payment) {
         left -= paid;
       }
     }
+    // A supplier adjustment can turn an actual earlier repayment into a refund due.
+    // Preserve that cash movement, and derive the reverse claim on the same expense.
+    if(left&&creditable.has(allocation.expense)){
+      const pairs=new Map<string,{rows:DebtClaim[];head:number}>();
+      for(const row of claims){if(!row.amount)continue;const key=row.from+'\0'+row.to;let bucket=pairs.get(key);if(!bucket){bucket={rows:[],head:0};pairs.set(key,bucket)}bucket.rows.push(row)}
+      addClaim(claims,allocation.expense,allocation.to||payment.to,allocation.from||payment.from,left,pairs);
+    }
   }
 }
 function claimsAfterPayments(e: Event) {
-  const claims = claimsBeforePayments(e);
+  const claims = claimsBeforePayments(e),creditable=new Set(e.expenses.filter(b=>b.adjustmentLedger||b.refunds?.length||b.cancellation).map(b=>b.id));
   for (const payment of e.payments.filter((x) => !x.deleted)) {
-    if (payment.allocations?.length) applyFixedPayment(claims, payment);
+    if (payment.allocations?.length) applyFixedPayment(claims, payment,creditable);
     else allocateAgainstClaims(
       claims,
       payment.from,
@@ -618,6 +625,7 @@ function claimsAfterPayments(e: Event) {
   }
   return claims;
 }
+export function outstandingClaims(e:Event){return claimsAfterPayments(e).filter(c=>c.amount>0).map(c=>({...c}))}
 export function settlementDetails(e: Event, from: string, to: string) {
   return claimsAfterPayments(e)
     .filter((claim) => claim.from === from && claim.to === to && claim.amount > 0)
@@ -632,9 +640,9 @@ export function paymentAllocations(
   return allocateAgainstClaims(claimsAfterPayments(e), from, to, amount);
 }
 export function attachPaymentAllocations(e: Event) {
-  const claims = claimsBeforePayments(e);
+  const claims = claimsBeforePayments(e),creditable=new Set(e.expenses.filter(b=>b.adjustmentLedger||b.refunds?.length||b.cancellation).map(b=>b.id));
   for (const payment of e.payments.filter((x) => !x.deleted)) {
-    if (payment.allocations?.length) applyFixedPayment(claims, payment);
+    if (payment.allocations?.length) applyFixedPayment(claims, payment,creditable);
     else
       payment.allocations = allocateAgainstClaims(
         claims,
@@ -729,6 +737,7 @@ export function validateEvent(e: Event) {
         (!b.voucherOwner || ids.includes(b.voucherOwner)),
       "Unknown member",
     );
+    check(b.adjustmentLedger===undefined||typeof b.adjustmentLedger==='boolean','Check adjustment history');
     calculate(b, e.settlement);
   }
   for (const p of e.payments) {
@@ -764,6 +773,9 @@ export function validateEvent(e: Event) {
     check(new Set(a.people).size===a.people.length,'Duplicate activity participants');
     check(a.waitlist===undefined||Array.isArray(a.waitlist)&&a.waitlist.length<=50&&new Set(a.waitlist).size===a.waitlist.length&&a.waitlist.every(id=>ids.includes(id)&&!a.people.includes(id)),'Check waiting list: unique group members who are not confirmed');
 
+    if(a.flightDetails){check(a.type==='Flight'&&typeof a.flightDetails==='object'&&!Array.isArray(a.flightDetails),'Flight details apply to flights');for(const [key,value] of Object.entries(a.flightDetails))check(['departureTerminal','arrivalTerminal','gate','meetingPoint','baggage','seat','checkInNotes'].includes(key)&&typeof value==='string'&&value.length<=(key==='checkInNotes'?1000:300),'Check flight detail length')}
+    if(a.alternativeOf)check(planById.has(a.alternativeOf)&&a.alternativeOf!==a.id,'Check original plan');
+    if(a.alternatives){check(Array.isArray(a.alternatives)&&a.alternatives.length<=5&&new Set(a.alternatives.map(p=>p.id)).size===a.alternatives.length,'Keep up to five different alternatives');for(const p of a.alternatives)check(typeof p.id==='string'&&!!p.id&&p.id.length<=150&&typeof p.name==='string'&&!!p.name.trim()&&p.name.length<=200&&typeof p.location==='string'&&p.location.length<=500&&typeof p.notes==='string'&&p.notes.length<=2000&&typeof p.url==='string'&&p.url.length<=1500&&(!p.url||/^https?:\/\//i.test(p.url))&&cents(p.budget,'Alternative estimate')>=0&&(p.stayMinutes===undefined||Number.isInteger(p.stayMinutes)&&p.stayMinutes>=1&&p.stayMinutes<=1440),'Check alternative details')}
     check(!a.type || ['Activity','Food','Transport','Hotel','Flight','Free time','Note','Insurance'].includes(a.type),'Invalid plan type');
     check(!a.status || ['Idea','Planning','Booked','Cancelled'].includes(a.status),'Invalid booking status');
     check(!a.endDate || (validDate(a.endDate) && (a.endDate>=a.date||a.type==='Flight'&&!!a.timeZone&&!!a.arrivalTimeZone&&!!a.time&&!!a.endTime)),'End date must follow start date (unless flight timezones confirm the arrival)');
@@ -796,6 +808,8 @@ export function validateEvent(e: Event) {
     check(Array.isArray(t.packing)&&t.packing.length<=500&&new Set(t.packing.map(x=>x.id)).size===t.packing.length,'Check packing list');
     for(const x of t.packing)check(text(x.id,150)&&!!x.id&&text(x.name,200)&&!!x.name.trim()&&typeof x.done==='boolean'&&(!x.person||ids.includes(x.person)),'Check packing item');
   }
+  check(!e.categoryBudgets||Array.isArray(e.categoryBudgets)&&e.categoryBudgets.length<=25&&new Set(e.categoryBudgets.map(b=>b.scope)).size===e.categoryBudgets.length,'Check category budgets');
+  for(const b of e.categoryBudgets||[]){check(b.scope==='group'||/^\d{4}-\d{2}$/.test(b.scope)&&validDate(b.scope+'-01'),'Check budget period');check(!!b.limits&&typeof b.limits==='object'&&!Array.isArray(b.limits)&&Object.keys(b.limits).every(k=>categories.includes(k)),'Check budget categories');for(const n of Object.values(b.limits))cents(n,'Category budget')}
   check((e.checklist||[]).length<=500,'Checklist limit reached');
   for(const t of e.checklist||[])check(!!t.id&&typeof t.name==='string'&&!!t.name.trim()&&typeof t.done==='boolean'&&(!t.person||ids.includes(t.person))&&(!t.due||/^\d{4}-\d{2}-\d{2}$/.test(t.due)),'Check checklist task');
   check(new Set((e.checklist||[]).map(t=>t.id)).size===(e.checklist||[]).length,'Duplicate checklist tasks');
@@ -851,7 +865,7 @@ export function allowed(
   if (["payment", "undoPayment"].includes(action))
     return perms.includes("settle");
   if(action==="expenseBatch")return perms.includes("editAll");
-  if (["activity", "planBulk", "deleteActivity", "planChecklist", "planBasics", "planOrder", "travelKit", "planBatch"].includes(action))
+  if (["activity", "planAlternative", "planBulk", "deleteActivity", "planChecklist", "planBasics", "planOrder", "travelKit", "planBatch"].includes(action))
     return perms.includes("plan");
   if (["person", "group", "deleteGroup"].includes(action)) return perms.includes("members");
   return false;
@@ -868,6 +882,7 @@ export function repeatExpense(source:Expense,date=today()):Expense{
   copy.date=date;
   delete copy.paidOn;
   delete copy.supplierPayments;
+  delete copy.refunds;delete copy.cancellation;delete copy.adjustmentLedger;
   copy.activity='';
   copy.createdBy='';
   copy.deleted=false;

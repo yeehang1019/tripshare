@@ -71,6 +71,20 @@
       "when": 1792394446280,
       "tag": "0009_solid_shen",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1792401998488,
+      "tag": "0010_dapper_black_tarantula",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1792402128525,
+      "tag": "0011_chubby_guardian",
+      "breakpoints": true
     }
   ]
 }

@@ -74,7 +74,7 @@ export function overlapWarnings(event:Event):ScheduleWarning[]{
 }
 export function returnFlight(source:Activity,event:Event):Activity {
  if(source.type!=='Flight'||source.flightDirection==='return')throw Error('Choose an outbound flight.');
- return {...structuredClone(source),id:crypto.randomUUID(),name:`Return · ${source.to||source.name} → ${source.from||''}`,date:event.end||source.endDate||source.date,time:'',endDate:'',endTime:'',timeZone:source.arrivalTimeZone||'',arrivalTimeZone:source.timeZone||'',from:source.to||'',to:source.from||'',flightDirection:'return',pairedFlight:source.id,reference:'',url:'',phone:'',cancelBy:'',notes:'',budget:0,order:undefined,travelFrom:undefined,travelMinutes:undefined,bufferMinutes:undefined,timeChoice:undefined,endTimeChoice:undefined,waitlist:[]};
+ return {...structuredClone(source),id:crypto.randomUUID(),name:`Return · ${source.to||source.name} → ${source.from||''}`,date:event.end||source.endDate||source.date,time:'',endDate:'',endTime:'',timeZone:source.arrivalTimeZone||'',arrivalTimeZone:source.timeZone||'',from:source.to||'',to:source.from||'',flightDetails:undefined,alternatives:undefined,alternativeOf:undefined,alternativeKey:undefined,flightDirection:'return',pairedFlight:source.id,reference:'',url:'',phone:'',cancelBy:'',notes:'',budget:0,order:undefined,travelFrom:undefined,travelMinutes:undefined,bufferMinutes:undefined,timeChoice:undefined,endTimeChoice:undefined,waitlist:[]};
 }
 
 export function transferMapLink(source:Activity,target:Activity){

@@ -37,9 +37,9 @@ export default function TripCosts({event:e, canAdd, canEdit, busy, onAdd, onEdit
       (filter==='All plans'||filter==='Unpaid bills'&&cost.unpaid>0||filter==='With deposits'&&cost.prepaid>0||filter==='No bills yet'&&!cost.bills.length&&a.status!=='Cancelled'||filter==='Cancelled'&&a.status==='Cancelled');
   });
   function billList(cost:TripCost){return cost.bills.slice(0,50).map(b=><div className="trip-linked-bill" key={b.id}>
-    <span><b>{b.merchant}</b><small>{dateLabel(b.date)} · {money(calculate(b,e.settlement).cashTotal,b.currency)} · {b.paymentStatus==='postpaid'?'Unpaid supplier bill':b.paymentStatus==='prepaid'?'Prepaid / deposit':'Paid expense'}</small></span>
-    {canEdit&&b.paymentStatus==='postpaid'&&onMarkPaid&&<button className="primary compact" disabled={busy} onClick={()=>onMarkPaid(b)}>Mark supplier paid</button>}
-    {canEdit&&<button className="secondary compact" disabled={busy} onClick={()=>onEdit(b)}>{b.paymentStatus==='postpaid'?'Edit bill':b.paymentStatus==='prepaid'?'Review deposit':'Edit bill'}</button>}
+    <span><b>{b.merchant}</b><small>{dateLabel(b.date)} · {money(calculate(b,e.settlement).cashTotal,b.currency)} · {b.cancellation?'Cancelled · fee / refund recorded':calculate(b,e.settlement).effectivePaymentStatus==='postpaid'?'Unpaid supplier bill':calculate(b,e.settlement).effectivePaymentStatus==='prepaid'?'Prepaid / deposit':'Paid expense'}</small></span>
+    {canEdit&&calculate(b,e.settlement).effectivePaymentStatus==='postpaid'&&onMarkPaid&&<button className="primary compact" disabled={busy} onClick={()=>onMarkPaid(b)}>Mark supplier paid</button>}
+    {canEdit&&<button className="secondary compact" disabled={busy} onClick={()=>onEdit(b)}>{calculate(b,e.settlement).effectivePaymentStatus==='postpaid'?'Edit bill':calculate(b,e.settlement).effectivePaymentStatus==='prepaid'?'Review deposit':'Edit bill'}</button>}
   </div>)}
   return <div className="trip-costs"><section className="panel">
     <div className="section-title"><div><p className="eyebrow">TRIP COSTS · {e.settlement}</p><h2>Know where the money stands</h2><p className="muted">The same bills as Money. Every expense is counted once.</p></div>{canAdd&&<button className="primary" disabled={busy} onClick={()=>onAdd()}><Plus size={17}/> Record expense</button>}</div>

@@ -1,0 +1,1 @@
+ALTER TABLE `trips` ADD `mutation_id` text;

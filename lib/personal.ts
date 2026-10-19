@@ -16,7 +16,7 @@ export function personalView(event: Event, person: string) {
       const c = calculate(b, event.settlement);
       if (!c.consumed[person] && !c.paid[person]) return [];
       return [{ id:b.id, date:b.date, title:b.merchant, category:b.category, activity:b.activity||'',
-        consumed:c.consumed[person] || 0, paid:c.paid[person] || 0, unpaid:c.unpaid[person]||0, prepaid:c.prepaid[person]||0, paymentStatus:b.paymentStatus || 'paid',
+        consumed:c.consumed[person] || 0, paid:c.paid[person] || 0, unpaid:c.unpaid[person]||0, prepaid:c.prepaid[person]||0, paymentStatus:c.effectivePaymentStatus,
         items:b.items.flatMap((item,i) => item.people.includes(person) ? [{name:item.name, amount:c.lines[i].values[item.people.indexOf(person)]}] : []) }];
     }),
     payments: event.payments.filter(p => !p.deleted && (p.from === person || p.to === person))
@@ -37,7 +37,7 @@ export function memberRecord(id: string, revision: number, event: Event, person:
 
 // Travel context contains the shared roster and itinerary, never the shared ledger.
 export function entryContext(event:Event):Event{
-  return {...event,people:event.people.map(p=>({id:p.id,name:p.name,active:p.active})),expenses:[],payments:[],audit:[],groups:[],budget:0};
+  return {...event,people:event.people.map(p=>({id:p.id,name:p.name,active:p.active})),expenses:[],payments:[],audit:[],groups:[],budget:0,categoryBudgets:undefined};
 }
 export function collaboratorRecord(id:string,revision:number,event:Event,person:string,permissions:string[],actor:string){
   const linked=event.people.some(p=>p.id===person);
@@ -58,7 +58,7 @@ export function personalAuditValue(event:Event,value:any,person:string,action:st
   if(value.items){
     const c=calculate(value,event.settlement);
     if(!c.consumed[person]&&!c.paid[person]&&!c.unpaid[person]&&!c.prepaid[person])return {consumed:0,paid:0,unpaid:0,prepaid:0};
-    return {title:value.merchant,date:value.date,paymentStatus:value.paymentStatus||'paid',deleted:!!value.deleted,consumed:c.consumed[person]||0,paid:c.paid[person]||0,unpaid:c.unpaid[person]||0,prepaid:c.prepaid[person]||0};
+    return {title:value.merchant,date:value.date,paymentStatus:c.effectivePaymentStatus,deleted:!!value.deleted,consumed:c.consumed[person]||0,paid:c.paid[person]||0,unpaid:c.unpaid[person]||0,prepaid:c.prepaid[person]||0};
   }
   if(value.from===person||value.to===person)return {date:value.date,amount:value.amount,from:event.people.find(p=>p.id===value.from)?.name||'',to:event.people.find(p=>p.id===value.to)?.name||'',deleted:!!value.deleted};
   if(['activity','deleteActivity','travelKit','planChecklist','planOrder','planBasics'].includes(action))return value;

@@ -98,3 +98,72 @@ The focused suite now contains 130 tests: prior finance/permissions/sync/planner
 - **CHANGE NOW:** the correctness, recovery and performance corrections described above are part of this release. Publish only after the final focused suite, TypeScript and production build pass.
 - **IMPROVE LATER:** real-phone recovery/clipboard/modal checks, a realistic large-group performance profile, and actual calendar imports. Separate FX per supplier payment or cross-device draft storage needs an explicit accounting/privacy design.
 - **DO NOT ADD:** repayment proof / recipient confirmation, time polls / RSVP for now, AI/OCR/voice, automatic calendar writes, automatic supplier updates or automatic bill creation from plans.
+
+# Production workflow review — 2026-10-19 (v53)
+
+## Current data / control flow
+
+Authenticated account → current group authorization → revisioned D1 group record → server validation → conditional group update and related sync rows in one D1 batch. The supplier ledger and friend repayments remain distinct. Planning estimates / category budget targets / Plan B do not create bills. Private preferences, uploaded objects, account grants and templates remain outside group checkpoints.
+
+The user approved eight improvements: mobile operation, loading/computation, bulk recovery, supplier refunds/cancellation, flight cards, category budgets, Plan B and recoverability/diagnostics. The current hybrid layout and three themes remain. No AI, RSVP, time polls, repayment evidence or receipt confirmation was introduced.
+
+## Implemented behavior
+
+- **Mobile:** reachable Today/Next, Tickets and Add Plan shortcuts; horizontally compact Trip tool controls; sticky day navigation and editor save actions; 44px touch targets, 16px editor inputs and safe-area spacing. These are implemented controls, not evidence of a real phone test.
+- **Loading:** authenticated conditional GETs compute a user/scope-specific ETag after current permission checks. Unchanged reads return 304 and retain client state. Inactive/inaccessible records do not participate in the ETag. Grant changes invalidate it even when the financial group revision stays unchanged. Read requests are coalesced; the refresh after a successful mutation waits for an earlier in-flight read and then checks again. No persistent financial response cache was added. D1 still reads the group blobs and permission/member-key data: this optimization reduces transfer, repeated ledger work and rendering, not those database reads.
+- **Computation:** reverse-debt queues are indexed by member pair while preserving FIFO expense attribution. The settlement planner obtains outstanding claims once instead of rebuilding them for each edge and again for fallback. Current-event display calculations use a WeakMap scoped to immutable server event references; mutable editor objects are not globally cached.
+- **Bulk recovery:** refresh keeps selected IDs and proposed changes. Every preview captures a revision, and Apply is disabled after the group revision changes until another explicit preview. Missing selections require an explicit removal before a whole-batch retry. The submitted revision is the reviewed one, not silently replaced by the newest revision.
+- **Refunds/cancellation:** positive, dated supplier refunds stay on the original bill and reduce its net cost and the actual payer's funding. A refund is limited to funds paid by its receiver; recorded installment chronology is checked. Cancellation records the final fee, replaces the original consumption amount with that fee, and separates supplier balance / refund due. Overpaid money awaiting supplier refund belongs to its payer and is not charged to friends. Refunds restate the original bill's spending period; refund dates are retained separately. Amounts use the bill's existing FX, including exact minor-unit allocation. Different FX per refund/payment is not modeled. Vouchers are not cash refunds. Earlier actual friend repayments are retained. If a supplier adjustment makes one excessive, the same expense derives a reverse credit; a real return payment can settle that credit. A server-retained adjustment-history marker preserves subsequent real cash movements even if an adjustment is later corrected or removed. Editing historical supplier funding still requires reviewing linked repayments first.
+- **Flight cards:** departure/arrival terminals, gate, meeting point, baggage, seat and check-in instructions. These appear in the ticket card and offline handbook. Return creation and ordinary copying clear stale operational booking details. Fields are entered manually and are not live airline data.
+- **Category budgets:** owner-edited targets per whole group or a specific month; separate incurred and prepaid/awaiting-refund figures. Targets are advisory, revision protected and isolated from planner-only projections. They never post spending. Up to 25 scopes, with explicit period-target clearing.
+- **Plan B:** up to five optional activity/food/free-time/transport/note alternatives. A reviewed switch cancels the original planning entry and creates a fresh Planning entry, clearing booking credentials. Bills retain their original activity ID. Transfers from a cancelled source are flagged for review. A stable new ID plus source/alternative identity makes the same uncertain retry a no-op; a changed choice is rejected. This does not cancel a supplier booking, create refunds, or rewrite other plans.
+- **Recovery:** owner-only group checkpoints are captured from the server's current data, checksum verified and retained at five revisions. Review shows proposed record changes and requires the current group name. In-place restore preserves the current member roster/groups and account access; it refuses a changed member-ID set or settlement currency. Later bills/payments remain as deleted historical records with sync tombstones; audit history is retained. A checkpoint of the pre-restore revision is captured in the same guarded batch. Restore operation IDs make retries safe. Verified downloaded envelopes can also use the existing separate-new-event import flow.
+- **Diagnostics:** core group/checkpoint requests return X-Request-ID, and errors carry the same problem reference. Structured logs record route, method, action/group after authorization, status, duration and failure category, without logging submitted bills, credentials or private answers. Validation stays 400/413; storage/internal failures are safe 503s. Client timeouts retain input and never automatically repeat a financial mutation.
+
+## Challenge → correction
+
+| Priority | Problem → impact → root cause | Smallest implemented fix |
+| --- | --- | --- |
+| HIGH | A losing CAS writer could still insert sync rows if another writer had advanced to the expected next revision. A revision alone did not identify the writer. | Nullable per-mutation marker on the group update; every related sync/checkpoint side effect requires the same marker in the same batch. A concurrent-expense test asserts exactly the winning record enters sync history. |
+| HIGH | Retrying a bulk change against a refreshed revision could apply a shift twice or overwrite a changed bill without review. | Keep selection but freeze the reviewed revision; require Preview again and submit that exact revision. |
+| HIGH | Cancellation could count the whole booking or charge friends for funds still owed by the supplier. | Recognize the final fee, cap friend funding at that fee, and keep the payer's excess as awaiting refund. Preserve the original source identity. |
+| HIGH | Generic API exceptions could expose database errors and misclassify outages as input errors. | Explicit controlled validation errors, safe internal/storage 503s and request references. |
+| MEDIUM | Group payloads were checked by JS character count with a 3M limit although storage limits are byte based. | Bound stored UTF-8 group data and encoded sync change payloads to 1,900,000 bytes before writes. Existing data is not pruned or rewritten. Full groups can be exported/imported separately. |
+| MEDIUM | Per-record restore sync statements could exceed request query budgets. | A bounded JSON change array is inserted with one prepared INSERT…SELECT over json_each, guarded by the mutation marker. |
+| MEDIUM | Pair cancellation scanned unrelated claims; settlement rebuilt all claims for each edge. | Pair queues and one grouped claim lookup retain exact attribution with less repeated work. |
+| MEDIUM | Old reads could complete around a successful write and leave the editor on an old revision. | Serialize a mandatory post-write refresh behind the previous read; retain server CAS as the authority. |
+
+## Measured verification
+
+`docs/performance-v53.json` contains local synthetic medians (3 timed runs), compared with pushed v52 source `28802dd01c7754fd1e380d41c2feb1aaf8972882`. Reproduce with `node scripts/benchmark-finance.mjs` in a checkout retaining that Git object. It uses middleware-only SSR module loading, not a browser preview server.
+
+| Bills / members | v52 ledger | v53 ledger | v52 settlement planner | v53 settlement planner |
+| --- | ---: | ---: | ---: | ---: |
+| 100 / 8 | 12.28 ms | 7.04 ms | 49.00 ms | 9.69 ms |
+| 500 / 8 | 33.13 ms | 20.70 ms | 445.06 ms | 36.28 ms |
+| 1000 / 8 | 142.20 ms | 50.75 ms | 1603.70 ms | 83.41 ms |
+
+All benchmark fixtures produced identical results to v52, including 20 deterministic mixed-creditor fixtures and original expense allocations after repayments. Timings vary between local runs; no blanket latency or phone-FPS claim is made. Network, rendering, actual D1 latency and simultaneous real users are not represented by this benchmark.
+
+The full focused regression suite contains 149 tests at this point, covering prior behavior plus refunds/FX/chronology, cancelled deposits and pending refunds, post-repayment reverse credits and their return payments, original sync keys, budget permissions, Plan B authorization/retries, conditional-read authorization invalidation, winning-writer sync effects, checkpoint integrity/retention/roster changes/restore/tombstones and safe storage failures. TypeScript and the Sites production build must pass before publication. UI revisions also receive SSR checks; these do not establish real touch/focus behavior.
+
+## Recovery coverage and unknowns
+
+Live read-only database discovery confirmed DB and the existing application tables before implementation. No provider backup-management operation is exposed in the available Sites tools; provider Time Travel enrollment, retention for this exact deployed account and an actual provider recovery remain **UNKNOWN**. No live bill or personal permission was changed as a test.
+
+Checkpoints share the primary storage failure domain, cascade with deletion of their group, and exclude uploaded R2 contents, private preferences, templates and permissions. They recover mistakes within an existing group; they are not a complete independent disaster backup. Downloaded copies provide a separate group-data copy and can be imported into a new owner-controlled group. Keep uploaded originals separately. Complete database/object-store recovery requires the hosting provider's supported recovery path; it was not exercised here.
+
+Actual iPhone/Android interaction, clipboard permissions, keyboard/safe-area geometry, browser storage failures and external calendar imports remain **UNKNOWN** because no supported browser-control skill is available. Production schema presence can be checked read-only after publishing; this is not an authenticated live restore drill.
+
+## Migration / rollback
+
+Generated migration `0010_dapper_black_tarantula.sql` adds indexed trip_checkpoints with group-deletion cascade. `0011_chubby_guardian.sql` adds nullable trips.mutation_id. Neither rewrites existing financial data. Do not drop these structures during rollback. Old builds ignore refunds/cancellation and can misstate consumption/funding; rollback code must retain the new calculation, validation and mutation-marker guard, plus the previously documented timezone/installment compatibility. Prefer a fix forward. Existing Pocket Ledger cursors and keys remain valid; restore/refund/bulk updates enter the existing delta stream.
+
+## Verdict
+
+- **KEEP:** independent Trip/Money, owner control, server authorization/CAS, stable financial IDs, original incurred dates, separate friend repayments, private preferences isolation and current themes.
+- **CHANGE NOW:** all release-blocking corrections above are implemented; publish after the final regression/type/build gates. Do not claim unperformed device or provider restore verification.
+- **IMPROVE LATER:** real phone/browser acceptance, provider database + R2 restore exercise, and profiling many authorized groups. The next structural bottleneck is still whole-group JSON/audit size and per-group authorization queries; normalize/paginate only when measured usage justifies the migration.
+- **DO NOT ADD:** AI, polls/RSVP for now, repayment evidence/recipient confirmation, automatic supplier/calendar writes, unreviewed financial retries or a large new distributed architecture.
+
+Official implementation references: https://developers.cloudflare.com/d1/sql-api/query-json/ (JSON SQL functions) and https://developers.cloudflare.com/d1/platform/limits/ (2,000,000-byte row/string limit and per-invocation query limits). These document platform capability; they do not verify this Site's provider recovery configuration.

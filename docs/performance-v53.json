@@ -1,0 +1,38 @@
+{
+  "date": "2026-10-19T09:51:28.255Z",
+  "environment": "Local Node + SQLite-free synthetic calculation; not browser/network/device latency",
+  "medianRuns": 3,
+  "mixedCreditorFixtures": 20,
+  "rows": [
+    {
+      "bills": 100,
+      "people": 8,
+      "payloadBytes": 64905,
+      "v52LedgerMs": 12.28,
+      "v53LedgerMs": 7.04,
+      "v52SettlementMs": 49,
+      "v53SettlementMs": 9.69,
+      "sameResults": true
+    },
+    {
+      "bills": 500,
+      "people": 8,
+      "payloadBytes": 322505,
+      "v52LedgerMs": 33.13,
+      "v53LedgerMs": 20.7,
+      "v52SettlementMs": 445.06,
+      "v53SettlementMs": 36.28,
+      "sameResults": true
+    },
+    {
+      "bills": 1000,
+      "people": 8,
+      "payloadBytes": 644505,
+      "v52LedgerMs": 142.2,
+      "v53LedgerMs": 50.75,
+      "v52SettlementMs": 1603.7,
+      "v53SettlementMs": 83.41,
+      "sameResults": true
+    }
+  ]
+}

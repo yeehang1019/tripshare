@@ -48,7 +48,7 @@ function expenseEntry(group:Scope,b:any,deleted=false){
   return {record_type:'expense',group_id:group.id,group_type:group.data.kind,
     expense_id:b.id,member_id:group.person,key:[group.id,b.id,group.person],
     date:b.date,title:b.merchant,category:b.category,currency:group.data.settlement,
-    payment_status:b.paymentStatus||'paid',unpaid_minor:deleted||b.deleted?0:c.unpaid[group.person]||0,prepaid_minor:deleted||b.deleted?0:c.prepaid[group.person]||0,consumed_minor:deleted||b.deleted?0:consumed,paid_minor:deleted||b.deleted?0:paid,deleted:deleted||!!b.deleted};
+    payment_status:c.effectivePaymentStatus,unpaid_minor:deleted||b.deleted?0:c.unpaid[group.person]||0,prepaid_minor:deleted||b.deleted?0:c.prepaid[group.person]||0,consumed_minor:deleted||b.deleted?0:consumed,paid_minor:deleted||b.deleted?0:paid,deleted:deleted||!!b.deleted};
 }
 function paymentEntry(group:Scope,p:any){
   if(p.from!==group.person&&p.to!==group.person)return null;
