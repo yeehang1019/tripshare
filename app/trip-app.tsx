@@ -57,6 +57,7 @@ import {
   ledger,
   calculate,
   blankExpense,
+  repeatExpense,
   currencies,
   categories,
   today,
@@ -434,17 +435,13 @@ setPlannerDirty(false);setKitDirty(false);setTemplateDirty(false);
 
   }
   function duplicateExpense(source: Expense) {
-    const copy = structuredClone(source);
-    copy.id = crypto.randomUUID();
-    copy.date = today();
-    copy.activity = "";
-    copy.createdBy = "";
-    copy.deleted = false;
-    copy.items = copy.items.map((item) => ({ ...item, id: crypto.randomUUID() }));
-    copy.discountItems = [];
-    setBill(copy);
-    setDraftRevision(rec.revision);
-
+    try {
+      setError("");
+      setBill(repeatExpense(source));
+      setDraftRevision(rec.revision);
+    } catch (err) {
+      setError(err instanceof Error?err.message:"Could not repeat this expense");
+    }
   }
   function clearUnsavedInput() {
     setBill(null);
@@ -498,7 +495,7 @@ setPlannerDirty(false);setKitDirty(false);setTemplateDirty(false);
   const visiblePayments = e
     ? e.payments.filter((p) => !isMember || p.from === me || p.to === me)
     : [];
-  const crossGroupBalances = !shared ? records.flatMap((record) => {
+  const crossGroupBalances = useMemo(()=>!shared&&tab==="Settlement" ? records.flatMap((record) => {
     const memberId = record.person || (record.owner
       ? (typeof window === "undefined" ? "" : localStorage.getItem("tripshare-person-" + record.id) || "")
       : "");
@@ -520,7 +517,7 @@ setPlannerDirty(false);setKitDirty(false);setTemplateDirty(false);
       pay: transfers.filter((transfer) => transfer.from === memberId).reduce((total, transfer) => total + transfer.amount, 0),
       receive: transfers.filter((transfer) => transfer.to === memberId).reduce((total, transfer) => total + transfer.amount, 0),
     }];
-  }) : [];
+  }) : [],[shared,tab,records,me]);
   const crossGroupTotals = Object.entries(crossGroupBalances.reduce<Record<string, { pay: number; receive: number }>>((totals, group) => {
     const currency = totals[group.currency] ||= { pay: 0, receive: 0 };
     currency.pay += group.pay;

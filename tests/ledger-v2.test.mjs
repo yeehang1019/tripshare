@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {normalize,blankExpense,blankItem,calculate,ledger,validateEvent,allowed,roles,allocate,paymentAllocations,attachPaymentAllocations,settlementDetails} from '../lib/ledger.ts';
+import {normalize,blankExpense,blankItem,calculate,ledger,validateEvent,allowed,roles,allocate,paymentAllocations,attachPaymentAllocations,settlementDetails,repeatExpense} from '../lib/ledger.ts';
 import {evaluateAmount} from '../lib/amount-expression.ts';
 const people=['YH','ET','YC','FZ','WZ','ZY','IVAN','JH'];
 const event=()=>normalize({name:'JB Trip',people,bills:[],payments:[]});
@@ -33,4 +33,14 @@ test('Postpaid and prepaid distinguish consumption, cash and supplier obligation
  b.paymentStatus='prepaid';s=ledger(e);assert.equal(s.total,0);assert.equal(s.people.YH.consumed,0);assert.equal(s.people.ET.paid,12000);assert.equal(s.people.ET.prepaid,12000);assert.equal(s.transfers.length,0);
  b.paymentStatus='paid';s=ledger(e);assert.equal(s.total,12000);assert.equal(s.people.YH.consumed,4000);assert.equal(s.people.ET.paid,12000);assert.equal(s.people.ET.prepaid,0);assert.equal(s.people.YH.unpaid,0);assert.equal(s.transfers.length,2);assert.equal(e.expenses.length,1);
  b.paymentStatus='invalid';assert.throws(()=>calculate(b,'MYR'),/payment status/);
+});
+
+test('Repeat keeps targeted item discounts and exact personal shares while issuing new bill and item IDs',()=>{
+ const e=event(),source=blankExpense(e,'ET');source.merchant='Dinner';source.date='2026-10-18';source.activity='old-plan';source.createdBy='old-actor';source.items=[blankItem(['YH']),blankItem(['ET'])];source.items[0].amount=3000;source.items[1].amount=7000;source.discount=1000;source.discountItems=[source.items[0].id];
+ const before=JSON.stringify(source),expected=calculate(source,e.settlement),copy=repeatExpense(source,'2026-10-19'),actual=calculate(copy,e.settlement);
+ assert.notEqual(copy.id,source.id);assert.deepEqual(copy.discountItems,[copy.items[0].id]);assert.notEqual(copy.items[0].id,source.items[0].id);assert.notEqual(copy.items[1].id,source.items[1].id);assert.equal(copy.date,'2026-10-19');assert.equal(copy.activity,'');assert.equal(copy.createdBy,'');assert.equal(copy.deleted,false);assert.equal(JSON.stringify(source),before);assert.deepEqual(actual.consumed,expected.consumed);assert.deepEqual(actual.paid,expected.paid);assert.equal(actual.total,expected.total);
+});
+test('Repeating all-item discounts preserves that scope, and broken item references are never widened silently',()=>{
+ const e=event(),source=bill(e,1000);source.discount=100;source.discountItems=[];assert.deepEqual(repeatExpense(source).discountItems,[]);assert.equal(calculate(repeatExpense(source),e.settlement).total,900);
+ source.discountItems=['missing-item'];assert.throws(()=>repeatExpense(source),/missing item/);
 });

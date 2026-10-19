@@ -809,3 +809,22 @@ export function allowed(
 export function duplicateFingerprint(expense:Expense,settlement:string){
   return [expense.merchant.trim().toLocaleLowerCase().replace(/\s+/g,' '),expense.date,expense.currency,calculate(expense,settlement).cashTotal].join('|');
 }
+
+/** A repeat is a new bill. Keep item-specific discounts attached to the copied items. */
+export function repeatExpense(source:Expense,date=today()):Expense{
+  const copy=structuredClone(source),itemIds=new Map<string,string>();
+  copy.id=crypto.randomUUID();
+  copy.date=date;
+  copy.activity='';
+  copy.createdBy='';
+  copy.deleted=false;
+  copy.items=copy.items.map(item=>{const id=crypto.randomUUID();itemIds.set(item.id,id);return {...item,id}});
+  if(copy.discountItems?.length){
+    copy.discountItems=copy.discountItems.map(id=>{
+      const next=itemIds.get(id);
+      if(!next)throw Error('The original discount refers to a missing item. Review the original bill before repeating it.');
+      return next;
+    });
+  }
+  return copy;
+}
