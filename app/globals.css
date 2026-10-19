@@ -532,3 +532,101 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible{
  .trip-cost-detail>.plan-actions{align-items:stretch}.trip-cost-detail>.plan-actions button{font-size:11px;flex:1 1 40%}
 }
 .planner-day-warning{display:flex;align-items:flex-start;gap:10px;padding:14px 16px;margin:0 0 14px;border:1px solid var(--border);border-radius:12px;background:var(--surface-soft);font-size:11px;line-height:1.8;color:var(--text)}.planner-day-warning>svg{flex:none;color:var(--primary);margin-top:2px}.planner-day-warning>span{flex:1}.planner-day-warning>button{font-size:10px;flex:none}
+/* Hybrid workspace: modular overview, compact master/detail and focused editing. */
+:root[data-visual] .workspace-app :is(.panel,.stat,.expense-card,.transfer){border-radius:16px}
+:root[data-visual] .workspace-app .panel{padding:21px;margin-bottom:18px}
+:root[data-visual] .workspace-app :is(.section-title h2,.card-title){font-size:19px;letter-spacing:-.4px}
+:root[data-visual] .workspace-app .topline{align-items:center;gap:16px}
+:root[data-visual] .workspace-app .topline h1{font-size:clamp(25px,2.6vw,34px)}
+:root[data-visual] .workspace-app .event-switch{margin-bottom:15px}
+:root[data-visual] .workspace-app :is(.stats,.two-col,.dashboard-charts,.planner-next-grid){gap:16px}
+:root[data-visual] .workspace-app .hub-stat{min-height:112px;padding:19px!important}
+:root[data-visual] .workspace-app .hub-stat>strong{font-size:clamp(24px,2.2vw,34px);margin:9px 0}
+:root[data-visual] .workspace-app .hub-heading{margin-bottom:18px}
+:root[data-visual] .workspace-app .hub-heading h2{font-size:clamp(23px,2.3vw,31px)}
+:root[data-visual] .workspace-app .hub-stats{gap:12px}
+:root[data-visual] .workspace-app .stat{padding:19px}
+:root[data-visual] .workspace-app .stat strong{font-size:25px;margin:9px 0}
+:root[data-visual] .workspace-app .stat small{line-height:1.7;font-size:11px}
+:root[data-visual] .workspace-app .space-bridge{padding:12px 16px;margin-bottom:16px;border-radius:13px}
+:root[data-visual] .workspace-app .space-bridge b{font-size:13px}
+:root[data-visual] .workspace-app .space-bridge small{line-height:1.6}
+.focus-tabs{display:flex;align-items:center;flex-wrap:wrap;gap:5px;padding:5px;background:var(--surface);border:1px solid var(--border);border-radius:13px;margin:0 0 18px}
+.focus-tabs>button{border:1px solid transparent;border-radius:9px;background:transparent;color:var(--muted);font-size:12px;font-weight:600;padding:10px 14px;min-height:40px}
+.focus-tabs>button[aria-selected=true]{background:var(--surface-soft);color:var(--primary);border-color:var(--border)}
+.focus-tabs>button:hover{color:var(--text)}
+.focus-sections>[role=tabpanel]{min-width:0;animation:focus-panel-in .16s ease-out}
+@keyframes focus-panel-in{from{opacity:.65;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
+.detail-workbench{display:grid;grid-template-columns:minmax(250px,.95fr) minmax(0,1.3fr);gap:16px;align-items:start;margin:0 0 18px;min-width:0}
+:root[data-visual] .workspace-app .detail-workbench>.panel{padding:0;margin:0;border-radius:15px;overflow:hidden}
+.workbench-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:16px;border-bottom:1px solid var(--border);background:var(--surface)}
+.workbench-heading h3{font-size:14px;margin:0}
+.workbench-heading small{font-size:11px;margin:0;color:var(--muted)}
+.workbench-rows{min-width:0}
+.workbench-row{display:flex;align-items:center;gap:10px;width:100%;padding:15px 16px;text-align:left;border:0;border-bottom:1px solid var(--border);background:var(--surface);color:var(--text);min-height:73px;transition:background .15s ease}
+.workbench-row:last-child{border-bottom:0}
+.workbench-row>span:not(.workbench-icon):not(.workbench-meta){flex:1;min-width:0}
+.workbench-row b{font-size:13px;line-height:1.6;display:block;overflow-wrap:anywhere;font-weight:650}
+.workbench-row small{font-size:11px;line-height:1.7;color:var(--muted);margin-top:4px}
+.workbench-row[aria-pressed=true]{background:var(--surface-soft);box-shadow:inset 3px 0 var(--primary)}
+.workbench-row[aria-pressed=true] b{color:var(--primary)}
+.workbench-row:hover{background:var(--surface-soft)}
+.workbench-row>svg{color:var(--muted);flex:none;width:14px}
+.workbench-meta{font-size:11px;color:var(--muted);text-align:right;max-width:95px;overflow-wrap:anywhere;font-variant-numeric:tabular-nums;flex:none}
+.workbench-icon{display:grid;place-items:center;flex:none;width:32px;height:32px;border-radius:9px;background:var(--surface-soft);color:var(--primary)}
+.workbench-icon>svg{width:17px;height:17px}
+.workbench-pagination{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 15px;border-top:1px solid var(--border)}
+.workbench-pagination small{font-size:11px;margin:0}
+.workbench-pagination button{padding:7px;min-height:34px}
+:root[data-visual] .workspace-app .detail-workbench>.workbench-detail{padding:20px;position:sticky;top:18px;max-height:calc(100dvh - 40px);overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.workbench-back{display:none;align-items:center;gap:6px;margin-bottom:16px}
+.workbench-detail>.plan-entry{margin:0;display:block}
+:root[data-visual] .workspace-app .workbench-detail .plan-entry-body{border:0;padding:0;border-radius:0}
+.workbench-detail .plan-time{padding:0!important;display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.workbench-detail .plan-entry-footer{margin:18px 0}
+.workbench-detail .plan-detail-drawer{padding-top:14px}
+.workbench-detail .plan-actions{gap:8px}
+:root[data-visual] .workspace-app .workbench-detail .expense-card{border:0;border-radius:0;margin:0;box-shadow:none}
+:root[data-visual] .workspace-app .workbench-detail .expense-card>summary{padding:0 0 15px;background:var(--surface);border-bottom:1px solid var(--border);pointer-events:none;list-style:none}
+.workbench-detail .expense-detail-body{padding:15px 0 0}
+.workbench-detail .expense-detail-body h3{font-size:13px;margin-top:18px}
+.workbench-detail .expense-detail-body p{font-size:12px;line-height:1.8}
+.workbench-detail .expense-amount>b{font-size:20px}
+.workbench-detail .plan-money{background:var(--surface-soft);border-radius:11px;padding:13px;display:flex;gap:18px;flex-wrap:wrap;margin:15px 0}
+.workbench-detail .plan-money span{font-size:11px;color:var(--muted)}
+.workbench-detail .plan-money b{display:block;font-size:16px;color:var(--text);margin-top:5px}
+.focus-analytics{border:1px solid var(--border);border-radius:13px;padding:15px 18px;background:var(--surface);margin:0 0 18px}
+.focus-analytics>summary{font-size:12px;font-weight:600;color:var(--primary);cursor:pointer}
+.focus-analytics[open]>.focus-sections,.focus-analytics[open]>.personal-hub{margin-top:18px}
+:root[data-visual] .workspace-app .trip-cost-summary>div{padding:14px 16px}
+:root[data-visual] .workspace-app .trip-cost-summary strong{font-size:23px}
+.workspace-editor-sheet{position:fixed!important;left:auto!important;right:18px!important;top:50%!important;transform:translateY(-50%)!important;width:min(950px,calc(100vw - 36px))!important;max-width:950px!important;max-height:calc(100dvh - 36px);overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:var(--border) transparent;border:1px solid var(--border)!important;background:var(--surface)!important;color:var(--text);padding:24px!important;border-radius:18px!important;display:block!important}
+.workspace-editor-sheet .entry-grid{gap:18px;grid-template-columns:1.55fr 1fr}
+.workspace-editor-sheet .panel{background:var(--surface);border-color:var(--border);padding:18px;margin:0 0 18px;box-shadow:none}
+.workspace-editor-sheet .preview{top:0}
+.workspace-editor-sheet .plan-editor{border:0;padding:0;margin:0}
+.workspace-editor-sheet .section-title{position:sticky;top:-24px;background:var(--surface);padding:15px 0;z-index:2;border-bottom:1px solid var(--border)}
+.workspace-editor-sheet :is(h2,h3){color:var(--text)}
+.workspace-editor-sheet .save{position:sticky;bottom:-24px;background:var(--primary)!important;color:var(--primary-foreground)!important;z-index:3;box-shadow:0 0 0 12px var(--surface);margin:20px 0 8px}
+.workspace-editor-sheet :is(input:not([type=checkbox]),textarea,.pick){background:var(--surface);color:var(--text);border-color:var(--border)}
+.workspace-editor-sheet :is(.field>span,.muted,small){color:var(--muted)}
+.workspace-editor-sheet .primary{background:var(--primary);color:var(--primary-foreground)}
+.workspace-editor-sheet .secondary{background:var(--surface);color:var(--text);border-color:var(--border)}
+.workspace-editor-sheet .text-button{color:var(--primary)}
+@media(min-width:1200px){.detail-workbench{grid-template-columns:minmax(290px,1fr) minmax(0,1.35fr)}}
+@media(max-width:760px){
+ .detail-workbench{grid-template-columns:1fr;gap:0}.detail-workbench[data-mobile-detail=closed]>.workbench-detail{display:none}.detail-workbench[data-mobile-detail=open]>.workbench-master{display:none}
+ :root[data-visual] .workspace-app .detail-workbench>.workbench-detail{position:static;max-height:none;overflow:visible;padding:19px}
+ .workbench-back{display:inline-flex}.workbench-row{min-height:76px;padding:14px}.workbench-meta{max-width:85px;font-size:11px}
+ .focus-tabs{gap:4px;padding:4px}.focus-tabs>button{flex:1 1 auto;padding:9px 10px;font-size:11px;min-height:42px}
+ :root[data-visual] .workspace-app .panel{padding:18px}.workbench-heading{padding:15px}
+ :root[data-visual] .workspace-app .detail-workbench>.workbench-master{padding:0}
+ .workspace-editor-sheet{right:8px!important;width:calc(100vw - 16px)!important;max-height:calc(100dvh - 16px);padding:18px!important;border-radius:15px!important}
+ .workspace-editor-sheet .entry-grid{grid-template-columns:1fr}.workspace-editor-sheet .preview{position:static}.workspace-editor-sheet .section-title{top:-18px}.workspace-editor-sheet .save{bottom:-18px}
+ :root[data-visual] .workspace-app .hub-stat{min-height:105px;padding:15px!important}.workbench-detail .plan-entry-heading{flex-wrap:wrap}
+}
+@media(prefers-reduced-motion:reduce){.focus-sections>[role=tabpanel]{animation:none}.workbench-row{transition:none}}
+@media print{.focus-tabs,.workbench-back,.workbench-pagination{display:none!important}.detail-workbench{display:block}.detail-workbench>.workbench-master{display:none!important}.detail-workbench>.workbench-detail{display:block!important;position:static!important;max-height:none!important;overflow:visible!important}}
+.workspace-editor-sheet .section-title{flex-wrap:wrap;gap:10px}.workspace-editor-sheet .section-title h2{flex:1 1 auto;font-size:20px;margin:0}.workspace-editor-sheet .section-title .primary{min-height:38px;padding:8px 16px;font-size:12px}
+.focus-locked{margin-left:auto;padding:0 10px;color:var(--muted);font-size:11px;line-height:1.7}.focus-tabs>button:disabled{cursor:default;opacity:.5}
+@media(min-width:851px){:root[data-visual] .workspace-app>header{min-height:72px;padding-top:12px;padding-bottom:12px}:root[data-visual] .workspace-app>main{padding-top:23px}:root[data-visual] .workspace-sidebar{gap:15px;padding-top:20px}}

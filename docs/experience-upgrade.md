@@ -49,3 +49,11 @@ Managed browser QA was unavailable in this environment; responsive layouts and m
 - Trip expense entry uses the existing expense editor and API, preserving the expense ID on edits. Recording from Trip keeps its section and selected day; the same record appears in Money. Only the existing server permissions authorize financial writes. Restricted members do not receive or display full group costs.
 - No storage migration or permission change. Existing revisions, audit entries and integration change cursors remain in use. A frontend rollback requires no data rollback.
 - Validation: typecheck, planner/finance/render checks and existing API/ledger/settlement regressions. Browser interaction and visual verification are unavailable in the managed environment and remain unverified.
+
+## Hybrid layout (2026-10-19)
+
+The approved mixed design combines modular overview sections, a paged master/detail workbench and focused editing sheets. Money dashboards, member-only Money views, Trip overview and trip funding no longer stack every secondary view beneath the default overview. Itineraries, bookings, trip costs and expenses render six list rows per page and one selected detail, with total record counts always visible. On phones the workbench switches between list and detail with a Back action. Existing filters and financial totals still include every matching record.
+
+`app/focus-workspace.tsx` owns the reusable section switcher and workbench. Inactive sections are unmounted, so expensive charts are rendered only when opened. Unsaved Quick Picks and trip basics lock local section switching until saved or cancelled. Modal expense/plan edits retain the background page, filters and selection. Save remains available in the editing header; existing edit confirmation and duplicate checks apply to both Save buttons. Failed saves display the server error inside the sheet.
+
+No additional permissions, database migrations or financial write paths were introduced. API revision checks, original expense IDs, sync history and ledger calculations remain unchanged. Browser visual/device verification is still unavailable; automated checks cover bounded row rendering, selected-detail fallback after filtering, section laziness, draft switching locks and header-save validation in addition to the existing finance and access regressions.

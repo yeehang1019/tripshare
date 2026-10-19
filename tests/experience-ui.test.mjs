@@ -14,6 +14,7 @@ const spaces=await vite.ssrLoadModule('/app/space-navigation.tsx');
 const travel=await vite.ssrLoadModule('/app/travel-kit.tsx');
 const exportsModule=await vite.ssrLoadModule('/lib/exports.ts');
 const collaboration=await vite.ssrLoadModule('/app/collaboration.tsx');
+const focusWorkspace=await vite.ssrLoadModule('/app/focus-workspace.tsx');
 const tripCosts=await vite.ssrLoadModule('/app/trip-costs.tsx');
 const TripPlanner=(await vite.ssrLoadModule('/app/trip-planner.tsx')).default;
 const ExpenseEditor=(await vite.ssrLoadModule('/app/expense-editor.tsx')).default;
@@ -124,4 +125,33 @@ test('Planner opens the requested date rather than resetting to the first travel
  e.activities=[{id:'first',name:'First day only',type:'Activity',date:e.start,time:'10:00',location:'',url:'',notes:'',budget:0,category:'Activity',people:['A']},{id:'second',name:'Chosen day only',type:'Activity',date:'2026-12-21',time:'10:00',location:'',url:'',notes:'',budget:0,category:'Activity',people:['A']}];
  const html=renderToStaticMarkup(React.createElement(TripPlanner,{event:e,section:'Itinerary',initialDay:'2026-12-21',busy:false,canPlan:false,canExpense:false,draft:null,setDraft(){},onBegin(){},onSave:async()=>true,onAction:async()=>true,onDelete(){},onExpense(){},onShare(){},onDirty(){}}));
  assert.match(html,/Chosen day only/);assert.doesNotMatch(html,/First day only/);
+});
+
+test('Focus sections render only the active section and leave expensive secondary sections unmounted',()=>{
+ let activeCalls=0,inactiveCalls=0;
+ const html=renderToStaticMarkup(React.createElement(focusWorkspace.FocusSections,{label:'Money sections',sections:[{id:'summary',label:'Overview',render:()=>{activeCalls++;return React.createElement('p',{},'Current overview')}},{id:'analysis',label:'Charts',render:()=>{inactiveCalls++;return React.createElement('p',{},'Hidden heavy chart')}}]}));
+ assert.match(html,/Current overview/);assert.doesNotMatch(html,/Hidden heavy chart/);assert.equal(activeCalls,1);assert.equal(inactiveCalls,0);assert.match(html,/role="tabpanel"/);
+});
+test('Master detail paginates six rows, renders one selected detail and falls back after filtering',()=>{
+ const rows=Array.from({length:14},(_,i)=>({id:String(i),title:'Expense '+i,subtitle:'2026-10-19'}));let rendered=[];
+ const html=renderToStaticMarkup(React.createElement(focusWorkspace.DetailWorkbench,{rows,label:'Expenses',initialSelected:'2',renderDetail:id=>{rendered.push(id);return React.createElement('p',{},'Selected detail '+id)}}));
+ assert.equal((html.match(/class="workbench-row"/g)||[]).length,6);assert.match(html,/14 records/);assert.match(html,/Selected detail 2/);assert.deepEqual(rendered,['2']);assert.doesNotMatch(html,/Expense 13/);assert.match(html,/Back to list/);
+ const filtered=renderToStaticMarkup(React.createElement(focusWorkspace.DetailWorkbench,{rows:rows.slice(10),label:'Expenses',selected:'2',renderDetail:id=>React.createElement('p',{},'Filtered detail '+id)}));assert.match(filtered,/Filtered detail 10/);assert.doesNotMatch(filtered,/Filtered detail 2/);
+});
+test('Hybrid planner keeps the default overview short and displays only one detailed booking',()=>{
+ const e=normalize({name:'Thailand',people:['A'],bills:[],payments:[]});e.start='2026-12-20';e.end='2026-12-24';
+ e.activities=Array.from({length:12},(_,i)=>({id:'hotel-'+i,name:'Hotel '+i,type:'Hotel',status:'Booked',date:e.start,endDate:e.end,time:'14:00',location:'Bangkok',url:'',notes:'',budget:10000,category:'Accommodation',people:['A']}));
+ const props={event:e,busy:false,canPlan:true,canExpense:true,draft:null,setDraft(){},onBegin(){},onSave:async()=>true,onAction:async()=>true,onDelete(){},onExpense(){},onShare(){},onDirty(){}};
+ const overview=renderToStaticMarkup(React.createElement(TripPlanner,{...props,section:'Overview'}));assert.match(overview,/Coming up/);assert.doesNotMatch(overview,/Trip essentials|Trip money at a glance|Start with what you know/);
+ const bookings=renderToStaticMarkup(React.createElement(TripPlanner,{...props,section:'Bookings'}));assert.equal((bookings.match(/class="plan-entry /g)||[]).length,1);assert.match(bookings,/12 records/);assert.equal((bookings.match(/class="workbench-row"/g)||[]).length,6);
+});
+
+test('Section switching is locked while a Quick Pick or trip draft is unsaved',()=>{
+ const html=renderToStaticMarkup(React.createElement(focusWorkspace.FocusSections,{label:'Sections',initial:'quick',locked:true,sections:[{id:'summary',label:'Overview',render:()=>React.createElement('p',{},'Overview body')},{id:'quick',label:'Quick Picks',render:()=>React.createElement('p',{},'Unsaved quick pick')}]}));
+ assert.match(html,/disabled=""/);assert.match(html,/Save or cancel the current draft/);assert.match(html,/Unsaved quick pick/);assert.doesNotMatch(html,/Overview body/);
+});
+test('Top-of-sheet Save keeps the existing edit confirmation requirement',()=>{
+ const e=normalize({name:'Daily',people:['A'],bills:[],payments:[]});const b=blankExpense(e,'A');b.merchant='Train';b.items[0].amount=500;
+ e.expenses=[b];const html=renderToStaticMarkup(React.createElement(ExpenseEditor,{event:e,initial:b,busy:false,stickyActions:true,onSave:async()=>true,onCancel(){}}));
+ assert.match(html,/<button class="primary" disabled="">Save<\/button>/);assert.match(html,/<button class="primary save" disabled="">/);
 });

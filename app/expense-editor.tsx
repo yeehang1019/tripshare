@@ -21,12 +21,14 @@ export default function ExpenseEditor({
   busy,
   onSave,
   onCancel,
+  stickyActions=false,
 }: {
   event: Event;
   initial: Expense;
   busy: boolean;
   onSave: (b: Expense) => Promise<boolean>;
   onCancel: () => void;
+  stickyActions?:boolean;
 }) {
   const [b, set] = useState(initial),
     [confirmed, setConfirmed] = useState(false);
@@ -74,11 +76,18 @@ export default function ExpenseEditor({
         next.length === b.items.length ? [] : next,
     });
   };
+  const saveDisabled=busy ||
+            (duplicates.length>0&&duplicateApproved!==fingerprint) ||
+            !c ||
+            !!error ||
+            !b.merchant.trim() ||
+            (b.mode === "itemized" && b.receipt === null) ||
+            (edit && !confirmed);
   return (
     <div className="entry-grid">
       <section className={`panel expense-editor ${b.mode}`}>
         <div className="section-title">
-          <h2>{edit ? "Edit expense" : "Add expense"}</h2>
+          <h2>{edit ? "Edit expense" : "Add expense"}</h2>{stickyActions&&<button className="primary" disabled={saveDisabled} onClick={()=>onSave(b)}>{busy?"Saving…":"Save"}</button>}
           <button className="text-button" onClick={onCancel}>
             Close
           </button>
@@ -628,15 +637,7 @@ export default function ExpenseEditor({
         {duplicates.length>0&&<div className="duplicate-warning" role="status"><b>Possible duplicate · {duplicates.length} similar bill{duplicates.length===1?'':'s'}</b><p>The same description, date, currency and amount already exist in records you can view.</p><Check label="This is a separate expense; save it anyway" checked={duplicateApproved===fingerprint} onChange={v=>setDuplicateApproved(v?fingerprint:'')}/></div>}
         <button
           className="primary save"
-          disabled={
-            busy ||
-            (duplicates.length>0&&duplicateApproved!==fingerprint) ||
-            !c ||
-            !!error ||
-            !b.merchant.trim() ||
-            (b.mode === "itemized" && b.receipt === null) ||
-            (edit && !confirmed)
-          }
+          disabled={saveDisabled}
           onClick={() => onSave(b)}
         >
           {busy ? "Saving…" : edit ? "Save changes" : "Save expense"} {!busy && <ArrowRight size={18}/>}

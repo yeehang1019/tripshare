@@ -69,6 +69,8 @@ import { Pick, Field, Amount, Check, People } from "./trip-controls";
 import ExpenseEditor from "./expense-editor";
 import TripPlanner from "./trip-planner";
 import TripCosts from "./trip-costs";
+import {DetailWorkbench,FocusSections} from "./focus-workspace";
+import {Dialog,DialogContent,DialogTitle,DialogDescription} from "@/components/ui/dialog";
 import MotionLayer from "./motion-layer";
 import TripAlbum from "./trip-album";
 import {PeopleAccess,ChangeHistory,NotificationBell,SettlementExport} from "./collaboration";
@@ -406,6 +408,7 @@ setPlannerDirty(false);setKitDirty(false);setTemplateDirty(false);
     const b = blankExpense(context, payer);
     b.mode = mode;
     b.paymentStatus=status;
+    setError("");
     if (mode === "itemized") {
       b.items[0].people = [payer];
       b.items[0].weights = [1];
@@ -422,12 +425,13 @@ setPlannerDirty(false);setKitDirty(false);setTemplateDirty(false);
     }
     setBill(b);
     setDraftRevision(rec.revision);
-    if(!inTrip){setTab("Add expense");spaceIntent.current="money";}
+    if(!inTrip)spaceIntent.current="money";
   }
   function edit(b: Expense) {
+    setError("");
     setBill(structuredClone(b));
     setDraftRevision(rec.revision);
-    setTab("Add expense");
+
   }
   function duplicateExpense(source: Expense) {
     const copy = structuredClone(source);
@@ -440,7 +444,7 @@ setPlannerDirty(false);setKitDirty(false);setTemplateDirty(false);
     copy.discountItems = [];
     setBill(copy);
     setDraftRevision(rec.revision);
-    setTab("Add expense");
+
   }
   function clearUnsavedInput() {
     setBill(null);
@@ -617,7 +621,7 @@ setPlannerDirty(false);setKitDirty(false);setTemplateDirty(false);
           setNotice("Saved. Balances have been recalculated.");
       },
     });
-  function expenseRows(list: Expense[], personalOnly = false) {
+  function expenseRows(list: Expense[], personalOnly = false, expanded=false) {
     return list.map((b) => {
       const c = calculate(b, e!.settlement);
       const linkedPayment = e!.payments
@@ -628,8 +632,8 @@ setPlannerDirty(false);setKitDirty(false);setTemplateDirty(false);
       const consumers = Array.from(new Set(b.items.flatMap((item) => item.people)));
       const shownAmount = personalOnly ? c.consumed[me] || 0 : c.cashTotal;
       return (
-        <details className="bill-detail expense-card" key={b.id}>
-          <summary>
+        <details open={expanded||undefined} className="bill-detail expense-card" key={b.id}>
+          <summary onClick={event=>{if(expanded)event.preventDefault()}}>
             <span className="expense-summary-main">
               <span className="expense-icon" data-category={b.category}><Receipt size={18} /></span>
               <span className="expense-card-copy">
@@ -729,6 +733,7 @@ setPlannerDirty(false);setKitDirty(false);setTemplateDirty(false);
     const run=()=>{clearUnsavedInput();setActivityFilter('');setFocusActivity('');setTab(next)};
     if(editing.current)setConfirm({title:'Leave unsaved input?',description:'Your unsaved changes will be discarded.',run});else run();
   }
+  function requestCloseBill(){if(busy)return;setConfirm({title:"Discard unsaved expense?",description:"The saved bill will stay unchanged.",run:()=>setBill(null)})}
   function requestAdd(){if(editing.current){setConfirm({title:"Replace unsaved input?",description:"Your unsaved changes will be discarded before starting a new expense.",run:()=>{clearUnsavedInput();add()}})}else add()}
   function switchSpace(next:Space,activityId=''){
     const run=()=>{
@@ -782,12 +787,12 @@ setPlannerDirty(false);setKitDirty(false);setTemplateDirty(false);
     const owe=view.transfers.filter(t=>t.from===rec.person).reduce((n,t)=>n+t.amount,0);
     const receive=view.transfers.filter(t=>t.to===rec.person).reduce((n,t)=>n+t.amount,0);
     return <div data-space={space} className={"app member-view workspace-app"+(railOpen?" rail-open":"")}>{chrome}{appearance}{quickNavigator}{confirmationDialog}<MotionLayer scene={rec.id} mode={motionMode} style={workspace.data.style} palette={completeThemes.find(t=>t.style===workspace.data.style)!.palette}/><header><a className="brand" href="/">tripshare<span className="brand-dot">.</span></a><strong>{view.name} · {e?.kind==='trip'?'Trip':'Daily Group'}</strong><div className="header-right">{notificationBell}<button className="quick-launch" aria-label="Search groups and actions" onClick={()=>setQuickOpen(true)}><Search size={17}/></button><button className="icon-button rail-toggle" aria-label="Toggle group context" aria-expanded={railOpen} onClick={toggleRail}><PanelRight size={18}/></button><button className="icon-button mobile-appearance" aria-label="Appearance" onClick={()=>setAppearanceOpen(true)}><Palette size={18}/></button></div></header>
-      <main><div className="mobile-space-switch">{switcher}</div>{invitePrompt&&<section className="panel"><h2>New group invitation</h2><button className="primary" disabled={busy} onClick={async()=>{if(await send("acceptInvite",{token:inviteToken})){setInvitePrompt(false);setInviteToken("")}}}>Accept as {user}</button><button className="secondary" onClick={()=>setInvitePrompt(false)}>Dismiss</button></section>}{error&&<p className="message error" role="alert">{error}</p>}{can("addExpense")&&!bill&&<button className="primary personal-add" onClick={requestAdd}><Plus size={18}/> Add shared expense</button>}{bill&&<ExpenseEditor key={bill.id} event={{...(rec.entryContext||rec.planning||e!),expenses:rec.ownEntries||[]}} initial={bill} busy={busy} onCancel={()=>setBill(null)} onSave={async entity=>{if(await send('expense',{entity,revision:draftRevision})){setBill(null);celebrateSave();return true}return false}}/>}{spendingOverview()}{rec.entryContext&&can('addExpense')&&!bill&&<TemplateShelf key={rec.id} workspace={workspace} event={{...rec.entryContext,expenses:rec.ownEntries||[]}} group={rec.id} canAdd busy={busy} onDirty={setTemplateDirty} onSaved={()=>{}} onRecord={async entity=>{if(await send('expense',{entity})){celebrateSave();return true}return false}}/>}<section className="panel"><h1>{e?.name}</h1><p>Your own spending and outstanding payments</p>
+      <main><div className="mobile-space-switch">{switcher}</div>{invitePrompt&&<section className="panel"><h2>New group invitation</h2><button className="primary" disabled={busy} onClick={async()=>{if(await send("acceptInvite",{token:inviteToken})){setInvitePrompt(false);setInviteToken("")}}}>Accept as {user}</button><button className="secondary" onClick={()=>setInvitePrompt(false)}>Dismiss</button></section>}{error&&<p className="message error" role="alert">{error}</p>}{can("addExpense")&&!bill&&<button className="primary personal-add" onClick={requestAdd}><Plus size={18}/> Add shared expense</button>}{bill&&<Dialog open onOpenChange={v=>{if(!v)requestCloseBill()}}><DialogContent className="workspace-editor-sheet" onInteractOutside={v=>v.preventDefault()}><DialogTitle className="sr-only">My expense editor</DialogTitle><DialogDescription className="sr-only">Edit your submitted bill.</DialogDescription>{error&&<p role="alert" className="message error">{error}</p>}<ExpenseEditor stickyActions key={bill.id} event={{...(rec.entryContext||rec.planning||e!),expenses:rec.ownEntries||[]}} initial={bill} busy={busy} onCancel={requestCloseBill} onSave={async entity=>{if(await send('expense',{entity,revision:draftRevision})){setBill(null);celebrateSave();return true}return false}}/></DialogContent></Dialog>}<FocusSections locked={templateDirty} key={rec.id} label="My Money sections" sections={[{id:'overview',label:'My overview',render:()=>spendingOverview()},{id:'expenses',label:'My expenses',render:()=> <><section className="panel"><h1>{e?.name}</h1><p>Your own spending and outstanding payments</p>
         <select aria-label="Choose event" value={rec.id} onChange={x=>setId(x.target.value)}>{records.map(x=><option value={x.id} key={x.id}>{x.data.name}</option>)}</select>
         <div className="stats personal-stats"><div className="stat featured"><span>Consumed · selected dates</span><strong>{fmt(monthExpenses.reduce((n,b)=>n+b.consumed,0))}</strong></div><div className="stat"><span>Paid · selected dates</span><strong>{fmt(monthExpenses.reduce((n,b)=>n+b.paid,0))}</strong></div><div className="stat"><span>Need to pay · all time</span><strong>{fmt(owe)}</strong></div><div className="stat"><span>Need to receive · all time</span><strong>{fmt(receive)}</strong></div></div>
       </section><section className="panel"><h2>My expenses</h2><div className="checks"><Field label="From"><input type="date" value={start} onChange={x=>setStart(x.target.value)}/></Field><Field label="Until"><input type="date" value={end} onChange={x=>setEnd(x.target.value)}/></Field><Field label="Description"><input value={merchant} onChange={x=>setMerchant(x.target.value)}/></Field><Pick label="Category" value={cat} options={['All',...categories]} onChange={setCat}/><Pick label="Payment timing" value={statusFilter} options={['All','paid','prepaid','postpaid']} onChange={setStatusFilter}/><Pick label="Cash payer" value={payerFilter} options={[{id:'',name:'Any payer'},{id:rec.person||'mine',name:'I paid'}]} onChange={setPayerFilter}/>
-<button className="secondary" onClick={()=>{const [a,b]=monthBounds();setStart(a);setEnd(b)}}>This month</button><button className="secondary" onClick={()=>{setStart("");setEnd("")}}>All time</button></div>{monthExpenses.slice(0,expenseLimit).map(b=><details key={b.id} className="expense-row"><summary><strong>{b.title}</strong> · {b.date} · {b.category} · {b.paymentStatus || "paid"} · My share {fmt(b.consumed)} · Paid {fmt(b.paid)}</summary><ul>{b.items.map((item,i)=><li key={i}>{item.name} · {fmt(item.amount)}</li>)}</ul></details>)}{!monthExpenses.length&&<p>No personal expenses yet.</p>}{monthExpenses.length>expenseLimit&&<button className="secondary" onClick={()=>setExpenseLimit(n=>n+50)}>Show 50 more · {monthExpenses.length} matching expenses</button>}</section>
-      <section className="panel"><h2>My settlement</h2>{view.transfers.map(t=><div key={t.from+':'+t.to} className="expense-row"><strong>{t.fromName} → {t.toName}: {fmt(t.amount)}</strong>{t.to!==rec.person&&<PayoutDetails group={rec.id} person={t.to} event={payoutEvent} session={authenticatedSession} editable={false}/>}</div>)}{!view.transfers.length&&<p>All settled.</p>}<PayoutDetails group={rec.id} person={rec.person} event={payoutEvent} session={authenticatedSession} editable/><h3>Repayment history</h3>{view.payments.map(p=><p key={p.id}>{p.date} · {p.fromName} → {p.toName} · {fmt(p.amount)}</p>)}</section>{!!rec.ownEntries?.length&&<section className="panel"><h2>My submitted bills</h2><p>You can edit bills you created. This does not reveal other people’s full ledger.</p>{rec.ownEntries.filter(b=>!b.deleted).map(b=><div className="split-row" key={b.id}><span>{b.merchant}<small>{b.date} · {b.currency}</small></span><button className="secondary" onClick={()=>{if(editing.current)setConfirm({title:"Replace unsaved input?",description:"Your unsaved changes will be discarded.",run:()=>{clearUnsavedInput();edit(b)}});else edit(b)}}>Edit my bill</button></div>)}</section>}<SettlementExport event={payoutEvent} transfers={view.transfers}/><ChangeHistory key={rec.id} record={rec} onAction={send} user={user}/><button className="mobile-quick-add primary" hidden={!can('addExpense')||!!bill} onClick={requestAdd} aria-label="Add shared expense"><Plus size={23}/></button></main></div>;
+<button className="secondary" onClick={()=>{const [a,b]=monthBounds();setStart(a);setEnd(b)}}>This month</button><button className="secondary" onClick={()=>{setStart("");setEnd("")}}>All time</button></div><DetailWorkbench key={rec.id} label="My expenses" rows={monthExpenses.map(b=>({id:b.id,title:b.title,subtitle:b.date+' · '+b.category+' · '+(b.paymentStatus||'paid'),meta:fmt(b.consumed),icon:<Receipt size={17}/>}))} renderDetail={id=>{const b=monthExpenses.find(b=>b.id===id)!;return <><h3>{b.title}</h3><p className="muted">{b.date} · {b.category}</p><div className="plan-money"><span>My consumption <b>{fmt(b.consumed)}</b></span><span>I paid <b>{fmt(b.paid)}</b></span></div><h3>My items</h3>{b.items.map((item,i)=><p className="split-row" key={i}><span>{item.name}</span><b>{fmt(item.amount)}</b></p>)}</>}}/></section>
+      </>},{id:'settlement',label:'My settlement',render:()=> <><section className="panel"><h2>My settlement</h2>{view.transfers.map(t=><div key={t.from+':'+t.to} className="expense-row"><strong>{t.fromName} → {t.toName}: {fmt(t.amount)}</strong>{t.to!==rec.person&&<PayoutDetails group={rec.id} person={t.to} event={payoutEvent} session={authenticatedSession} editable={false}/>}</div>)}{!view.transfers.length&&<p>All settled.</p>}<PayoutDetails group={rec.id} person={rec.person} event={payoutEvent} session={authenticatedSession} editable/><h3>Repayment history</h3>{view.payments.map(p=><p key={p.id}>{p.date} · {p.fromName} → {p.toName} · {fmt(p.amount)}</p>)}</section><SettlementExport event={payoutEvent} transfers={view.transfers}/></>},...(rec.entryContext&&can('addExpense')?[{id:'quick',label:'Quick Picks',render:()=> <>{rec.entryContext&&can('addExpense')&&!bill&&<TemplateShelf key={rec.id} workspace={workspace} event={{...rec.entryContext,expenses:rec.ownEntries||[]}} group={rec.id} canAdd busy={busy} onDirty={setTemplateDirty} onSaved={()=>{}} onRecord={async entity=>{if(await send('expense',{entity})){celebrateSave();return true}return false}}/>}</>}]:[]),...(rec.ownEntries?.length?[{id:'submitted',label:'My submitted bills',render:()=> <>{!!rec.ownEntries?.length&&<section className="panel"><h2>My submitted bills</h2><p>You can edit bills you created. This does not reveal other people’s full ledger.</p>{rec.ownEntries.filter(b=>!b.deleted).map(b=><div className="split-row" key={b.id}><span>{b.merchant}<small>{b.date} · {b.currency}</small></span><button className="secondary" onClick={()=>{if(editing.current)setConfirm({title:"Replace unsaved input?",description:"Your unsaved changes will be discarded.",run:()=>{clearUnsavedInput();edit(b)}});else edit(b)}}>Edit my bill</button></div>)}</section>}</>}]:[]),{id:'history',label:'History',render:()=> <><ChangeHistory key={rec.id} record={rec} onAction={send} user={user}/></>} ]}/><button className="mobile-quick-add primary" hidden={!can('addExpense')||!!bill} onClick={requestAdd} aria-label="Add shared expense"><Plus size={23}/></button></main></div>;
   }
   return (
     <div data-space={space} className={"app workspace-app"+(railOpen?" rail-open":"")}>
@@ -1005,8 +1010,8 @@ setPlannerDirty(false);setKitDirty(false);setTemplateDirty(false);
             {space==="money"&&tab==="People & Access"&&rec?.owner&&<PeopleAccess key={rec.id} record={rec} onAction={send}/>}
             {space==="money"&&tab==="History"&&rec&&<ChangeHistory key={rec.id} record={rec} onAction={send} user={user} initialOpen/>}
             {space==="money"&&tab==="Dashboard"&&e?.kind==="trip"&&canViewGroup&&<details className="money-funding-summary"><summary><Wallet size={17}/> Trip funding · linked plan estimates</summary><TravelFunding event={e}/></details>}
-            {(tab === "Dashboard" || tab === "My spending") && spendingOverview()}
-            {!shared && e && can("addExpense") && (tab === "Dashboard" || !!templateSource) && <TemplateShelf key={rec.id} workspace={workspace} event={e} group={rec.id} canAdd={can("addExpense")} busy={busy} source={templateSource} onDirty={setTemplateDirty} onSaved={()=>setTemplateSource(null)} onRecord={async entity=>{if(await send("expense",{entity})){setNotice("Expense recorded. Quick Pick kept for next time.");celebrateSave();return true}return false}}/>}
+            {tab === "My spending" && <details className="focus-analytics"><summary>Across all my groups</summary>{spendingOverview()}</details>}
+            {!shared && e && can("addExpense") && !!templateSource && <TemplateShelf key={rec.id} workspace={workspace} event={e} group={rec.id} canAdd={can("addExpense")} busy={busy} source={templateSource} onDirty={setTemplateDirty} onSaved={()=>setTemplateSource(null)} onRecord={async entity=>{if(await send("expense",{entity})){setNotice("Expense recorded. Quick Pick kept for next time.");celebrateSave();return true}return false}}/>}
             {!shared && ((canCreateEvents && (!e || creating)) || (rec?.owner && !!settings)) && (
               <section className="panel">
                 <h2>
@@ -1202,9 +1207,9 @@ setPlannerDirty(false);setKitDirty(false);setTemplateDirty(false);
             )}
             {e && !creating && !settings && (
               <>
-                {tab === "Dashboard" && canViewGroup && (
-                  <>
-                    {hasPersonalAccess ? <section className="stats">
+                {tab === "Dashboard" && canViewGroup && <FocusSections locked={templateDirty} key={rec.id} label="Money dashboard sections" initial={shared?'group':'overview'} sections={[
+                  ...(!shared?[{id:'overview',label:'My overview',render:()=>spendingOverview()}]:[]),
+                  {id:'group',label:'Group snapshot',render:()=> <>                    {hasPersonalAccess ? <section className="stats">
                       <article className="stat featured">
                         <span><Receipt size={17}/>{name(me)} · Total consumed</span>
                         <strong>{fmt(personal?.consumed || 0)}</strong>
@@ -1263,7 +1268,7 @@ setPlannerDirty(false);setKitDirty(false);setTemplateDirty(false);
                                     b.category = template.category;
                                     setBill(b);
                                     setDraftRevision(rec.revision);
-                                    setTab("Add expense");
+
                                   }}
                                 >
                                   <span>{template.icon}</span>{template.name}
@@ -1306,7 +1311,19 @@ setPlannerDirty(false);setKitDirty(false);setTemplateDirty(false);
                         {donut(hasPersonalAccess)}
                       </div>
                     </section>
-                    <section className="dashboard-charts">
+</>},
+                  {id:'recent',label:'Recent expenses',render:()=> <>                    <section className="panel">
+                      <div className="section-title">
+                        <h2><Clock3 size={20}/>Recent expenses</h2>
+                        <button
+                          className="text-button"
+                          onClick={() => setTab("Expenses")}
+                        >
+                          View all
+                        </button>
+                      </div>
+<DetailWorkbench label="Recent expenses" rows={e.expenses.filter(b=>!b.deleted).slice().sort((a,b)=>b.date.localeCompare(a.date)).map(b=>({id:b.id,title:b.merchant,subtitle:b.date+' · '+b.category,meta:money(calculate(b,e.settlement).cashTotal,b.currency),icon:<Receipt size={17}/>}))} renderDetail={id=>expenseRows(e.expenses.filter(b=>b.id===id),false,true)}/></section></>},
+                  {id:'charts',label:'Charts',render:()=> <>                    <section className="dashboard-charts">
                       <div className="panel">
                         <div className="section-title"><h2><ChartColumn size={20}/>Daily spending</h2><span className="pill">Group</span></div>
                         {bars("date", false)}
@@ -1324,60 +1341,16 @@ setPlannerDirty(false);setKitDirty(false);setTemplateDirty(false);
                         {bars("category", false)}
                       </div>}
                     </section>
-                    {rec.owner && !shared && (
-                      <section className="panel access-shortcut">
-                        <div>
-                          <h2 className="card-title"><ShieldCheck size={20}/>Sharing & permissions</h2>
-                          <p className="muted">
-                            Create a read-only link or choose who can help as
-                            admin.
-                          </p>
-                        </div>
-                        <button
-                          className="secondary"
-                          onClick={() => setTab("Settings")}
-                        >
-                          Manage access
-                        </button>
-                      </section>
-                    )}
-                    <section className="panel">
-                      <div className="section-title">
-                        <h2><Clock3 size={20}/>Recent expenses</h2>
-                        <button
-                          className="text-button"
-                          onClick={() => setTab("Expenses")}
-                        >
-                          View all
-                        </button>
-                      </div>
-                      {expenseRows(
-                        e.expenses
-                          .filter((x) => !x.deleted)
-                          .slice()
-                          .reverse()
-                          .slice(0, 5),
-                      )}
-                      {!e.expenses.filter((x) => !x.deleted).length && (
-                        <div className="empty">
-                          <Receipt />
-                          <h3>No expenses yet</h3>
-                          <p>Start with a toll, ticket, or meal.</p>
-                        </div>
-                      )}
-                    </section>
-                  </>
-                )}
-                {(tab === "Add expense" || isTripSection(tab)) && bill && (
-                  <>{bill.activity&&<div className="space-link-note editor-origin"><MapPinned size={18}/><div><b>{isTripSection(tab)?"Record trip expense":"Money · linked to your trip"}</b><p>{e.activities.find(a=>a.id===bill.activity)?.name||'Trip plan'} · {bill.date}. {e.expenses.some(b=>b.id===bill.id)?"Update this bill; it will not create a second expense.":"Saved once and shared with Money."}</p></div>{!isTripSection(tab)&&<button className="text-button" onClick={()=>switchSpace('trip',bill.activity)}>Return to Trip</button>}</div>}<ExpenseEditor
+</>},
+                  ...(!shared&&can('addExpense')?[{id:'quick',label:'Quick Picks',render:()=> (<TemplateShelf key={rec.id} workspace={workspace} event={e} group={rec.id} canAdd={can("addExpense")} busy={busy} source={templateSource} onDirty={setTemplateDirty} onSaved={()=>setTemplateSource(null)} onRecord={async entity=>{if(await send("expense",{entity})){setNotice("Expense recorded. Quick Pick kept for next time.");celebrateSave();return true}return false}}/>)}]:[])
+                ]}/>}
+                {bill && (
+                  <Dialog open onOpenChange={v=>{if(!v)requestCloseBill()}}><DialogContent className="workspace-editor-sheet" onInteractOutside={v=>v.preventDefault()}><DialogTitle className="sr-only">Expense editor</DialogTitle><DialogDescription className="sr-only">Record or edit one expense, then return to your selected record.</DialogDescription>{error&&<p role="alert" className="message error">{error}</p>}{bill.activity&&<div className="space-link-note editor-origin"><MapPinned size={18}/><div><b>{isTripSection(tab)?"Record trip expense":"Money · linked to your trip"}</b><p>{e.activities.find(a=>a.id===bill.activity)?.name||'Trip plan'} · {bill.date}. {e.expenses.some(b=>b.id===bill.id)?"Update this bill; it will not create a second expense.":"Saved once and shared with Money."}</p></div>{!isTripSection(tab)&&<button className="text-button" onClick={()=>switchSpace('trip',bill.activity)}>Return to Trip</button>}</div>}<ExpenseEditor stickyActions
                     key={bill.id}
                     event={rec.entryContext||e}
                     initial={bill}
                     busy={busy}
-                    onCancel={() => {
-                      setBill(null);
-                      if(!isTripSection(tab))setTab("Expenses");
-                    }}
+                    onCancel={requestCloseBill}
                     onSave={async (entity) => {
                       if (
                         await send("expense", {
@@ -1386,17 +1359,17 @@ setPlannerDirty(false);setKitDirty(false);setTemplateDirty(false);
                         })
                       ) {
                         setBill(null);
-                        if(!isTripSection(tab))setTab("Expenses");
+
                         setNotice("Expense saved. All balances updated.");celebrateSave();
                         return true;
                       }
                       return false;
                     }}
-                  /></>
+                  /></DialogContent></Dialog>
                 )}
-                {isTripSection(tab) && !bill && canViewTrip && e.kind === "trip" && (
+                {isTripSection(tab) && canViewTrip && e.kind === "trip" && (
                   <>{['Trip Plan','Itinerary','Bookings','Checklist'].includes(tab)&&<TripPlanner section={tab==='Trip Plan'?'Overview':tab} onDayChange={day=>setPlannerSelection(s=>({...s,day}))} initialDay={plannerSelection.day} initialType={plannerSelection.type} onSectionChange={(v,day,type)=>{setPlannerSelection({day:day||'',type:type||'All'});navigate(v==='Overview'?'Trip Plan':v)}} key={rec.id+tab} event={e} busy={busy} canPlan={can("plan")} canExpense={can("addExpense")} draft={activity} setDraft={setActivity} onDirty={setPlannerDirty}
-                    showFinancial={!rec.personal} onBegin={()=>setDraftRevision(rec.revision)}
+                    saveError={error} showFinancial={!rec.personal} onBegin={()=>{setError("");setDraftRevision(rec.revision)}}
                     onSave={async entity=>!!(await send("activity",{entity,revision:draftRevision}))}
                     onAction={(action,entity)=>send(action,{entity})}
                     onDelete={id=>ask("Remove this plan?","Linked expenses remain in your ledger.","deleteActivity",id)}
@@ -1469,11 +1442,7 @@ setPlannerDirty(false);setKitDirty(false);setTemplateDirty(false);
                           <button className="stat interactive-stat" onClick={()=>{setSettlementScope("mine");setTab("Settlement")}}><span><HandCoins size={17}/> Need to pay</span><strong>{fmt(sum!.transfers.filter(t=>t.from===me).reduce((s,t)=>s+t.amount,0))}</strong><small>Open My Settlement →</small></button>
                           <button className="stat interactive-stat" onClick={()=>{setSettlementScope("mine");setTab("Settlement")}}><span><UserRound size={17}/> Need to receive</span><strong>{fmt(sum!.transfers.filter(t=>t.to===me).reduce((s,t)=>s+t.amount,0))}</strong><small>Open My Settlement →</small></button>
                         </section>
-                        <section className="personal-insights">
-                          <div className="panel"><h2 className="card-title"><ChartPie size={20}/>My spending mix</h2>{donut(true)}</div>
-                          <div className="panel"><h2 className="card-title"><ChartColumn size={20}/>My daily spending</h2>{bars("date", true)}</div>
-                          <div className="panel"><h2 className="card-title"><Store size={20}/>My top merchants</h2>{bars("merchant", true)}</div>
-                        </section>
+<details className='focus-analytics'><summary>Spending insights · charts</summary><FocusSections label='Personal spending insights' sections={[{id:'insight-0',label:'Spending mix',render:()=> <div className='panel'><h2 className='card-title'><ChartPie size={20}/>My spending mix</h2>{donut(true)}</div>},{id:'insight-1',label:'Daily spending',render:()=> <div className='panel'><h2 className='card-title'><ChartColumn size={20}/>My daily spending</h2>{bars("date", true)}</div>},{id:'insight-2',label:'Top merchants',render:()=> <div className='panel'><h2 className='card-title'><Store size={20}/>My top merchants</h2>{bars("merchant", true)}</div>}]}/></details>
                       </>
                     )}
                     <section className={`panel ${tab === "My spending" ? "personal-activity" : ""}`}>
@@ -1488,24 +1457,7 @@ setPlannerDirty(false);setKitDirty(false);setTemplateDirty(false);
                           </button>
                         )}
                       </div>
-                      {(() => {
-                        const visible = (tab === "My spending"
-                          ? filtered.filter((b) => (calculate(b, e.settlement).consumed[me] || 0) > 0)
-                          : filtered).slice().sort((a, b) => b.date.localeCompare(a.date));
-                        const groups = visible.slice(0,expenseLimit).reduce<Record<string, Expense[]>>((all, expense) => {
-                          (all[expense.date] ||= []).push(expense);
-                          return all;
-                        }, {});
-                        return <>{Object.entries(groups).map(([date, expenses]) => (
-                          <div className="expense-day" key={date}>
-                            <div className="expense-day-heading">
-                              <span>{new Intl.DateTimeFormat("en-MY", { weekday: "short", day: "numeric", month: "short", year: "numeric" }).format(new Date(`${date}T00:00:00`))}</span>
-                              <b>{fmt(visible.filter(b=>b.date===date).reduce((total, item) => total + (tab === "My spending" ? calculate(item, e.settlement).consumed[me] || 0 : calculate(item, e.settlement).total), 0))}</b>
-                            </div>
-                            {expenseRows(expenses, tab === "My spending")}
-                          </div>
-                        ))}<div className="expense-pagination"><small>Showing {Math.min(expenseLimit,visible.length)} of {visible.length} expenses · Totals include every matching record.</small>{visible.length>expenseLimit&&<button className="secondary" onClick={()=>setExpenseLimit(n=>n+50)}>Show 50 more</button>}</div></>;
-                      })()}
+                      {(()=>{const visible=(tab==='My spending'?filtered.filter(b=>(calculate(b,e.settlement).consumed[me]||0)>0):filtered).slice().sort((a,b)=>b.date.localeCompare(a.date));return <DetailWorkbench key={rec.id+tab} label={tab==='My spending'?'My expenses':'Expenses'} rows={visible.map(b=>({id:b.id,title:b.merchant,subtitle:`${b.date} · ${b.category} · ${b.paymentStatus||'paid'}`,meta:tab==='My spending'?fmt(calculate(b,e.settlement).consumed[me]||0):money(calculate(b,e.settlement).cashTotal,b.currency),icon:<Receipt size={17}/>}))} renderDetail={id=>expenseRows(visible.filter(b=>b.id===id),tab==='My spending',true)}/>})()}
                       {!filtered.length && (
                         <p className="muted">Nothing in this selection.</p>
                       )}
