@@ -630,3 +630,4 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible{
 .workspace-editor-sheet .section-title{flex-wrap:wrap;gap:10px}.workspace-editor-sheet .section-title h2{flex:1 1 auto;font-size:20px;margin:0}.workspace-editor-sheet .section-title .primary{min-height:38px;padding:8px 16px;font-size:12px}
 .focus-locked{margin-left:auto;padding:0 10px;color:var(--muted);font-size:11px;line-height:1.7}.focus-tabs>button:disabled{cursor:default;opacity:.5}
 @media(min-width:851px){:root[data-visual] .workspace-app>header{min-height:72px;padding-top:12px;padding-bottom:12px}:root[data-visual] .workspace-app>main{padding-top:23px}:root[data-visual] .workspace-sidebar{gap:15px;padding-top:20px}}
+.workbench-row[draggable=true]{cursor:grab}.workbench-row[draggable=true]:active{cursor:grabbing}

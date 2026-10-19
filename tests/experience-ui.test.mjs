@@ -155,3 +155,8 @@ test('Top-of-sheet Save keeps the existing edit confirmation requirement',()=>{
  e.expenses=[b];const html=renderToStaticMarkup(React.createElement(ExpenseEditor,{event:e,initial:b,busy:false,stickyActions:true,onSave:async()=>true,onCancel(){}}));
  assert.match(html,/<button class="primary" disabled="">Save<\/button>/);assert.match(html,/<button class="primary save" disabled="">/);
 });
+
+test('Hybrid itinerary keeps drag targets in the list and excludes ongoing stays from ordering',()=>{
+ const html=renderToStaticMarkup(React.createElement(focusWorkspace.DetailWorkbench,{label:'Plans',rows:[{id:'stay',title:'Ongoing hotel'},{id:'flight',title:'Flight'}],canDrag:id=>id==='flight',onReorder(){},renderDetail:id=>React.createElement('p',{},id)}));
+ assert.equal((html.match(/draggable="true"/g)||[]).length,1);assert.equal((html.match(/draggable="false"/g)||[]).length,1);
+});
