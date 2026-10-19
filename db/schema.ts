@@ -34,3 +34,9 @@ export const tripDocuments=sqliteTable('trip_documents',{
  id:text('id').primaryKey(),trip:text('trip').notNull(),activity:text('activity').notNull().default(''),
  name:text('name').notNull(),mime:text('mime').notNull(),size:integer('size').notNull(),createdAt:text('created_at').notNull(),
 },t=>[index('trip_documents_trip').on(t.trip)]);
+export const planTemplates=sqliteTable('plan_templates',{
+ email:text('email').notNull(),id:text('id').notNull(),name:text('name').notNull(),data:text('data').notNull(),revision:integer('revision').notNull().default(1),updatedAt:text('updated_at').notNull(),
+},t=>[primaryKey({columns:[t.email,t.id]})]);
+export const tripPrivatePreferences=sqliteTable('trip_private_preferences',{
+ trip:text('trip').notNull().references(()=>trips.id,{onDelete:'cascade'}),email:text('email').notNull(),person:text('person').notNull(),data:text('data').notNull(),revision:integer('revision').notNull().default(1),updatedAt:text('updated_at').notNull(),
+},t=>[primaryKey({columns:[t.trip,t.email]})]);

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import ts from 'typescript';
 import {normalize,blankExpense,validateEvent,ledger} from '../lib/ledger.ts';
-const source=ts.transpileModule(readFileSync(new URL('../lib/trip-plan.ts',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022}}).outputText.replaceAll("'./ledger'",JSON.stringify(new URL('../lib/ledger.ts',import.meta.url).href));
+const source=ts.transpileModule(readFileSync(new URL('../lib/trip-plan.ts',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022}}).outputText.replaceAll("'./ledger'",JSON.stringify(new URL('../lib/ledger.ts',import.meta.url).href)).replaceAll("'./plan-time'",JSON.stringify(new URL('../lib/plan-time.ts',import.meta.url).href));
 const plan=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
 test('A hotel spans nights without duplicating its estimate or creating expense debt',()=>{
  const e=normalize({name:'Thailand',people:['YH','ET'],bills:[],payments:[]});e.start='2026-12-20';e.end='2026-12-24';

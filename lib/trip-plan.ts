@@ -1,3 +1,4 @@
+import {overlapWarnings,transferWarnings} from './plan-time';
 import {type Activity,type Event,today,calculate} from './ledger';
 export const planTypes=['Activity','Food','Transport','Hotel','Flight','Free time','Note','Insurance'] as const;
 export const bookingTypes=['Flight','Hotel','Transport','Activity','Food','Insurance'];
@@ -14,14 +15,7 @@ export type PlanWarning={id:string;message:string;activity?:string;date?:string}
 export function planWarnings(e:Event):PlanWarning[]{
  const active=e.activities.filter(a=>a.status!=='Cancelled'),warnings:PlanWarning[]=[];
  const hasSharedPeople=(a:Activity,b:Activity)=>a.people.some(id=>b.people.includes(id));
- const timed=active.filter(a=>a.type!=='Hotel'&&a.time).sort((a,b)=>a.date.localeCompare(b.date)||a.time.localeCompare(b.time));
- // Stop at a useful bounded list; no invented durations or travel times.
- for(let i=0;i<timed.length&&warnings.length<20;i++)for(let j=i+1;j<timed.length&&warnings.length<20;j++){
-   const a=timed[i],b=timed[j];if(a.date!==b.date)break;
-   const end=a.endTime&&(!a.endDate||a.endDate===a.date)?a.endTime:a.time;
-   if(b.time>end)break;
-   if(hasSharedPeople(a,b)&&(a.time===b.time||b.time<end))warnings.push({id:`overlap-${a.id}-${b.id}`,activity:b.id,date:b.date,message:`${a.name} and ${b.name} overlap for shared travellers on ${dateLabel(a.date)}.`});
- }
+ warnings.push(...overlapWarnings(e),...transferWarnings(e));
  for(const a of active){if(warnings.length>=20)break;
    if(e.start&&e.end&&(a.date<e.start||a.date>e.end||!!a.endDate&&a.endDate>e.end))warnings.push({id:'outside-'+a.id,activity:a.id,date:a.date,message:`${a.name} is outside the trip dates.`});
    if(a.cancelBy&&a.status==='Booked'&&a.cancelBy>=today()&&a.cancelBy<=new Date(Date.parse(today())+7*86400000).toISOString().slice(0,10))warnings.push({id:'cancel-'+a.id,activity:a.id,date:a.date,message:`Review ${a.name}: cancellation deadline ${dateLabel(a.cancelBy)}.`});

@@ -75,3 +75,11 @@ No additional permissions, database migrations or financial write paths were int
 - Validation: 98 focused automated checks plus TypeScript and the production build. Browser interaction/device and real multi-tab visual verification remain unavailable in this environment.
 
 Potential next-phase planner features and official research sources are recorded in `docs/planner-roadmap.md`. These are recommendations, not additional shipped functionality.
+
+## Selected planner expansion and post-implementation review
+
+The Trip toolbar now opens Calendar, Plan library, Private preferences and Offline pack as focused dialogs. Time polls and RSVP remain deferred. Flight fields add independent local zones, direction and a linked return shortcut; all plan types can record an end time for explicit transfer/buffer checks. Capacity/waiting-list controls are organizer-managed and do not alter bill splits.
+
+The template library is account-private and stores reusable active plans, not actual Money records or booking credentials. It supports one-day and whole-itinerary capture and review before appending to another trip. Preferences are stored separately and are excluded from every shared/export projection. Offline packs combine a fresh authorized itinerary with selected individually authorized attachments in a bounded local ZIP. Google links and Apple .ics exports create calendar copies, not live synchronization.
+
+See `docs/engineering-review.md` for the complete review, tests, schema/rollback limits and concrete performance/error-handling improvements. `AGENTS.md` carries the user’s requirement to repeat that review after subsequent implementations.

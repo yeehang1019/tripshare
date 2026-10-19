@@ -1,0 +1,9 @@
+# TripShare engineering rules
+
+- Trip planning and Money are independently navigable. Planning estimates, templates, capacity and waiting lists must never post consumption or repayments. A supplier bill marked Paid updates its original expense ID and incurred date. Money conflict recovery stays scoped to Money.
+- The user has deferred time polls and RSVP. Do not add AI, OCR, voice parsing or calendar write permissions as incidental scope.
+- Preserve the approved hybrid layout and the three complete light/dark themes. Keep secondary views focused and paged, using existing tokens. Show samples before proposing a different overall design.
+- Only server-verified permissions authorize writes. Trip private preferences belong in their separate table and API; only their author and the trip owner can read them. Never put them into shared group JSON, public links, templates, calendar exports or offline packs.
+- After each requested implementation, review correctness, authorization and cross-group isolation, concurrency/idempotency, compatibility, error recovery and the first likely performance bottleneck. Fix release blockers before publishing. Record concrete non-blocking improvements instead of adding speculative features automatically.
+- Update `docs/engineering-review.md` with the shipped scope, tests, known limits and the verdict: KEEP / CHANGE NOW / IMPROVE LATER / DO NOT ADD. State unavailable verification explicitly. Do not claim an actual device, browser or external calendar test from SSR/unit checks.
+- Use the Sites workflow to open, package and publish the existing project. Keep source credentials in session memory and retain current site audience. Schema migrations are additive, generated through Drizzle, and applied through Sites publication. Never rewrite applied migration history.

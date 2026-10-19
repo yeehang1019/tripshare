@@ -646,3 +646,20 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible{
 .financial-snapshot{display:grid;gap:6px}.financial-snapshot small{line-height:1.5}
 .conflict-choice{display:flex;gap:8px;align-items:center;padding-top:8px;margin-top:auto;font-size:13px}
 @media(max-width:650px){.conflict-columns{grid-template-columns:1fr}.money-review-sheet{max-height:88dvh}.conflict-review .checks{position:sticky;bottom:0;background:var(--surface);padding:12px 0}}
+
+/* Compact Trip utilities, using the same three-theme surfaces as Money. */
+.trip-tools-bar{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:0 0 14px}
+.trip-tool-launch{display:flex;align-items:center;gap:10px;padding:12px 14px;border:1px solid var(--border);border-radius:12px;background:var(--surface);color:var(--text);text-align:left;min-width:0}
+.trip-tool-launch>svg{color:var(--primary);flex-shrink:0}.trip-tool-launch span{display:grid;gap:3px;min-width:0}.trip-tool-launch b{font-size:13px}.trip-tool-launch small{font-size:11px;color:var(--muted)}
+.trip-tools-sheet{width:min(94vw,960px);max-width:960px;max-height:90dvh;overflow-y:auto;background:var(--surface);color:var(--text)}
+.trip-tool-content{display:grid;gap:16px}.trip-tool-content>p{margin:0;line-height:1.6}.trip-tool-content details,.plan-extra-section,.template-target,.template-preview,.owner-preferences{border:1px solid var(--border);border-radius:14px;padding:16px}
+.trip-tool-content details>summary,.plan-extra-section>summary{cursor:pointer;font-weight:650;padding:4px 0}.trip-tool-content details[open]>summary,.plan-extra-section[open]>summary{margin-bottom:12px}
+.tool-record{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 0;border-bottom:1px solid var(--border);min-width:0}.tool-record>span:first-child{display:grid;gap:5px;min-width:0;overflow-wrap:anywhere}.tool-record small{color:var(--muted);line-height:1.5}.tool-record .checks{margin:0;flex-shrink:0}
+.template-preview-rows{max-height:240px;overflow-y:auto;padding-right:8px}.template-target{display:grid;gap:12px;background:var(--background)}.template-target h3,.template-preview h3{margin:0}
+.privacy-note{padding:14px;border-left:3px solid var(--primary);border-radius:6px;background:var(--background);line-height:1.6;color:var(--text)}
+.preference-card{border-top:1px solid var(--border);padding:14px 0}.preference-card p{white-space:pre-wrap;overflow-wrap:anywhere;display:grid;gap:4px}.preference-card small{display:block;color:var(--muted)}
+.offline-pack-summary{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;padding:14px;border:1px solid var(--border);border-radius:12px}.offline-pack-summary span{color:var(--muted)}
+.flight-summary{padding:16px;border:1px solid var(--border);border-radius:14px;margin:12px 0;background:var(--background)}.flight-leg{display:flex;justify-content:space-between;gap:10px;align-items:center}.flight-leg>b{color:var(--primary)}.flight-summary[data-leg=return] .flight-leg>b{color:var(--accent)}.flight-leg>span{font-size:12px;color:var(--muted)}
+.flight-local-times{display:grid;grid-template-columns:1fr auto 1fr;gap:16px;align-items:center;margin-top:14px}.flight-local-times>div{display:grid;gap:5px}.flight-local-times small,.flight-local-times span{font-size:12px;color:var(--muted);overflow-wrap:anywhere}.flight-local-times strong{font-size:25px}.flight-local-times em{font-size:12px;font-style:normal;color:var(--primary)}.flight-arrow{font-size:22px!important;color:var(--primary)!important}
+.plan-extra-section{margin:12px 0}.plan-extra-section h3{margin:0 0 12px}.transfer-summary{padding:10px 12px;border-left:3px solid var(--secondary);background:var(--background);font-size:13px;line-height:1.6;border-radius:6px}
+@media(max-width:760px){.trip-tools-bar{grid-template-columns:repeat(2,minmax(0,1fr))}.trip-tool-launch{padding:10px}.trip-tools-sheet{max-height:88dvh}.tool-record{align-items:flex-start;flex-wrap:wrap}.tool-record .checks{flex-wrap:wrap}.flight-local-times{gap:10px}.flight-local-times strong{font-size:21px}.template-preview-rows{max-height:200px}}

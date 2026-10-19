@@ -72,6 +72,7 @@ import {SupplierPayment,ExpenseConflict,PaymentConflict} from "./money-actions";
 import {repaymentReview} from "@/lib/money-operations";
 import type {SearchHit} from "@/lib/workspace-search";
 import TripPlanner from "./trip-planner";
+import {TripTools} from "./trip-tools";
 import TripCosts from "./trip-costs";
 import {DetailWorkbench,FocusSections} from "./focus-workspace";
 import {Dialog,DialogContent,DialogTitle,DialogDescription} from "@/components/ui/dialog";
@@ -196,6 +197,7 @@ export default function TripApp({ shared = false, authenticatedEmail = "", authe
   const [activityFilter,setActivityFilter]=useState("");
   useEffect(()=>{spaceIntent.current=space},[space]);
   const [plannerDirty,setPlannerDirty]=useState(false);
+  const [toolsDirty,setToolsDirty]=useState(false),[toolsEpoch,setToolsEpoch]=useState(0);
   const [plannerSelection,setPlannerSelection]=useState({day:"",type:"All"});
   const [kitDirty,setKitDirty]=useState(false);
   const [payerFilter,setPayerFilter]=useState(""),[statusFilter,setStatusFilter]=useState("All");
@@ -220,7 +222,7 @@ export default function TripApp({ shared = false, authenticatedEmail = "", authe
   const canViewTrip=!!e&&e.kind==="trip"&&(canViewGroup||!!rec?.planning);
   const editing = useRef(false),
     accessLoaded = useRef(false);
-  editing.current = !!(bill || activity || settings || payment || busy || plannerDirty || kitDirty || templateDirty || supplierBill || expenseConflict || paymentConflict);
+  editing.current = !!(bill || activity || settings || payment || busy || toolsDirty || plannerDirty || kitDirty || templateDirty || supplierBill || expenseConflict || paymentConflict);
   const token = useRef(""),
     pinRef = useRef("");
   pinRef.current = pin;
@@ -479,6 +481,7 @@ setPlannerDirty(false);setKitDirty(false);setTemplateDirty(false);
     }
   }
   function clearUnsavedInput() {
+    setToolsDirty(false);setToolsEpoch(v=>v+1);
     setSupplierBill(null);setExpenseConflict(null);setPaymentConflict(null);baselineBill.current=null;
     setBill(null);
     setActivity(null);
@@ -1430,7 +1433,7 @@ setPlannerDirty(false);setKitDirty(false);setTemplateDirty(false);
                   /></DialogContent></Dialog>
                 )}
                 {isTripSection(tab) && canViewTrip && e.kind === "trip" && (
-                  <>{['Trip Plan','Itinerary','Bookings','Checklist'].includes(tab)&&<TripPlanner section={tab==='Trip Plan'?'Overview':tab} onDayChange={day=>setPlannerSelection(s=>({...s,day}))} initialDay={plannerSelection.day} initialType={plannerSelection.type} onSectionChange={(v,day,type)=>{setPlannerSelection({day:day||'',type:type||'All'});navigate(v==='Overview'?'Trip Plan':v)}} key={rec.id+tab+jumpEpoch} event={e} busy={busy} canPlan={can("plan")} canExpense={can("addExpense")} draft={activity} setDraft={setActivity} onDirty={setPlannerDirty}
+                  <>{!shared&&<TripTools key={rec.id+':'+toolsEpoch} group={rec.id} event={e} revision={rec.revision} session={authenticatedSession} canPlan={can('plan')} canPreferences={rec.owner||!!rec.person} busy={busy} disabled={!!(bill||activity||plannerDirty||kitDirty)} onDirty={setToolsDirty} onBegin={()=>setError('')} saveError={error} onApply={async(activities,revision)=>!!(await send('planBatch',{entity:{activities},revision}))}/ >}{['Trip Plan','Itinerary','Bookings','Checklist'].includes(tab)&&<TripPlanner section={tab==='Trip Plan'?'Overview':tab} onDayChange={day=>setPlannerSelection(s=>({...s,day}))} initialDay={plannerSelection.day} initialType={plannerSelection.type} onSectionChange={(v,day,type)=>{setPlannerSelection({day:day||'',type:type||'All'});navigate(v==='Overview'?'Trip Plan':v)}} key={rec.id+tab+jumpEpoch} event={e} busy={busy} canPlan={can("plan")} canExpense={can("addExpense")} draft={activity} setDraft={setActivity} onDirty={setPlannerDirty}
                     saveError={error} showFinancial={!rec.personal} onBegin={()=>{setError("");setDraftRevision(rec.revision)}}
                     onSave={async entity=>!!(await send("activity",{entity,revision:draftRevision}))}
                     onAction={(action,entity)=>send(action,{entity})}

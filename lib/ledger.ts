@@ -1,3 +1,4 @@
+import {validDate,validClock,validZone,timedInterval} from './plan-time.ts';
 export type Person = { id: string; name: string; active: boolean };
 export type Item = {
   id: string;
@@ -52,6 +53,18 @@ export type Payment = {
   deleted: boolean;
 };
 export type Activity = {
+  timeZone?:string;
+  arrivalTimeZone?:string;
+  timeChoice?:'earlier'|'later';
+  endTimeChoice?:'earlier'|'later';
+  flightDirection?:'outbound'|'return'|'oneway';
+  pairedFlight?:string;
+  travelFrom?:string;
+  travelMinutes?:number;
+  bufferMinutes?:number;
+  travelMode?:'Drive'|'Walk'|'Transit'|'Other';
+  capacity?:number;
+  waitlist?:string[];
   type?: 'Activity'|'Food'|'Transport'|'Hotel'|'Flight'|'Free time'|'Note'|'Insurance';
   status?: 'Idea'|'Planning'|'Booked'|'Cancelled';
   endDate?: string;
@@ -87,6 +100,7 @@ export type Audit = {
   after: unknown;
 };
 export type Event = {
+  timeZone?:string;
   destination?: string;
   travel?: {favorites:{id:string;name:string;url:string;notes:string}[];meeting:{place:string;time:string;notes:string;url:string};packing:{id:string;name:string;done:boolean;person:string}[]};
   checklist?: {id:string;name:string;done:boolean;person:string;due:string}[];
@@ -717,10 +731,31 @@ export function validateEvent(e: Event) {
       "Invalid repayment",
     );
   }
+  check(!e.timeZone||validZone(e.timeZone),'Choose a valid trip timezone');
+  check(e.activities.length<=1000,'Itinerary limit: 1000 plans');
+  const planById=new Map(e.activities.map(plan=>[plan.id,plan])),returnCounts=new Map<string,number>();
+  for(const plan of e.activities)if(plan.pairedFlight)returnCounts.set(plan.pairedFlight,(returnCounts.get(plan.pairedFlight)||0)+1);
   for (const a of e.activities) {
+    check(validDate(a.date)&&(!a.endDate||validDate(a.endDate)),'Check activity calendar date');
+    check((!a.time||validClock(a.time))&&(!a.endTime||validClock(a.endTime)),'Check activity time');
+    check((!a.timeZone||validZone(a.timeZone))&&(!a.arrivalTimeZone||validZone(a.arrivalTimeZone)),'Choose valid IANA timezones');
+    check(a.arrivalTimeZone===undefined||a.type==='Flight','Arrival timezone is for flights');
+    check(!a.timeChoice||['earlier','later'].includes(a.timeChoice),'Check repeated start time');
+    check(!a.endTimeChoice||['earlier','later'].includes(a.endTimeChoice),'Check repeated end time');
+    if(a.time&&(a.type==='Flight'?a.timeZone&&a.arrivalTimeZone:a.timeZone||e.timeZone)&&a.endTime)timedInterval(a,e.timeZone);
+    check(!a.flightDirection||a.type==='Flight'&&['outbound','return','oneway'].includes(a.flightDirection),'Check flight direction');
+    if(a.pairedFlight){const outbound=planById.get(a.pairedFlight);check(a.type==='Flight'&&a.flightDirection==='return'&&!!outbound&&outbound.id!==a.id&&outbound.type==='Flight'&&outbound.flightDirection!=='return','Choose an outbound flight for this return');check((returnCounts.get(a.pairedFlight)||0)<=1,'This outbound flight already has a return');}
+    check(!a.travelFrom||a.travelFrom!==a.id&&planById.has(a.travelFrom),'Choose a different existing plan for the transfer');
+    for(const [value,max] of [[a.travelMinutes,2880],[a.bufferMinutes,1440]] as const)check(value===undefined||Number.isInteger(value)&&value>=0&&value<=max,'Check travel / buffer minutes');
+    check(!a.travelMode||['Drive','Walk','Transit','Other'].includes(a.travelMode),'Check travel mode');
+    check(a.capacity===undefined||Number.isInteger(a.capacity)&&a.capacity>=0&&a.capacity<=50,'Capacity must be 0–50 (0 = no limit)');
+    check(!a.capacity||a.people.length<=a.capacity,'Confirmed participants exceed capacity');
+    check(new Set(a.people).size===a.people.length,'Duplicate activity participants');
+    check(a.waitlist===undefined||Array.isArray(a.waitlist)&&a.waitlist.length<=50&&new Set(a.waitlist).size===a.waitlist.length&&a.waitlist.every(id=>ids.includes(id)&&!a.people.includes(id)),'Check waiting list: unique group members who are not confirmed');
+
     check(!a.type || ['Activity','Food','Transport','Hotel','Flight','Free time','Note','Insurance'].includes(a.type),'Invalid plan type');
     check(!a.status || ['Idea','Planning','Booked','Cancelled'].includes(a.status),'Invalid booking status');
-    check(!a.endDate || (/^\d{4}-\d{2}-\d{2}$/.test(a.endDate) && a.endDate>=a.date),'End date must follow start date');
+    check(!a.endDate || (validDate(a.endDate) && (a.endDate>=a.date||a.type==='Flight'&&!!a.timeZone&&!!a.arrivalTimeZone&&!!a.time&&!!a.endTime)),'End date must follow start date (unless flight timezones confirm the arrival)');
     check(a.type!=='Hotel'||!a.endDate||a.endDate>a.date,'Check-out must be after check-in');
     check(!a.organizer||ids.includes(a.organizer),'Unknown booking organizer');
     check(a.order===undefined||Number.isFinite(a.order),'Invalid itinerary order');
@@ -803,7 +838,7 @@ export function allowed(
     );
   if (["payment", "undoPayment"].includes(action))
     return perms.includes("settle");
-  if (["activity", "deleteActivity", "planChecklist", "planBasics", "planOrder", "travelKit"].includes(action))
+  if (["activity", "deleteActivity", "planChecklist", "planBasics", "planOrder", "travelKit", "planBatch"].includes(action))
     return perms.includes("plan");
   if (["person", "group", "deleteGroup"].includes(action)) return perms.includes("members");
   return false;

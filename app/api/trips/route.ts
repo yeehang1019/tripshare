@@ -289,6 +289,13 @@ export async function POST(r: Request) {
     attachPaymentAllocations(data);
     if (b.action === 'deleteEvent' && !a.owner)
       return response({error:'Only the owner can delete this event'},403);
+    if(b.action==='planBatch'){
+      if(data.kind!=='trip'||!a.owner&&!a.permissions.includes('plan'))return response({error:'Trip planning permission required'},403);
+      const plans=b.entity?.activities;
+      if(!Array.isArray(plans)||!plans.length||plans.length>100||new Set(plans.map((p:any)=>p.id)).size!==plans.length)throw Error('Add 1–100 unique plans at a time');
+      if(plans.every((p:any)=>data.activities.some(saved=>saved.id===p.id&&JSON.stringify(saved)===JSON.stringify(p))))return response({ok:true,alreadyApplied:true});
+      if(plans.some((p:any)=>data.activities.some(saved=>saved.id===p.id)))throw Error('Some plan IDs already exist. Reload and review the itinerary.');
+    }
     if (row.revision !== b.revision)
       return response(
         {
@@ -415,7 +422,7 @@ export async function POST(r: Request) {
         before={destination:data.destination,start:data.start,end:data.end};
         const x=b.entity;
         if(typeof x.destination!=='string'||x.destination.length>200||!/^\d{4}-\d{2}-\d{2}$/.test(x.start)||!/^\d{4}-\d{2}-\d{2}$/.test(x.end)||x.end<x.start||Date.parse(x.end)-Date.parse(x.start)>366*86400000)throw Error('Choose valid trip dates (up to one year)');
-        Object.assign(data,{destination:x.destination,start:x.start,end:x.end});after=b.entity;
+        Object.assign(data,{destination:x.destination,start:x.start,end:x.end,...(x.timeZone!==undefined?{timeZone:x.timeZone}:{})});after=b.entity;
       } else if (b.action === "planChecklist") {
         if(!Array.isArray(b.entity.tasks))throw Error('Invalid checklist');
         before=data.checklist||[];data.checklist=b.entity.tasks;after=data.checklist;
@@ -424,6 +431,9 @@ export async function POST(r: Request) {
         if(!Array.isArray(ids)||new Set(ids).size!==ids.length||ids.some((id:string)=>!data.activities.some(a=>a.id===id)))throw Error('Invalid itinerary order');
         before=data.activities.map(a=>({id:a.id,order:a.order}));
         data.activities=data.activities.map(a=>ids.includes(a.id)?{...a,order:ids.indexOf(a.id)}:a);after=data.activities.map(a=>({id:a.id,order:a.order}));
+      } else if(b.action==='planBatch'){
+        before=null;after={activities:b.entity.activities};
+        data.activities=[...data.activities,...b.entity.activities];
       } else if (b.action === "activity") {
         before = data.activities.find((x) => x.id === entity) || null;
         data.activities = before
@@ -432,7 +442,11 @@ export async function POST(r: Request) {
         after = b.entity;
       } else if (b.action === "deleteActivity") {
         before = data.activities.find((x) => x.id === entity) || null;
-        data.activities = data.activities.filter((x) => x.id !== entity);
+        data.activities = data.activities.filter((x) => x.id !== entity).map(x=>{
+          const next={...x};if(next.pairedFlight===entity)delete next.pairedFlight;
+          if(next.travelFrom===entity){delete next.travelFrom;delete next.travelMinutes;delete next.bufferMinutes;delete next.travelMode}
+          return next;
+        });
       } else if (b.action === "person") {
         before = data.people.find((x) => x.id === entity) || null;
         data.people = before
