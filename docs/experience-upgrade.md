@@ -39,3 +39,13 @@ Trip funding estimates compare active plan budgets with linked bills and recorde
 The API suite covers invitation takeover/replay, email restriction, workspace concurrency/isolation, private details, indirect partial payments and undo, new-expense isolation, and private image access/type checks. Ledger and planning regression suites remain. SSR tests cover the overview, templates, settlement preview and deposit/supplier funding calculations.
 
 Managed browser QA was unavailable in this environment; responsive layouts and motion are not a substitute for actual device checks. Phone/desktop interaction, external OAuth invitation handoff, audio/vibration support and real uploaded-photo display should be checked in a signed-in production session.
+
+## Trip Planner: clearer planning and shared Money records (2026-10-19)
+
+- Planner surfaces and controls use the same theme tokens as Money in all three light/dark themes. No additional decorative gradients.
+- Overview shows upcoming plans, unfinished preparation and schedule warnings. By-day and all-days itinerary views support search, status and traveller filters; booking type can be combined with those filters.
+- Conflict hints use entered local times and intersecting participant lists. Hotels, cancelled plans, inferred travel durations and timezone conversions are excluded. At most 20 hints are computed; hints are advisory.
+- `lib/trip-finance.ts` is the shared summary for Money's TravelFunding and Trip costs. It converts bills through the existing ledger calculator, excludes deleted bills and repayments, and distinguishes incurred spending, supplier unpaid amounts and unconsumed prepaid funds. Estimates never create debt. Cancelled plans retain their actual bills; bills without a current plan remain in totals.
+- Trip expense entry uses the existing expense editor and API, preserving the expense ID on edits. Recording from Trip keeps its section and selected day; the same record appears in Money. Only the existing server permissions authorize financial writes. Restricted members do not receive or display full group costs.
+- No storage migration or permission change. Existing revisions, audit entries and integration change cursors remain in use. A frontend rollback requires no data rollback.
+- Validation: typecheck, planner/finance/render checks and existing API/ledger/settlement regressions. Browser interaction and visual verification are unavailable in the managed environment and remain unverified.

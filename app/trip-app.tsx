@@ -68,6 +68,7 @@ import {
 import { Pick, Field, Amount, Check, People } from "./trip-controls";
 import ExpenseEditor from "./expense-editor";
 import TripPlanner from "./trip-planner";
+import TripCosts from "./trip-costs";
 import MotionLayer from "./motion-layer";
 import TripAlbum from "./trip-album";
 import {PeopleAccess,ChangeHistory,NotificationBell,SettlementExport} from "./collaboration";
@@ -182,6 +183,7 @@ export default function TripApp({ shared = false, authenticatedEmail = "", authe
   const [activityFilter,setActivityFilter]=useState("");
   useEffect(()=>{spaceIntent.current=space},[space]);
   const [plannerDirty,setPlannerDirty]=useState(false);
+  const [plannerSelection,setPlannerSelection]=useState({day:"",type:"All"});
   const [kitDirty,setKitDirty]=useState(false);
   const [payerFilter,setPayerFilter]=useState(""),[statusFilter,setStatusFilter]=useState("All");
   const [templateDirty,setTemplateDirty]=useState(false);
@@ -325,7 +327,7 @@ export default function TripApp({ shared = false, authenticatedEmail = "", authe
         ? e.people.some((p) => p.id === pref) ? pref! : e.people[0]?.id || ""
         : e.people.some((p) => p.id === rec.person) ? rec.person : "",
     );
-    setPayerFilter("");setStatusFilter("All");
+    setPayerFilter("");setStatusFilter("All");setPlannerSelection({day:"",type:"All"});
     setActivityFilter("");
     setStart("");
     setEnd("");
@@ -397,12 +399,13 @@ setPlannerDirty(false);setKitDirty(false);setTemplateDirty(false);
       setBusy(false);
     }
   }
-  function add(mode: "simple" | "itemized" = "simple", a?: Activity) {
+  function add(mode: "simple" | "itemized" = "simple", a?: Activity, inTrip=false, status:Expense["paymentStatus"]="paid") {
     if (!e || !can("addExpense")) return;
     const context=rec.entryContext||e;
     const payer = context.people.find((p) => p.id === me)?.id || context.people[0].id;
     const b = blankExpense(context, payer);
     b.mode = mode;
+    b.paymentStatus=status;
     if (mode === "itemized") {
       b.items[0].people = [payer];
       b.items[0].weights = [1];
@@ -419,8 +422,7 @@ setPlannerDirty(false);setKitDirty(false);setTemplateDirty(false);
     }
     setBill(b);
     setDraftRevision(rec.revision);
-    setTab("Add expense");
-    spaceIntent.current="money";
+    if(!inTrip){setTab("Add expense");spaceIntent.current="money";}
   }
   function edit(b: Expense) {
     setBill(structuredClone(b));
@@ -733,7 +735,7 @@ setPlannerDirty(false);setKitDirty(false);setTemplateDirty(false);
       clearUnsavedInput();spaceIntent.current=next;setFocusActivity(next==="trip"?activityId:"");setActivityFilter(next==="money"?activityId:"");
       if(next==='trip'){
         if(e?.kind!=='trip'||rec?.personal&&!rec?.planning){const first=tripRecords(records)[0];if(first)setId(first.id)}
-        setTab('Trip Plan');
+        setTab(activityId?'Itinerary':'Trip Plan');
       }else setTab(rec?.personal?'My spending':activityId?'Expenses':'Dashboard');
     };
     if(editing.current)setConfirm({title:'Switch workspace?',description:'Your unsaved changes will be discarded.',run});else run();
@@ -1366,15 +1368,15 @@ setPlannerDirty(false);setKitDirty(false);setTemplateDirty(false);
                     </section>
                   </>
                 )}
-                {tab === "Add expense" && bill && (
-                  <>{bill.activity&&<div className="space-link-note editor-origin"><MapPinned size={18}/><div><b>Money · linked to your trip</b><p>{e.activities.find(a=>a.id===bill.activity)?.name||'Trip plan'} · {bill.date}. This creates one bill when you save.</p></div><button className="text-button" onClick={()=>switchSpace('trip',bill.activity)}>Return to Trip</button></div>}<ExpenseEditor
+                {(tab === "Add expense" || isTripSection(tab)) && bill && (
+                  <>{bill.activity&&<div className="space-link-note editor-origin"><MapPinned size={18}/><div><b>{isTripSection(tab)?"Record trip expense":"Money · linked to your trip"}</b><p>{e.activities.find(a=>a.id===bill.activity)?.name||'Trip plan'} · {bill.date}. {e.expenses.some(b=>b.id===bill.id)?"Update this bill; it will not create a second expense.":"Saved once and shared with Money."}</p></div>{!isTripSection(tab)&&<button className="text-button" onClick={()=>switchSpace('trip',bill.activity)}>Return to Trip</button>}</div>}<ExpenseEditor
                     key={bill.id}
-                    event={e}
+                    event={rec.entryContext||e}
                     initial={bill}
                     busy={busy}
                     onCancel={() => {
                       setBill(null);
-                      setTab("Expenses");
+                      if(!isTripSection(tab))setTab("Expenses");
                     }}
                     onSave={async (entity) => {
                       if (
@@ -1384,7 +1386,7 @@ setPlannerDirty(false);setKitDirty(false);setTemplateDirty(false);
                         })
                       ) {
                         setBill(null);
-                        setTab("Expenses");
+                        if(!isTripSection(tab))setTab("Expenses");
                         setNotice("Expense saved. All balances updated.");celebrateSave();
                         return true;
                       }
@@ -1392,13 +1394,13 @@ setPlannerDirty(false);setKitDirty(false);setTemplateDirty(false);
                     }}
                   /></>
                 )}
-                {isTripSection(tab) && canViewTrip && e.kind === "trip" && (
-                  <><SpaceBridge event={e} personal={rec.personal} space="trip" onOpen={()=>switchSpace("money")}/>{['Trip Plan','Itinerary','Bookings','Checklist'].includes(tab)&&<TripPlanner section={tab==='Trip Plan'?'Overview':tab} onSectionChange={v=>navigate(v==='Overview'?'Trip Plan':v)} key={rec.id+tab} event={e} busy={busy} canPlan={can("plan")} canExpense={can("addExpense")} draft={activity} setDraft={setActivity} onDirty={setPlannerDirty}
+                {isTripSection(tab) && !bill && canViewTrip && e.kind === "trip" && (
+                  <>{['Trip Plan','Itinerary','Bookings','Checklist'].includes(tab)&&<TripPlanner section={tab==='Trip Plan'?'Overview':tab} onDayChange={day=>setPlannerSelection(s=>({...s,day}))} initialDay={plannerSelection.day} initialType={plannerSelection.type} onSectionChange={(v,day,type)=>{setPlannerSelection({day:day||'',type:type||'All'});navigate(v==='Overview'?'Trip Plan':v)}} key={rec.id+tab} event={e} busy={busy} canPlan={can("plan")} canExpense={can("addExpense")} draft={activity} setDraft={setActivity} onDirty={setPlannerDirty}
                     showFinancial={!rec.personal} onBegin={()=>setDraftRevision(rec.revision)}
                     onSave={async entity=>!!(await send("activity",{entity,revision:draftRevision}))}
                     onAction={(action,entity)=>send(action,{entity})}
                     onDelete={id=>ask("Remove this plan?","Linked expenses remain in your ledger.","deleteActivity",id)}
-                    onExpense={a=>add("simple",a)} focusActivity={focusActivity} onOpenMoney={id=>switchSpace("money",id)} onShare={whatsapp}/ >}{tab==="Travel kit"&&<TravelKit key={"kit-"+rec.id} event={e} canEdit={can("plan")} busy={busy} onDirty={setKitDirty} onSave={async entity=>!!(await send("travelKit",{entity}))} onAddActivity={async p=>{const entity={...newPlan(e,"Activity",e.start||today()),name:p.name,location:p.name,url:p.url,notes:p.notes};return !!(await send("activity",{entity}))}}/>}{tab==="Files & photos"&&!shared&&<BookingFiles key={"files-"+rec.id} group={rec.id} event={e} session={authenticatedSession} canUpload={can("plan")}/ >}{tab==="Files & photos"&&!shared&&<TripAlbum key={"album-"+rec.id} group={rec.id} session={authenticatedSession} canUpload={can("plan")}/>}</>
+                    onExpense={a=>add("simple",a,true)} focusActivity={focusActivity} onOpenMoney={id=>switchSpace("money",id)} onShare={whatsapp}/ >}{tab==="Trip costs"&&(canViewGroup?<TripCosts key={rec.id} event={e} busy={busy} canAdd={can("addExpense")} canEdit={can("editAll")} onAdd={(a,status)=>add("simple",a,true,status)} onEdit={b=>{setBill(structuredClone(b));setDraftRevision(rec.revision)}} onOpenMoney={id=>switchSpace("money",id)}/>:<section className="panel"><h2>Your trip spending</h2><p className="muted">Group bills are private. Open Money to see your own spending and balances.</p><button className="primary" onClick={()=>switchSpace("money")}>Open my spending</button></section>)}{tab==="Travel kit"&&<TravelKit key={"kit-"+rec.id} event={e} canEdit={can("plan")} busy={busy} onDirty={setKitDirty} onSave={async entity=>!!(await send("travelKit",{entity}))} onAddActivity={async p=>{const entity={...newPlan(e,"Activity",e.start||today()),name:p.name,location:p.name,url:p.url,notes:p.notes};return !!(await send("activity",{entity}))}}/>}{tab==="Files & photos"&&!shared&&<BookingFiles key={"files-"+rec.id} group={rec.id} event={e} session={authenticatedSession} canUpload={can("plan")}/ >}{tab==="Files & photos"&&!shared&&<TripAlbum key={"album-"+rec.id} group={rec.id} session={authenticatedSession} canUpload={can("plan")}/>}</>
                 )}
                 {((tab === "Expenses" && canViewGroup) || (tab === "My spending" && hasPersonalAccess)) && (
                   <>
@@ -1449,7 +1451,7 @@ setPlannerDirty(false);setKitDirty(false);setTemplateDirty(false);
                       <button
                         className="text-button"
                         onClick={() => {
-                          setPayerFilter("");setStatusFilter("All");setActivityFilter("");
+                          setPayerFilter("");setStatusFilter("All");setPlannerSelection({day:"",type:"All"});setActivityFilter("");
                           setStart("");
                           setEnd("");
                           setCat("All");

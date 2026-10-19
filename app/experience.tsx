@@ -4,6 +4,7 @@ import {animate} from 'motion';
 import {Sparkles,Bookmark,Plus,ArrowRight,Wallet,Users,Settings2,Volume2,Vibrate,Check,Download,Search} from 'lucide-react';
 import {blankExpense,calculate,duplicateFingerprint,categories,currencies,ledger,money,today,unit,type Event,type Expense} from '@/lib/ledger';
 import {settlementPlan} from '@/lib/settlement-plan';
+import {tripFinance} from '@/lib/trip-finance';
 import {plannedTotal} from '@/lib/trip-plan';
 import {Amount,Field,People,Pick} from './trip-controls';
 import type {RecordT} from './trip-app';
@@ -117,9 +118,7 @@ export function PayoutDetails({group,person,event:e,session,editable}:{group:str
 }
 
 export function TravelFunding({event:e}:{event:Event}){
- const active=e.activities.filter(a=>a.status!=='Cancelled'),ids=new Set(active.map(a=>a.id));
- const bills=e.expenses.filter(b=>!b.deleted).map(b=>({bill:b,result:calculate(b,e.settlement)}));
- const total=ledger(e).total,prepaid=bills.reduce((n,b)=>n+Object.values(b.result.prepaid).reduce((n,v)=>n+v,0),0),supplier=bills.reduce((n,b)=>n+Object.values(b.result.unpaid).reduce((n,v)=>n+v,0),0);
- const funding=active.reduce((n,a)=>{const linked=bills.filter(b=>b.bill.activity===a.id),recorded=linked.reduce((n,b)=>n+b.result.total+Object.values(b.result.prepaid).reduce((n,v)=>n+v,0),0),paid=linked.reduce((n,b)=>n+Object.values(b.result.paid).reduce((n,v)=>n+v,0),0);return n+Math.max(0,Math.max(a.budget,recorded)-paid)},0)+bills.filter(b=>!ids.has(b.bill.activity)).reduce((n,b)=>n+Object.values(b.result.unpaid).reduce((n,v)=>n+v,0),0);
+ const summary=useMemo(()=>tripFinance(e),[e]);
+ const total=summary.total.consumed,prepaid=summary.total.prepaid,supplier=summary.total.unpaid,funding=summary.remainingCash;
  return <section className="panel travel-funding"><p className="eyebrow">READY FOR THE JOURNEY</p><h2>Trip money plan</h2><div className="hub-stats"><div className="hub-stat hero-stat"><span>ESTIMATED CASH STILL NEEDED</span><strong><AnimatedMoney amount={funding} currency={e.settlement}/></strong><small>Plan estimates minus recorded payments · supplier obligations included once</small></div><div className="hub-stat"><span>TRIP CONSUMPTION</span><strong>{money(total,e.settlement)}</strong><small>{e.budget?'Budget remaining '+money(e.budget-total,e.settlement):'Set a group budget in Settings'}</small></div><div className="hub-stat"><span>SUPPLIER BILLS UNPAID</span><strong>{money(supplier,e.settlement)}</strong><small>Recorded postpaid bills only</small></div></div><p className="muted">Prepaid, not consumed: {money(prepaid,e.settlement)} · Planned total: {money(plannedTotal(e),e.settlement)}. Estimates are planning figures and do not create expense debt.</p></section>;
 }

@@ -14,6 +14,7 @@ const spaces=await vite.ssrLoadModule('/app/space-navigation.tsx');
 const travel=await vite.ssrLoadModule('/app/travel-kit.tsx');
 const exportsModule=await vite.ssrLoadModule('/lib/exports.ts');
 const collaboration=await vite.ssrLoadModule('/app/collaboration.tsx');
+const tripCosts=await vite.ssrLoadModule('/app/trip-costs.tsx');
 const TripPlanner=(await vite.ssrLoadModule('/app/trip-planner.tsx')).default;
 const ExpenseEditor=(await vite.ssrLoadModule('/app/expense-editor.tsx')).default;
 const {PersonalHub,TemplateShelf,SettlementPreview}=experience;
@@ -55,7 +56,7 @@ test('All six complete theme modes keep text and primary buttons readable',()=>{
 
 test('Trip and Money have distinct navigation and personal members keep personal scope',()=>{
  const e=normalize({name:'Trip',people:['A'],bills:[],payments:[]});const r={id:'trip',data:e,owner:true,permissions:[],person:'A'};
- assert.deepEqual(spaces.spaceDestinations(r,'trip'),['Trip Plan','Itinerary','Bookings','Checklist','Travel kit','Files & photos']);
+ assert.deepEqual(spaces.spaceDestinations(r,'trip'),['Trip Plan','Itinerary','Bookings','Trip costs','Checklist','Travel kit','Files & photos']);
  assert.deepEqual(spaces.spaceDestinations(r,'money'),['Dashboard','Expenses','Settlement','My spending','People & Access','Settings','History']);
  assert.deepEqual(spaces.spaceDestinations({...r,owner:false,personal:{expenses:[]}},'money'),['My spending']);
  assert.doesNotMatch(spaces.spaceDestinations(r,'money').join(','),/Trip Plan/);
@@ -105,4 +106,22 @@ test('Trip sidebar opens dedicated planner sections without duplicating internal
  assert.match(checklist,/Before you go/);assert.doesNotMatch(checklist,/Bookings &amp; reservations|Trip essentials/);
  for(const section of spaces.tripSections)assert.equal(spaces.isTripSection(section),true);
  assert.equal(spaces.isTripSection('Settings'),false);
+});
+
+test('Planner compact view and full cost view separate estimates from bills and preserve privacy',()=>{
+ const e=normalize({name:'Thailand',people:['A','B'],bills:[],payments:[]});e.start='2026-12-20';e.end='2026-12-23';e.budget=987654;
+ e.activities=[{id:'hotel',name:'Hotel',type:'Hotel',status:'Booked',date:e.start,endDate:e.end,time:'14:00',location:'Bangkok',url:'',notes:'',budget:90000,category:'Accommodation',people:['A','B']}];
+ const b=blankExpense(e,'A');b.merchant='Private supplier details';b.activity='hotel';b.items[0].amount=123456;b.paymentStatus='postpaid';e.expenses=[b];
+ const props={event:e,busy:false,canPlan:true,canExpense:true,draft:null,setDraft(){},onBegin(){},onSave:async()=>true,onAction:async()=>true,onDelete(){},onExpense(){},onShare(){},onDirty(){}};
+ const privateView=renderToStaticMarkup(React.createElement(TripPlanner,{...props,section:'Itinerary',initialDay:e.start,showFinancial:false}));
+ assert.match(privateView,/Group costs are private/);assert.doesNotMatch(privateView,/Private supplier details|1,234.56|9,876.54|Supplier unpaid/);
+ const costs=renderToStaticMarkup(React.createElement(tripCosts.default,{event:e,canAdd:true,canEdit:true,busy:false,onAdd(){},onEdit(){},onOpenMoney(){}}));
+ assert.match(costs,/Plan estimate/);assert.match(costs,/Recorded spending/);assert.match(costs,/Supplier bills unpaid/);assert.match(costs,/Prepaid \/ deposits/);assert.match(costs,/Update \/ mark paid/);assert.match(costs,/\+ Deposit/);
+ assert.equal(e.expenses.length,1);
+});
+test('Planner opens the requested date rather than resetting to the first travel day',()=>{
+ const e=normalize({name:'Trip',people:['A'],bills:[],payments:[]});e.start='2026-12-20';e.end='2026-12-22';
+ e.activities=[{id:'first',name:'First day only',type:'Activity',date:e.start,time:'10:00',location:'',url:'',notes:'',budget:0,category:'Activity',people:['A']},{id:'second',name:'Chosen day only',type:'Activity',date:'2026-12-21',time:'10:00',location:'',url:'',notes:'',budget:0,category:'Activity',people:['A']}];
+ const html=renderToStaticMarkup(React.createElement(TripPlanner,{event:e,section:'Itinerary',initialDay:'2026-12-21',busy:false,canPlan:false,canExpense:false,draft:null,setDraft(){},onBegin(){},onSave:async()=>true,onAction:async()=>true,onDelete(){},onExpense(){},onShare(){},onDirty(){}}));
+ assert.match(html,/Chosen day only/);assert.doesNotMatch(html,/First day only/);
 });

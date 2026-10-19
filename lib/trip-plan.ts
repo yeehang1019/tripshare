@@ -9,3 +9,27 @@ export function sortPlan(items:Activity[]){return [...items].sort((a,b)=>a.date.
 export function plannedTotal(e:Event){return e.activities.filter(a=>a.status!=='Cancelled').reduce((s,a)=>s+a.budget,0)}
 export function actualFor(e:Event,id:string){return e.expenses.filter(b=>!b.deleted&&b.activity===id).reduce((s,b)=>s+calculate(b,e.settlement).total,0)}
 export function newPlan(e:Event,type:Activity['type'],date:string):Activity{return {id:crypto.randomUUID(),type,status:'Planning',date:date||e.start||today(),time:'',name:'',location:'',url:'',notes:'',budget:0,category:type==='Hotel'?'Accommodation':type==='Flight'||type==='Transport'?'Transport':type==='Food'?'Food':'Activity',people:e.people.filter(p=>p.active).map(p=>p.id)};}
+
+export type PlanWarning={id:string;message:string;activity?:string;date?:string};
+export function planWarnings(e:Event):PlanWarning[]{
+ const active=e.activities.filter(a=>a.status!=='Cancelled'),warnings:PlanWarning[]=[];
+ const hasSharedPeople=(a:Activity,b:Activity)=>a.people.some(id=>b.people.includes(id));
+ const timed=active.filter(a=>a.type!=='Hotel'&&a.time).sort((a,b)=>a.date.localeCompare(b.date)||a.time.localeCompare(b.time));
+ // Stop at a useful bounded list; no invented durations or travel times.
+ for(let i=0;i<timed.length&&warnings.length<20;i++)for(let j=i+1;j<timed.length&&warnings.length<20;j++){
+   const a=timed[i],b=timed[j];if(a.date!==b.date)break;
+   const end=a.endTime&&(!a.endDate||a.endDate===a.date)?a.endTime:a.time;
+   if(b.time>end)break;
+   if(hasSharedPeople(a,b)&&(a.time===b.time||b.time<end))warnings.push({id:`overlap-${a.id}-${b.id}`,activity:b.id,date:b.date,message:`${a.name} and ${b.name} overlap for shared travellers on ${dateLabel(a.date)}.`});
+ }
+ for(const a of active){if(warnings.length>=20)break;
+   if(e.start&&e.end&&(a.date<e.start||a.date>e.end||!!a.endDate&&a.endDate>e.end))warnings.push({id:'outside-'+a.id,activity:a.id,date:a.date,message:`${a.name} is outside the trip dates.`});
+   if(a.cancelBy&&a.status==='Booked'&&a.cancelBy>=today()&&a.cancelBy<=new Date(Date.parse(today())+7*86400000).toISOString().slice(0,10))warnings.push({id:'cancel-'+a.id,activity:a.id,date:a.date,message:`Review ${a.name}: cancellation deadline ${dateLabel(a.cancelBy)}.`});
+ }
+ return warnings.slice(0,20);
+}
+export function filterPlans(activities:Activity[],query:string,status:string,person:string,type='All'){
+ const search=query.trim().toLocaleLowerCase();
+ return sortPlan(activities.filter(a=>(!search||[a.name,a.location,a.reference,a.from,a.to,a.notes].join(' ').toLocaleLowerCase().includes(search))&&
+   (status==='All statuses'||status==='Active'&&a.status!=='Cancelled'||(a.status||'Planning')===status)&&(!person||a.people.includes(person))&&(type==='All'||a.type===type)));
+}

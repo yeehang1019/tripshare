@@ -17,3 +17,19 @@ test('Explicit day order overrides time, while legacy activities remain readable
  const e=normalize({name:'Old trip',people:['YH'],bills:[],payments:[]});const a={...plan.newPlan(e,'Activity','2026-12-20'),name:'Breakfast',time:'08:00'},b={...plan.newPlan(e,'Activity','2026-12-20'),name:'Market',time:'09:00'};
  assert.deepEqual(plan.sortPlan([b,a]).map(x=>x.name),['Breakfast','Market']);a.order=1;b.order=0;assert.deepEqual(plan.sortPlan([a,b]).map(x=>x.name),['Market','Breakfast']);delete a.type;delete a.status;e.activities=[a];validateEvent(e);
 });
+
+test('Schedule warnings use explicit intervals and shared travellers, excluding cancelled plans and hotel stays',()=>{
+ const e=normalize({name:'Trip',people:['A','B'],bills:[],payments:[]});e.start='2026-12-20';e.end='2026-12-24';
+ const a={...plan.newPlan(e,'Activity',e.start),name:'Museum',time:'09:00',endTime:'11:00',people:['A']};
+ const b={...plan.newPlan(e,'Food',e.start),name:'Breakfast',time:'10:00',people:['A']};
+ const c={...plan.newPlan(e,'Activity',e.start),name:'Other group',time:'10:00',people:['B']};
+ const hotel={...plan.newPlan(e,'Hotel',e.start),name:'Hotel',time:'10:00'};
+ e.activities=[a,b,c,hotel];assert.equal(plan.planWarnings(e).length,1);assert.match(plan.planWarnings(e)[0].message,/Museum and Breakfast/);
+ b.status='Cancelled';assert.equal(plan.planWarnings(e).length,0);b.status='Booked';b.time='11:00';assert.equal(plan.planWarnings(e).length,0);
+ b.date='2026-12-25';assert.equal(plan.planWarnings(e)[0].id,'outside-'+b.id);
+});
+test('Planner search combines confirmation, status, type and traveller filters while preserving explicit order',()=>{
+ const e=normalize({name:'Trip',people:['A','B'],bills:[],payments:[]});
+ const a={...plan.newPlan(e,'Flight','2026-12-20'),name:'Outbound',reference:'AK123',status:'Booked',people:['A']},b={...plan.newPlan(e,'Hotel','2026-12-20'),name:'Hotel',status:'Cancelled',people:['B']};
+ assert.deepEqual(plan.filterPlans([a,b],' ak123 ','Booked','A','Flight').map(a=>a.id),[a.id]);assert.equal(plan.filterPlans([a,b],'','Active','').length,1);assert.equal(plan.filterPlans([a,b],'','All statuses','B').length,1);assert.equal(plan.filterPlans([a,b],'ak123','Booked','B').length,0);
+});

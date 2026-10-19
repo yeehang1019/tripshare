@@ -430,3 +430,105 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible{
 :root[data-visual] [data-look=glass] .theme-cover{background:#EEE5D8;color:#8A5941}
 :root[data-visual] [data-look=cosmic] .theme-cover{background:#252D37;color:#B2C7E4}
 :root[data-visual] .theme-cover i{display:none}
+/* Trip Planner uses Money's exact surface, ink and control tokens. */
+:root[data-visual] .trip-planner{--plan-ink:var(--text);--plan-blue:var(--primary);color:var(--text)}
+:root[data-visual] .trip-planner .plan-hero{border-left:0;padding:24px;margin-bottom:20px;background:var(--surface);border-radius:18px}
+:root[data-visual] .trip-planner .plan-hero h2{font-size:clamp(23px,3vw,32px);letter-spacing:-.7px;margin:4px 0 9px}
+:root[data-visual] .trip-planner .plan-hero p:not(.eyebrow){color:var(--muted);font-size:12px;line-height:1.8}
+:root[data-visual] .trip-planner .plan-hero .eyebrow{font-size:9px;letter-spacing:1.5px;color:var(--primary)}
+:root[data-visual] .trip-planner :is(.plan-entry-body,.plan-metrics>div,.plan-readiness,.plan-day-summary,.plan-day-tabs button,.plan-task-editor){background:var(--surface);color:var(--text);border-color:var(--border);box-shadow:none}
+:root[data-visual] .trip-planner :is(.plan-status,.plan-icon,.plan-day-number,.plan-tonight,.plan-money){background:var(--surface-soft);color:var(--text);border-color:var(--border)}
+:root[data-visual] .trip-planner .plan-status.booked{color:var(--primary);background:var(--surface-soft);border:1px solid var(--border)}
+:root[data-visual] .trip-planner .plan-status.cancelled{color:var(--destructive);background:var(--surface-soft)}
+:root[data-visual] .trip-planner :is(.plan-location,.plan-type,.plan-metrics span,.plan-task small){color:var(--muted)}
+:root[data-visual] .trip-planner :is(.plan-readiness svg,.plan-icon svg,.plan-metrics svg){color:var(--primary);filter:none}
+:root[data-visual] .trip-planner .plan-entry.cancelled{opacity:1}
+:root[data-visual] .trip-planner .plan-time{font-size:12px;color:var(--muted);flex-basis:68px;padding-top:20px}
+:root[data-visual] .trip-planner .plan-entry-body{padding:18px;border-radius:16px}
+:root[data-visual] .trip-planner .plan-entry-heading h3{font-size:17px;line-height:1.45}
+:root[data-visual] .trip-planner .plan-money b{font-size:15px;color:var(--text)}
+:root[data-visual] .trip-planner .plan-money span{color:var(--muted);font-size:11px}
+:root[data-visual] .trip-planner .plan-detail-drawer{padding-top:12px;margin-top:12px;border-top:1px solid var(--border);font-size:12px}
+:root[data-visual] .trip-planner .plan-detail-drawer>summary{color:var(--primary);font-size:11px;cursor:pointer}
+:root[data-visual] .trip-planner .plan-detail-drawer>p{font-size:12px;line-height:1.8;color:var(--muted)}
+:root[data-visual] .trip-planner .plan-actions :is(button,a){font-size:11px;min-height:36px}
+.plan-entry-footer{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-top:12px}
+.plan-entry-footer>span{font-size:11px;color:var(--muted)}
+.plan-maintenance{margin-top:15px;padding-top:12px;border-top:1px solid var(--border)}
+.planner-filters{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin:0 0 20px}
+.planner-filters>.field{flex:1 1 150px;min-width:0;margin:0}
+.planner-filters>.field:first-child{flex:2 1 220px}
+.planner-search{display:flex;align-items:center;gap:9px;padding:0 13px;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--muted)}
+.planner-search:focus-within{outline:2px solid var(--primary);outline-offset:2px}
+:root[data-visual] .planner-search input{border:0;box-shadow:none!important;background:transparent!important;min-width:0;width:100%;padding:12px 0;font-size:12px;outline:none}
+.planner-view-switch{display:flex;gap:8px;align-items:center;margin:0 0 16px}
+.planner-view-switch>span{margin-left:auto;font-size:11px;color:var(--muted)}
+.planner-view-switch button[aria-pressed=true]{color:var(--primary);border-color:var(--primary)}
+.planner-next-grid{display:grid;grid-template-columns:1.2fr 1fr;gap:20px}
+.planner-next-grid h2,.trip-costs h2{font-size:20px}
+.planner-next-row,.planner-attention-row{display:flex;gap:12px;align-items:center;width:100%;border:0;border-bottom:1px solid var(--border);padding:15px 0;text-align:left;color:var(--text);background:transparent}
+.planner-next-row>span:nth-child(2),.planner-attention-row>span{flex:1;min-width:0}
+.planner-next-row b{font-size:13px;display:block}
+.planner-next-row small,.planner-attention-row small{display:block;margin-top:5px;font-size:11px;color:var(--muted);line-height:1.7}
+.planner-next-row>.plan-icon{padding:9px;border-radius:10px}
+.planner-next-row>.plan-icon svg{width:18px;height:18px}
+.planner-attention-row{font-size:12px;line-height:1.7}
+.planner-attention-row>svg{flex:none;color:var(--primary)}
+.planner-attention>small{display:block;margin-top:16px;font-size:10px;line-height:1.8}
+:root[data-visual] .planner-status-metrics>div{border-radius:14px;padding:18px;gap:7px}
+:root[data-visual] .planner-status-metrics b{font-size:24px;color:var(--text)}
+:root[data-visual] .planner-status-metrics span{font-size:11px;line-height:1.6}
+:root[data-visual] .planner-status-metrics svg{width:18px;height:18px}
+.planner-list-date{font-size:11px;color:var(--muted);margin:20px 0 10px;padding-left:86px}
+.trip-cost-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:22px 0}
+.trip-cost-summary.compact{grid-template-columns:repeat(3,minmax(0,1fr))}
+.trip-cost-summary>div{display:flex;flex-direction:column;gap:9px;min-width:0;padding:20px 16px;border:1px solid var(--border);border-radius:14px;background:var(--surface)}
+.trip-cost-summary span{font-size:11px;color:var(--muted)}
+.trip-cost-summary strong{font-size:clamp(18px,1.7vw,26px);font-variant-numeric:tabular-nums;color:var(--text);overflow-wrap:anywhere;letter-spacing:-.5px}
+.trip-cost-summary small{font-size:10px;color:var(--muted);line-height:1.6}
+.trip-cash-note{display:flex;align-items:flex-start;gap:13px;padding:18px;background:var(--surface-soft);border:1px solid var(--border);border-radius:13px;margin-bottom:16px}
+.trip-cash-note>svg{color:var(--primary);flex:none}
+.trip-cash-note span{font-size:11px;color:var(--muted)}
+.trip-cash-note b{display:block;font-size:23px;color:var(--text);margin:7px 0}
+.trip-cash-note small{display:block;font-size:11px;color:var(--muted);line-height:1.8}
+.trip-money-help{font-size:12px;margin:16px 0;color:var(--muted);line-height:1.8}
+.trip-money-help summary{cursor:pointer;color:var(--primary)}
+.trip-cost-row{border-bottom:1px solid var(--border);padding:0}
+.trip-cost-row>summary{display:grid;grid-template-columns:minmax(140px,2fr) repeat(3,minmax(75px,1fr));gap:14px;align-items:center;padding:20px 0;cursor:pointer;color:var(--text);list-style:none}
+.trip-cost-row>summary::after{content:'Details +';grid-column:1/-1;font-size:10px;color:var(--primary)}
+.trip-cost-row[open]>summary::after{content:'Close −'}
+.trip-cost-row>summary b{font-size:13px;overflow-wrap:anywhere;display:block;font-variant-numeric:tabular-nums}
+.trip-cost-row>summary small{font-size:10px;color:var(--muted);display:block;margin:5px 0;line-height:1.7}
+.trip-cost-row>summary>.has-unpaid b{color:var(--primary)}
+.trip-cost-detail{background:var(--surface-soft);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:18px}
+.trip-linked-bill{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:13px 0;border-bottom:1px solid var(--border)}
+.trip-linked-bill>span{min-width:0}
+.trip-linked-bill b{font-size:12px;color:var(--text);overflow-wrap:anywhere}
+.trip-linked-bill small{font-size:10px;color:var(--muted);display:block;margin-top:5px;line-height:1.7}
+.trip-linked-bill button{font-size:10px;flex:none}
+.trip-cost-detail>.plan-actions{margin-top:15px}
+.trip-costs .text-button{display:inline-flex;align-items:center;gap:7px;font-size:12px}
+@media(max-width:1000px){.trip-cost-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.planner-next-grid{grid-template-columns:1fr}}
+@media(max-width:600px){
+ .planner-filters{gap:10px}.planner-filters>.field:first-child{flex-basis:100%}.planner-filters>.field{flex-basis:40%}
+ .planner-view-switch>span{font-size:10px}.planner-next-grid{gap:0}.planner-next-row{padding:14px 0}
+ :root[data-visual] .trip-planner .plan-hero{padding:20px;align-items:flex-start;flex-direction:column;gap:15px}
+ :root[data-visual] .trip-planner .plan-time{flex-basis:50px;font-size:10px}
+ :root[data-visual] .trip-planner .plan-entry{gap:9px}
+ :root[data-visual] .trip-planner .plan-entry-body{padding:15px 12px}
+ :root[data-visual] .trip-planner .plan-entry-heading{gap:8px;flex-wrap:wrap}
+ :root[data-visual] .trip-planner .plan-entry-heading h3{font-size:15px}
+ :root[data-visual] .trip-planner .plan-icon{padding:8px}
+ :root[data-visual] .trip-planner .plan-status{font-size:10px;padding:4px 8px}
+ :root[data-visual] .trip-planner .plan-type{font-size:10px}
+ .plan-entry-footer{gap:8px}.plan-entry-footer .plan-actions{gap:6px}
+ :root[data-visual] .trip-planner .plan-entry .plan-actions :is(button,a){font-size:10px;padding:7px 9px}
+ .planner-list-date{padding-left:59px}.planner-status-metrics{grid-template-columns:1fr 1fr;gap:10px}
+ .trip-cost-summary.compact{grid-template-columns:1fr}.trip-cost-summary.compact>div{display:grid;grid-template-columns:1fr auto;align-items:center;padding:14px}.trip-cost-summary.compact small{grid-column:1/-1}
+ .trip-cost-summary{gap:9px}.trip-cost-summary>div{padding:15px 12px}.trip-cost-summary strong{font-size:20px}
+ .trip-cost-row>summary{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:17px 0}
+ .trip-cost-row>summary>span:first-child{grid-column:1/-1}.trip-cost-row>summary b{font-size:12px}
+ .trip-cost-detail{padding:14px}.trip-linked-bill{align-items:flex-start;flex-direction:column;gap:9px}
+ .trip-cost-detail>.plan-actions{align-items:stretch}.trip-cost-detail>.plan-actions button{font-size:11px;flex:1 1 40%}
+}
+.planner-day-warning{display:flex;align-items:flex-start;gap:10px;padding:14px 16px;margin:0 0 14px;border:1px solid var(--border);border-radius:12px;background:var(--surface-soft);font-size:11px;line-height:1.8;color:var(--text)}.planner-day-warning>svg{flex:none;color:var(--primary);margin-top:2px}.planner-day-warning>span{flex:1}.planner-day-warning>button{font-size:10px;flex:none}
