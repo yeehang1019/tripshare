@@ -52,3 +52,49 @@ A rollback to v50 is not fully write-compatible once a local-arrival-before-depa
 - https://support.apple.com/en-my/guide/calendar/icl1023/mac — .ics import on Mac.
 - https://support.google.com/calendar/answer/37118?hl=en — calendar import.
 - https://developers.google.com/maps/documentation/urls/get-started — cross-platform Maps URLs, URL encoding/size limits, no API key needed.
+
+# Workflow expansion — 2026-10-19 (v52)
+
+## Shipped scope
+
+The user approved the remaining nine suggestions and explicitly excluded repayment evidence / receipt confirmation. The three existing themes and independent Trip/Money navigation are retained. New panels extend the existing toolbar and focused sheets; no new overall design variant was introduced.
+
+| Area | Entry point / resulting behavior |
+| --- | --- |
+| Browser draft recovery | Expense and itinerary editors debounce local draft saves, flush on pagehide/visibility loss/beforeunload, and offer a comparison with the latest loaded authorized record before recovery. Seven-day expiry, at most ten drafts per account/group, 250k-character record bound, visible storage-failure feedback and explicit deletion. No background upload, financial retry or permission bypass. Successful confirmed saves delete the browser copy. |
+| Save state | Compact status reports saving / saved / failed / offline and last confirmed synchronization. API reads do not masquerade as writes. Requests have bounded timeouts; failed saves keep editor input. Check latest does not retry a write. Stale Trip drafts can load current data and explicitly review their change impact before saving again. |
+| Deposit / balance | The original bill holds its full cost and optional dated supplier payments. Prepaid tracks actual funds advanced without consumption; Postpaid recognizes full incurred cost and only its remaining supplier liability; Paid requires complete supplier funding. Consumption and expense IDs/dates remain stable. |
+| Money actions | Paged and searchable lists for supplier balances, prepaid recognition, unlinked trip costs and all bills. The editor opens the existing bill. Read-only group viewers open the existing bill detail. |
+| Bulk Money edits | Preview up to 100 selected bills, then atomically change only category and/or linked plan. Amounts, payers, splits, FX and expense dates remain unchanged. Requires editAll and current group revision. Each changed bill produces its own sync-change record. |
+| Today / Next | Trip-local day selector, upcoming verified instants, entered travel + buffer departure suggestions, navigation and practical details. No live traffic estimate, inferred flight zone or automatic schedule mutation. |
+| Ticket wallet | Paged booking cards with independently zoned flight summaries, leg labels, references, copy, booking link, address/navigation and contact. Uploaded files remain in Files & photos / Offline pack. |
+| Plan shift / change impact | Filter/select a day or up to 100 plans, preview local date/time shifts and warnings, then one CAS save. Individual schedule edits show before/after, new warnings and related transfers, linked flights, same-day/next-day plans and hotel stays to review. Other records are not rescheduled automatically. |
+| Saved place details | Optional stay minutes, manually entered hours, parking and transport notes. Existing places can be edited. Practical details carry into itinerary notes and the offline handbook. |
+
+## Financial boundary and compatibility
+
+Supplier installments are separate from repayments between friends. A partially funded bill displays actual payments and outstanding supplier money, but friend settlement remains unavailable until the bill is fully paid and consumed, matching the previous Postpaid/Prepaid settlement boundary. Generating interim debt claims can incorrectly change creditors when another traveller pays the balance; this release deliberately avoids that problem. Changing recorded supplier payments after linked repayments requires undoing those repayments first. Existing Paid → Postpaid/Prepaid protection remains.
+
+Installment amounts use the bill's source currency and its recorded whole-bill FX / actual converted charge. Converted actual payments and remaining liability round to exactly the converted bill total; this does not model different bank FX for each installment. Payment dates may precede the incurred date. Zero/negative payments, duplicate IDs, invalid calendar dates, unknown group payers, overpayment and an incompletely funded Paid bill are rejected. Repeating a bill clears its supplier payments and paidOn.
+
+There is no SQL migration or automatic rewrite of existing records. Existing bills without supplierPayments retain their previous behavior. Pocket Ledger still receives expense/payment records with the original expense key and incurred date. Incremental edits, batch metadata updates and supplier-only-payer removal use the existing cursor/change stream, including tombstones; no cursor reset is required for this release.
+
+Rollback must retain the new installment calculation/validation once users have saved installments. v51 would ignore the new funding list and could overstate payments or attribute them to the old default payer. The v51 date-line rollback caveat above also remains. Keep data intact and publish a compatible fix forward instead of deleting installment records.
+
+## Review and corrections
+
+- Server authorization and current-group identity checks cover both batch operations; invalid selection fails the whole operation. Revision CAS prevents duplicate shifts after an uncertain response. No automatic financial writes or retries were added.
+- Money conflicts reached through a Trip cost editor switch to Money for the existing financial comparison; itinerary conflicts remain in the planner and require fresh-data review.
+- Draft data is browser-local, account/group scoped and only offered when the current authorized editor permission allows it. It is not encrypted local storage or cross-device draft sync. Downloaded copies and local browser drafts cannot be revoked remotely. Browser quota/disabled storage is reported and never blocks ordinary server saves.
+- Money action calculations run only when its panel opens; already-paid bills are excluded before calculating supplier balances. Bulk schedule validation runs only after Preview, not on every checkbox. Trip travel tools remain lazy-loaded, clock updates are 30-second intervals, and lists are paged. No measured phone-latency claim is made.
+- Opening hours, traffic duration, ticket validity and booking changes are manually maintained. The impact list is a review aid, not a complete dependency model or a supplier notification system. Bulk shifts preserve local clocks/zones and require individual resolution of DST ambiguity rather than guessing.
+- Real browser/device interaction, clipboard permissions, storage quota behavior, dialog focus, actual offline phone memory and external calendar imports remain unverified in this environment. No browser-control skill was available, so no preview server or substitute browser was used.
+
+## Validation and verdict
+
+The focused suite now contains 130 tests: prior finance/permissions/sync/planner checks plus installment accounting and FX rounding, overpayment/member/date rejection, repayment protection, stable expense sync keys and supplier-only-payer tombstones, multi-page delta retries after metadata batches, atomic authorized plan shifts, browser draft expiry/isolation, travel-clock ordering, change-impact immutability and SSR control output. TypeScript and the Sites production build are required before publication. These are code/API/SSR checks, not a claim of testing the user's live personal records.
+
+- **KEEP:** original bill identities and incurred dates; independent Trip/Money; current account permissions; private preferences isolation; three approved light/dark themes.
+- **CHANGE NOW:** the correctness, recovery and performance corrections described above are part of this release. Publish only after the final focused suite, TypeScript and production build pass.
+- **IMPROVE LATER:** real-phone recovery/clipboard/modal checks, a realistic large-group performance profile, and actual calendar imports. Separate FX per supplier payment or cross-device draft storage needs an explicit accounting/privacy design.
+- **DO NOT ADD:** repayment proof / recipient confirmation, time polls / RSVP for now, AI/OCR/voice, automatic calendar writes, automatic supplier updates or automatic bill creation from plans.

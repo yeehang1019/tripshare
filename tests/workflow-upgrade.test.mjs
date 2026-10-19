@@ -1,0 +1,60 @@
+import test,{after} from 'node:test';
+import assert from 'node:assert/strict';
+import React from 'react';
+import {renderToStaticMarkup} from 'react-dom/server';
+import {createServer} from 'vite';
+import {fileURLToPath} from 'node:url';
+import {normalize,blankExpense,calculate,ledger,validateEvent,repeatExpense,shiftPlans,allowed} from '../lib/ledger.ts';
+const root=fileURLToPath(new URL('..',import.meta.url)),vite=await createServer({appType:'custom',configFile:false,root,resolve:{alias:{'@':root}},server:{middlewareMode:true,hmr:false}});after(()=>vite.close());
+const {draftScope,parseDraft,listDrafts,storeDraft,removeDraft}=await vite.ssrLoadModule('/lib/local-drafts.ts');
+const {changeImpact,nextTravelPlans,tripLocalDate,placePlanNotes}=await vite.ssrLoadModule('/lib/planner-workflow.ts');
+const {markSupplierPaid,reviewedExpense}=await vite.ssrLoadModule('/lib/money-operations.ts');
+const {SupplierInstallments}=await vite.ssrLoadModule('/app/supplier-installments.tsx');
+const {TripOnTheGo}=await vite.ssrLoadModule('/app/trip-on-the-go.tsx');
+const {PlanBulk}=await vite.ssrLoadModule('/app/plan-bulk.tsx');
+const {SaveStatus,DraftSnapshot}=await vite.ssrLoadModule('/app/save-recovery.tsx');
+const {TravelKit}=await vite.ssrLoadModule('/app/travel-kit.tsx');
+function fixture(){const e=normalize({name:'Trip',people:['A','B','C'],bills:[],payments:[]});e.kind='trip';e.start='2026-12-20';e.end='2026-12-25';e.timeZone='Asia/Kuala_Lumpur';return e}
+function bill(e){const b=blankExpense(e,'A');b.merchant='Hotel';b.date='2026-12-20';b.items[0].amount=100000;b.items[0].people=['A','B'];b.items[0].weights=[1,1];return b}
+function plan(id,patch={}){return {id,name:id,type:'Activity',date:'2026-12-20',time:'09:00',endTime:'10:00',location:'Place',url:'',notes:'',budget:0,category:'Activity',people:['A','B'],...patch}}
+const payment=(id,person,amount)=>({id,person,amount,date:'2026-12-01'});
+test('Supplier deposit and balance stay on one incurred bill; friend settlement waits for full funding',()=>{
+ const e=fixture(),b=bill(e);b.paymentStatus='postpaid';b.supplierPayments=[payment('deposit','A',30000)];e.expenses=[b];validateEvent(e);let c=calculate(b,e.settlement);assert.equal(c.total,100000);assert.equal(c.supplierPaid,30000);assert.equal(c.supplierRemaining,70000);assert.equal(c.paid.A,30000);assert.equal(Object.values(c.unpaid).reduce((n,v)=>n+v,0),70000);assert.deepEqual(ledger(e).transfers,[]);
+ b.supplierPayments.push(payment('balance','B',70000));b.paymentStatus='paid';validateEvent(e);assert.equal(ledger(e).total,100000);assert.deepEqual(ledger(e).transfers,[{from:'A',to:'B',amount:20000}]);assert.equal(calculate(b,e.settlement).supplierRemaining,0);
+ e.payments.push({id:'refund',from:'A',to:'B',amount:20000,date:'2026-12-21',note:'',createdBy:'',deleted:false});assert.equal(ledger(e).total,100000);assert.deepEqual(ledger(e).transfers,[]);
+});
+test('Prepaid partial deposit recognizes only the paid upfront amount and can be incurred without duplicating',()=>{
+ const e=fixture(),b=bill(e);b.paymentStatus='prepaid';b.supplierPayments=[payment('deposit','C',30000)];e.expenses=[b];validateEvent(e);let c=calculate(b,e.settlement);assert.equal(c.total,0);assert.equal(c.prepaid.C,30000);assert.equal(c.paid.C,30000);assert.equal(c.supplierRemaining,70000);assert.equal(c.consumed.A,0);
+ b.paymentStatus='postpaid';assert.equal(ledger(e).total,100000);assert.equal(calculate(b,e.settlement).paid.C,30000);assert.equal(e.expenses.length,1);
+ const paid=markSupplierPaid(b,'B','2026-12-21',e);assert.equal(paid.id,b.id);assert.equal(paid.date,b.date);assert.equal(paid.supplierPayments.length,2);assert.equal(paid.supplierPayments[0].person,'C');assert.equal(paid.supplierPayments[1].amount,70000);assert.equal(calculate(paid,e.settlement).supplierRemaining,0);
+ const repeated=repeatExpense(paid);assert.equal(repeated.supplierPayments,undefined);assert.equal(repeated.paidOn,undefined);
+});
+test('Installment validation rejects invalid dates, empty payments, duplicate identities and overpayment',()=>{
+ const e=fixture(),b=bill(e);b.paymentStatus='postpaid';for(const rows of [[payment('a','A',100001)],[payment('a','A',0)],[payment('a','A',-1)],[payment('a','A',1),payment('a','B',1)],[{...payment('a','A',1),date:'2026-02-30'}]]){b.supplierPayments=rows;assert.throws(()=>calculate(b,e.settlement))}
+ b.supplierPayments=[payment('a','stranger',30000)];e.expenses=[b];assert.throws(()=>validateEvent(e),/Unknown member/);b.supplierPayments=[payment('a','A',100000)];assert.throws(()=>calculate(b,e.settlement),/Consumed & paid/);b.supplierPayments=[payment('a','A',30000)];b.paymentStatus='paid';assert.throws(()=>calculate(b,e.settlement),/full supplier/);
+});
+test('Foreign-currency installments preserve bill FX and allocate rounded paid/unpaid amounts exactly',()=>{
+ const e=fixture(),b=bill(e);b.currency='JPY';b.rate=.031;b.items[0].amount=1001;b.paymentStatus='postpaid';b.supplierPayments=[payment('a','A',333),payment('b','B',333)];const c=calculate(b,'MYR');assert.equal(c.cashSettle,3103);assert.equal(c.paid.A+c.paid.B+Object.values(c.unpaid).reduce((n,v)=>n+v,0),c.cashSettle);assert.equal(c.total,3103);
+ const base=structuredClone(b),mine=structuredClone(b),latest=structuredClone(b);mine.supplierPayments[0].amount=300;latest.items[0].amount=1200;assert.throws(()=>reviewedExpense(base,mine,latest,{},e),/Choose/);
+});
+test('Batch shifting handles day rollover, hotel duration, flight zones and fails outside valid range',()=>{
+ const e=fixture();e.activities=[plan('late',{time:'23:40',endDate:'2026-12-21',endTime:'00:30'}),plan('hotel',{type:'Hotel',time:'15:00',endDate:'2026-12-23',endTime:'11:00'})];const next=shiftPlans(e,['late','hotel'],2,30);assert.equal(next[0].date,'2026-12-23');assert.equal(next[0].time,'00:10');assert.equal(next[0].endDate,'2026-12-23');assert.equal(next[0].endTime,'01:00');assert.equal(next[1].endDate,'2026-12-25');assert.equal(e.activities[0].date,'2026-12-20');assert.throws(()=>shiftPlans(e,['late','late'],1,0));assert.throws(()=>shiftPlans(e,['unknown'],1,0));assert.throws(()=>shiftPlans(e,['late'],1.5,0));assert.throws(()=>shiftPlans({...e,activities:[plan('late',{date:'2100-12-31'})]},['late'],1,0),/range/);assert.equal(allowed(['plan'],'planBulk','x'),true);assert.equal(allowed(['plan'],'expenseBatch','x'),false);
+});
+test('Change-impact review identifies downstream transfers and linked return/hotel without changing other plans',()=>{
+ const e=fixture(),out=plan('flight',{type:'Flight',from:'KUL',to:'BKK',time:'09:00',endTime:'11:00',timeZone:'Asia/Kuala_Lumpur',arrivalTimeZone:'Asia/Bangkok'}),transfer=plan('Pickup',{time:'12:00',endTime:'13:00',timeZone:'Asia/Bangkok',travelFrom:'flight',travelMinutes:30,bufferMinutes:15}),hotel=plan('Hotel',{type:'Hotel',date:'2026-12-19',endDate:'2026-12-23'});e.activities=[out,transfer,hotel];const before=JSON.stringify(e),impact=changeImpact(e,{...out,endTime:'12:00'});assert.ok(impact.changed.includes('endTime'));assert.ok(impact.affected.some(a=>a.id==='Pickup'));assert.ok(impact.affected.some(a=>a.id==='Hotel'));assert.ok(impact.warnings.some(w=>w.id.startsWith('transfer-')));assert.equal(JSON.stringify(e),before);assert.equal(changeImpact(e,{...out,notes:'New note'}),null);
+});
+test('Today/Next ranks instants in trip timezone and retains manual place information',()=>{
+ const e=fixture();e.activities=[plan('Next',{time:'09:00',travelMinutes:20,bufferMinutes:10}),plan('Cancelled',{time:'08:30',status:'Cancelled'}),plan('Unknown flight',{type:'Flight',time:'08:10'})];const now=Date.parse('2026-12-20T00:00:00Z'),next=nextTravelPlans(e,now);assert.equal(next.length,1);assert.equal(next[0].plan.id,'Next');assert.equal(new Date(next[0].depart).toISOString(),'2026-12-20T00:30:00.000Z');assert.equal(tripLocalDate(e,Date.parse('2026-12-19T18:00:00Z')),'2026-12-20');const notes=placePlanNotes({name:'Cafe',url:'',notes:'Meet here',stayMinutes:45,openingHours:'9–6',parking:'Basement',transport:'Train'});assert.match(notes,/45 min/);assert.match(notes,/Basement/);
+});
+test('Browser drafts expire, reject malformed data and remain isolated by account/group',()=>{
+ const e=fixture(),b=bill(e),now=Date.now(),draft={schema:1,kind:'expense',entity:b,base:null,revision:1,updated:now};assert.ok(parseDraft(JSON.stringify(draft),now));assert.equal(parseDraft(JSON.stringify({...draft,updated:now-8*86400000}),now),null);assert.equal(parseDraft('{'),null);assert.equal(parseDraft(JSON.stringify({...draft,kind:'payment'})),null);assert.notEqual(draftScope('a@example.com','g1'),draftScope('b@example.com','g1'));assert.notEqual(draftScope('a@example.com','g1'),draftScope('a@example.com','g2'));
+ const map=new Map();globalThis.localStorage={get length(){return map.size},key:i=>[...map.keys()][i],getItem:k=>map.get(k)||null,setItem:(k,v)=>map.set(k,v),removeItem:k=>map.delete(k)};globalThis.window={dispatchEvent(){}};
+ const a=draftScope('a','one'),other=draftScope('a','two');assert.equal(storeDraft(a,draft),true);storeDraft(other,{...draft,entity:{...b,merchant:'Other group'}});assert.equal(listDrafts(a).length,1);assert.equal(listDrafts(a)[0].entity.merchant,'Hotel');removeDraft(a,'expense',b.id);assert.equal(listDrafts(a).length,0);assert.equal(listDrafts(other).length,1);delete globalThis.localStorage;delete globalThis.window;
+});
+test('Workflow controls expose payment progress, trip tools and readable recovery status through existing components',()=>{
+ const e=fixture(),b=bill(e);b.paymentStatus='postpaid';b.supplierPayments=[payment('d','A',30000)];e.expenses=[b];e.activities=[plan('Hotel',{type:'Hotel',reference:'BOOK-123',url:'https://example.com/ticket'})];e.travel={favorites:[{id:'c',name:'Cafe',url:'',notes:'',stayMinutes:60,openingHours:'9–6',parking:'Basement'}],meeting:{place:'',time:'',notes:'',url:''},packing:[]};
+ let html=renderToStaticMarkup(React.createElement(SupplierInstallments,{bill:b,event:e,update(){}}));assert.match(html,/Supplier paid/);assert.match(html,/700\.00/);assert.match(html,/fully paid and consumed/);
+ html=renderToStaticMarkup(React.createElement(TripOnTheGo,{event:e,mode:'tickets'}));assert.match(html,/BOOK-123/);assert.match(html,/Open booking/);assert.match(html,/Copy reference/);
+ html=renderToStaticMarkup(React.createElement(PlanBulk,{event:e,busy:false,onApply:async()=>true,onDirty(){}}));assert.match(html,/Select matching plans/);assert.match(html,/Days shift/);html=renderToStaticMarkup(React.createElement(SaveStatus,{state:'failed',last:'2026-10-19T08:00:00Z',retry(){}}));assert.match(html,/input kept/);assert.match(html,/Check latest/);
+ html=renderToStaticMarkup(React.createElement(DraftSnapshot,{event:e,entity:b,kind:'expense'}));assert.match(html,/Hotel/);assert.match(html,/Actual supplier payments/);assert.doesNotMatch(html,/createdBy|\"supplierPayments\"/);html=renderToStaticMarkup(React.createElement(TravelKit,{event:e,canEdit:true,busy:false,onSave:async()=>true,onDirty(){},onAddActivity:async()=>true}));assert.match(html,/Basement/);assert.match(html,/Edit place/);assert.match(html,/Opening hours/);
+});

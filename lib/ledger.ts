@@ -14,6 +14,7 @@ export type Item = {
 export type Expense = {
   paymentStatus?: "paid" | "postpaid" | "prepaid";
   paidOn?:string;
+  supplierPayments?:{id:string;person:string;amount:number;date:string}[];
   id: string;
   date: string;
   merchant: string;
@@ -102,7 +103,7 @@ export type Audit = {
 export type Event = {
   timeZone?:string;
   destination?: string;
-  travel?: {favorites:{id:string;name:string;url:string;notes:string}[];meeting:{place:string;time:string;notes:string;url:string};packing:{id:string;name:string;done:boolean;person:string}[]};
+  travel?: {favorites:{id:string;name:string;url:string;notes:string;stayMinutes?:number;openingHours?:string;parking?:string;transport?:string}[];meeting:{place:string;time:string;notes:string;url:string};packing:{id:string;name:string;done:boolean;person:string}[]};
   checklist?: {id:string;name:string;done:boolean;person:string;due:string}[];
   schema: 2;
   name: string;
@@ -459,29 +460,36 @@ export function calculate(b: Expense, settlement: string) {
       new Set(b.payers.map((p) => p.person)).size === b.payers.length,
     "Select unique payers",
   );
-  const paidSource = b.payers.map((p) =>
+  const paidSource = b.supplierPayments ? b.payers.map(()=>0) : b.payers.map((p) =>
     p.amount === -1 && b.payers.length === 1
       ? cashTotal
       : cents(p.amount, "Payment"),
   );
   check(
-    paidSource.reduce((a, v) => a + v, 0) === cashTotal,
+    !!b.supplierPayments || paidSource.reduce((a, v) => a + v, 0) === cashTotal,
     "Payments must equal final receipt total",
   );
-  const paid = Object.fromEntries(
-    b.payers.map((p, i) => [p.person, allocate(cashSettle, paidSource)[i]]),
-  );
+  const installments=b.supplierPayments;
+  if(installments!==undefined){
+    check(Array.isArray(installments)&&installments.length<=100&&new Set(installments.map(p=>p.id)).size===installments.length,'Check supplier payments');
+    for(const p of installments)check(typeof p.id==='string'&&!!p.id&&p.id.length<=150&&typeof p.person==='string'&&!!p.person&&validDate(p.date)&&cents(p.amount,'Supplier payment')>0,'Check supplier payment amount, payer and date');
+    const sum=installments.reduce((n,p)=>n+p.amount,0);
+    check(sum<=cashTotal,'Supplier payments exceed the bill total');
+    check(b.paymentStatus!=='postpaid'||sum!==cashTotal||sum===0,'Full supplier payment recorded. Choose Consumed & paid.');
+    check((b.paymentStatus||'paid')!=='paid'||sum===cashTotal,'Paid bill requires full supplier payment');
+  }
+  const supplierPaid=installments?installments.reduce((n,p)=>n+p.amount,0):b.paymentStatus==='postpaid'?0:cashTotal;
+  const paidSettle=Math.round(cashSettle*(cashTotal?supplierPaid/cashTotal:0));
+  const paid:Record<string,number>={};
+  if(installments){const values=allocate(paidSettle,installments.map(p=>p.amount));installments.forEach((p,i)=>paid[p.person]=(paid[p.person]||0)+values[i])}
+  else b.payers.forEach((p,i)=>paid[p.person]=allocate(paidSettle,paidSource)[i]);
+  const effectiveContribution=b.paymentStatus==='postpaid'||b.paymentStatus==='prepaid'?0:contribution;
   const funding = { ...paid };
-  if (contribution)
-    funding[b.voucherOwner] = (funding[b.voucherOwner] || 0) + contribution;
+  if(effectiveContribution)funding[b.voucherOwner]=(funding[b.voucherOwner]||0)+effectiveContribution;
   const responsible = b.treat ? { [b.treat]: total } : consumed;
   const owingMembers = Object.keys(responsible);
-  const unpaid = b.paymentStatus === 'postpaid' ? Object.fromEntries(owingMembers.map((p, i) => [p, allocate(cashSettle, owingMembers.map(id => responsible[id]))[i]])) : {};
+  const unpaid = b.paymentStatus === 'postpaid' ? Object.fromEntries(owingMembers.map((p,i)=>[p,allocate(cashSettle-paidSettle,owingMembers.map(id=>responsible[id]))[i]])) : {};
   const prepaid = b.paymentStatus === 'prepaid' ? { ...paid } : {};
-  if (b.paymentStatus === 'postpaid') {
-    for (const p of Object.keys(paid)) paid[p] = 0;
-    for (const p of Object.keys(funding)) funding[p] = 0;
-  }
   if (b.paymentStatus === 'prepaid') {
     for (const p of Object.keys(consumed)) consumed[p] = 0;
     for (const p of Object.keys(responsible)) responsible[p] = 0;
@@ -489,6 +497,8 @@ export function calculate(b: Expense, settlement: string) {
   return {
     cashTotal,
     cashSettle,
+    supplierPaid,
+    supplierRemaining:cashTotal-supplierPaid,
     total: b.paymentStatus === 'prepaid' ? 0 : total,
     unpaid,
     prepaid,
@@ -502,7 +512,7 @@ export function calculate(b: Expense, settlement: string) {
     lines,
     tax: tax.reduce((a, v) => a + v, 0),
     service: service.reduce((a, v) => a + v, 0),
-    contribution: !b.paymentStatus || b.paymentStatus === 'paid' ? contribution : 0,
+    contribution: effectiveContribution,
   };
 }
 type DebtClaim = {
@@ -714,6 +724,7 @@ export function validateEvent(e: Event) {
     check(
       b.items.every((i) => i.people.every((p) => ids.includes(p))) &&
         b.payers.every((p) => ids.includes(p.person)) &&
+        (!b.supplierPayments||b.supplierPayments.every(p=>ids.includes(p.person))) &&
         (!b.treat || ids.includes(b.treat)) &&
         (!b.voucherOwner || ids.includes(b.voucherOwner)),
       "Unknown member",
@@ -780,6 +791,7 @@ export function validateEvent(e: Event) {
     const url=(v:unknown)=>text(v,1500)&&(!v||/^https?:\/\//i.test(String(v)));
     check(Array.isArray(t.favorites)&&t.favorites.length<=200&&new Set(t.favorites.map(x=>x.id)).size===t.favorites.length,'Check saved places');
     for(const x of t.favorites)check(text(x.id,150)&&!!x.id&&text(x.name,200)&&!!x.name.trim()&&url(x.url)&&text(x.notes,2000),'Check saved place');
+    for(const x of t.favorites)check((x.stayMinutes===undefined||Number.isInteger(x.stayMinutes)&&x.stayMinutes>=0&&x.stayMinutes<=1440)&&['openingHours','parking','transport'].every(k=>(x as any)[k]===undefined||text((x as any)[k],500)),'Check place practical details');
     check(!!t.meeting&&text(t.meeting.place,300)&&text(t.meeting.time,100)&&text(t.meeting.notes,3000)&&url(t.meeting.url),'Check meeting details');
     check(Array.isArray(t.packing)&&t.packing.length<=500&&new Set(t.packing.map(x=>x.id)).size===t.packing.length,'Check packing list');
     for(const x of t.packing)check(text(x.id,150)&&!!x.id&&text(x.name,200)&&!!x.name.trim()&&typeof x.done==='boolean'&&(!x.person||ids.includes(x.person)),'Check packing item');
@@ -838,7 +850,8 @@ export function allowed(
     );
   if (["payment", "undoPayment"].includes(action))
     return perms.includes("settle");
-  if (["activity", "deleteActivity", "planChecklist", "planBasics", "planOrder", "travelKit", "planBatch"].includes(action))
+  if(action==="expenseBatch")return perms.includes("editAll");
+  if (["activity", "planBulk", "deleteActivity", "planChecklist", "planBasics", "planOrder", "travelKit", "planBatch"].includes(action))
     return perms.includes("plan");
   if (["person", "group", "deleteGroup"].includes(action)) return perms.includes("members");
   return false;
@@ -854,6 +867,7 @@ export function repeatExpense(source:Expense,date=today()):Expense{
   copy.id=crypto.randomUUID();
   copy.date=date;
   delete copy.paidOn;
+  delete copy.supplierPayments;
   copy.activity='';
   copy.createdBy='';
   copy.deleted=false;
@@ -866,4 +880,12 @@ export function repeatExpense(source:Expense,date=today()):Expense{
     });
   }
   return copy;
+}
+
+export function shiftPlans(e:Event,ids:string[],days:number,minutes:number){
+ check(Array.isArray(ids)&&ids.length>0&&ids.length<=100&&new Set(ids).size===ids.length,'Select 1–100 different plans');
+ check(Number.isInteger(days)&&Math.abs(days)<=366&&Number.isInteger(minutes)&&Math.abs(minutes)<=1440,'Choose up to 366 days / 1440 minutes');
+ check(ids.every(id=>e.activities.some(a=>a.id===id)),'A selected plan no longer exists');
+ function shift(date:string,time:string|undefined){if(!validDate(date))throw Error('Check plan date');const stamp=Date.parse(date+'T'+(time||'00:00')+':00Z')+(days*1440+(time?minutes:0))*60000;const iso=new Date(stamp).toISOString();if(!validDate(iso.slice(0,10)))throw Error('Shifted date is outside the supported range');return {date:iso.slice(0,10),time:time?iso.slice(11,16):time}}
+ return e.activities.filter(a=>ids.includes(a.id)).map(a=>{const start=shift(a.date,a.time),end=a.endDate||a.endTime?shift(a.endDate||a.date,a.endTime):undefined;return {...a,date:start.date,time:start.time||'',...(end?{endDate:end.date,endTime:end.time}:{}),order:undefined,timeChoice:undefined,endTimeChoice:undefined}});
 }

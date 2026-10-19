@@ -13,6 +13,8 @@ import {
   money,
   unit,
 } from "@/lib/ledger";
+import {useDraftSave} from "./save-recovery";
+import {SupplierInstallments} from "./supplier-installments";
 import { Pick, Field, Amount, Check, People } from "./trip-controls";
 import { UsersRound, Sparkles, ArrowRight } from "lucide-react";
 export default function ExpenseEditor({
@@ -22,6 +24,8 @@ export default function ExpenseEditor({
   onSave,
   onCancel,
   stickyActions=false,
+  draftScope,
+  draftRevision=0,
 }: {
   event: Event;
   initial: Expense;
@@ -29,9 +33,12 @@ export default function ExpenseEditor({
   onSave: (b: Expense) => Promise<boolean>;
   onCancel: () => void;
   stickyActions?:boolean;
+  draftScope?:string;
+  draftRevision?:number;
 }) {
   const [b, set] = useState(initial),
     [confirmed, setConfirmed] = useState(false);
+  const localStatus=useDraftSave(draftScope,'expense',b,draftRevision,e.expenses.find(x=>x.id===initial.id)||null);
   const edit = e.expenses.some((x) => x.id === b.id);
   const update = (patch: Partial<Expense>) => {
     const next={...b,...patch};
@@ -94,6 +101,7 @@ export default function ExpenseEditor({
             Close
           </button>
         </div>
+        {localStatus&&<p className="muted" role="status">{localStatus}</p>}
         <Tabs
           value={b.mode}
           onValueChange={(v) => {
@@ -210,7 +218,8 @@ export default function ExpenseEditor({
             ]} onChange={(paymentStatus) => update({paymentStatus:paymentStatus as Expense['paymentStatus']})}/>
             <small>{b.paymentStatus === 'postpaid' ? 'Counts as consumption and unpaid to the supplier. Change to Consumed & paid after payment.' : b.paymentStatus === 'prepaid' ? 'Counts as paid upfront only. Edit this same record to Consumed & paid when used; do not add a second expense.' : 'Counts as consumption and actual payment. Member reimbursements appear in Settlement.'}</small>
           </Field>
-          <Field label={b.paymentStatus === 'postpaid' ? "Will be paid by" : "Paid by"}>
+          <SupplierInstallments bill={b} event={e} update={update}/>
+          <Field label={b.supplierPayments?"Default payer for new supplier payments":b.paymentStatus === 'postpaid' ? "Will be paid by" : "Paid by"}>
             <Pick
               label="Paid by"
               value={b.payers[0]?.person || ""}
@@ -532,7 +541,7 @@ export default function ExpenseEditor({
         <details>
           <summary>Paid by more than one person</summary>
           <p className="muted">
-            Amounts below are in {b.currency}. One payer automatically pays the
+            Amounts below are in {b.currency}. Without installment tracking, one payer automatically pays the
             receipt total.
           </p>
           {b.payers.map((p, i) => (
@@ -648,6 +657,7 @@ export default function ExpenseEditor({
       </section>
       <aside className="panel preview">
         <p className="eyebrow">3 · REVIEW</p>
+        {b.supplierPayments&&<p className="muted">Actual supplier payers are listed in Deposit & balance. Friend settlement uses those payments once fully paid and consumed.</p>}
         <h2>{money(c?.cashTotal || 0, b.currency)}</h2>
         <p className="muted">
           {b.treat ? `Treated by ${name(b.treat)}` : `Split between ${b.items[0]?.people.length || 0} people`}
@@ -670,7 +680,7 @@ export default function ExpenseEditor({
                 <b>{money(v, e.settlement)}</b>
               </div>
             ))}
-            {!b.treat && b.payers.length === 1 && (!b.paymentStatus || b.paymentStatus === 'paid') && (
+            {!b.supplierPayments && !b.treat && b.payers.length === 1 && (!b.paymentStatus || b.paymentStatus === 'paid') && (
               <div className="live-result">
                 <b>After saving</b>
                 {Object.entries(c.responsible).filter(([p,v])=>p !== b.payers[0].person && v > 0).map(([p,v])=><p key={p}><span>{name(p)} will owe {name(b.payers[0].person)}</span><b>{money(v,e.settlement)}</b></p>)}

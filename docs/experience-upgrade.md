@@ -83,3 +83,7 @@ The Trip toolbar now opens Calendar, Plan library, Private preferences and Offli
 The template library is account-private and stores reusable active plans, not actual Money records or booking credentials. It supports one-day and whole-itinerary capture and review before appending to another trip. Preferences are stored separately and are excluded from every shared/export projection. Offline packs combine a fresh authorized itinerary with selected individually authorized attachments in a bounded local ZIP. Google links and Apple .ics exports create calendar copies, not live synchronization.
 
 See `docs/engineering-review.md` for the complete review, tests, schema/rollback limits and concrete performance/error-handling improvements. `AGENTS.md` carries the user’s requirement to repeat that review after subsequent implementations.
+
+## v52 — calmer daily workflows
+
+Adds recoverable local expense/plan drafts, clear save state, single-bill supplier installments, Money action lists and batch category/plan linking. Trip tools add Today/Next, Ticket wallet and reviewed batch date/time shifts; individual schedule changes show their likely impact. Saved places now hold editable practical details and carry them into plans/offline handbooks. Repayment evidence/recipient confirmation is excluded. See engineering-review.md for accounting boundaries, limits and verification.

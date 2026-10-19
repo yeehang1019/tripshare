@@ -4,7 +4,7 @@ import {settlementPlan} from './settlement-plan';
 export function markSupplierPaid(source:Expense,payer:string,paidOn:string,event:Event):Expense {
   if(source.deleted||source.paymentStatus!=='postpaid')throw Error('Only an existing unpaid supplier bill can be marked paid.');
   if(!event.people.some(p=>p.id===payer&&p.active!==false))throw Error('Choose an active payer.');
-  const result:Expense={...structuredClone(source),paymentStatus:'paid',paidOn,payers:[{person:payer,amount:-1}]};
+  const result:Expense={...structuredClone(source),paymentStatus:'paid',paidOn,payers:[{person:payer,amount:-1}],...(source.supplierPayments?{supplierPayments:[...source.supplierPayments,...(calculate(source,event.settlement).supplierRemaining>0?[{id:crypto.randomUUID(),person:payer,amount:calculate(source,event.settlement).supplierRemaining,date:paidOn}]:[])]}:{})};
   calculate(result,event.settlement);
   return result;
 }
@@ -15,7 +15,7 @@ export const expenseGroups = [
   {id:'date',label:'Expense date',keys:['date']},
   {id:'category',label:'Category',keys:['category']},
   {id:'activity',label:'Linked trip plan',keys:['activity']},
-  {id:'financial',label:'Amount, split & payment',keys:['mode','currency','rate','actual','items','tax','service','taxService','discount','discountItems','voucher','voucherPeople','voucherOwner','voucherContribution','rounding','receipt','payers','treat','paymentStatus','paidOn']},
+  {id:'financial',label:'Amount, split & payment',keys:['mode','currency','rate','actual','items','tax','service','taxService','discount','discountItems','voucher','voucherPeople','voucherOwner','voucherContribution','rounding','receipt','payers','treat','paymentStatus','paidOn','supplierPayments']},
 ] as const;
 export type ExpenseGroup = typeof expenseGroups[number]['id'];
 export type ConflictChoices = Partial<Record<ExpenseGroup,'mine'|'latest'>>;

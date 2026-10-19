@@ -2,6 +2,7 @@ import { database } from "@/db/raw";
 import { memberRecord,collaboratorRecord,auditVisible,personalAuditValue } from "@/lib/personal";
 import {
   normalize,
+  shiftPlans,
   validateEvent,
   permissionKeys,
   allowed,
@@ -376,7 +377,21 @@ export async function POST(r: Request) {
           { error: "You do not have permission for this action" },
           403,
         );
-      if (b.action === "expense") {
+      if(b.action==='planBulk'){
+        if(data.kind!=='trip')throw Error('Choose a trip');
+        const next=shiftPlans(data,b.entity?.ids,b.entity?.days,b.entity?.minutes);
+        before=data.activities.filter(a=>b.entity.ids.includes(a.id));after=next;
+        const byId=new Map(next.map(a=>[a.id,a]));data.activities=data.activities.map(a=>byId.get(a.id)||a);
+      }else if(b.action==='expenseBatch'){
+        const {ids,category,activity}=b.entity||{};
+        if(!Array.isArray(ids)||!ids.length||ids.length>100||new Set(ids).size!==ids.length||ids.some((id:string)=>!data.expenses.some(x=>x.id===id&&!x.deleted)))throw Error('Select 1–100 current bills');
+        if(category===undefined&&activity===undefined)throw Error('Choose a category or plan');
+        if(category!==undefined&&!['Food','Transport','Activity','Shopping','Grocery','Accommodation','Other'].includes(category))throw Error('Invalid category');
+        if(activity!==undefined&&(typeof activity!=='string'||activity&&!data.activities.some(a=>a.id===activity)))throw Error('Linked plan no longer exists');
+        before=data.expenses.filter(x=>ids.includes(x.id));
+        data.expenses=data.expenses.map(x=>ids.includes(x.id)?{...x,...(category!==undefined?{category}:{}),...(activity!==undefined?{activity}:{})}:x);after=data.expenses.filter(x=>ids.includes(x.id));
+      }else if (b.action === "expense") {
+        if(old?.supplierPayments&&JSON.stringify(old.supplierPayments)!==JSON.stringify(b.entity.supplierPayments)&&data.payments.some(p=>!p.deleted&&(!p.allocations||p.allocations.some(a=>a.expense===entity))))throw Error('Undo repayments linked to this bill before changing its supplier payments');
         if (old && (b.entity.paymentStatus || 'paid') !== 'paid' && (old.paymentStatus || 'paid') === 'paid' && data.payments.some(p => !p.deleted && (!p.allocations || p.allocations.some(a => a.expense === entity))))
           throw Error("Undo repayments linked to this expense before changing it to unpaid or prepaid");
         const expense: Expense = {
@@ -487,10 +502,11 @@ export async function POST(r: Request) {
     if (JSON.stringify(data).length > 3000000)
       throw Error("Event is full. Export a backup and create a new event.");
     const changes: {kind:string;recordId:string;members:string}[] = [];
+    if(b.action==='expenseBatch')for(const x of after as Expense[])changes.push({kind:'expense',recordId:x.id,members:JSON.stringify([...new Set([...x.items.flatMap(i=>i.people),...x.payers.map(p=>p.person),...(x.supplierPayments||[]).map(p=>p.person),...(x.treat?[x.treat]:[]),...(x.voucherOwner?[x.voucherOwner]:[])])])});
     if (['expense','deleteExpense','restoreExpense'].includes(b.action)) {
       const current = data.expenses.find(x => x.id === entity);
       const participants = (x?: Expense) => x ? [
-        ...x.items.flatMap(item => item.people), ...x.payers.map(p => p.person),
+        ...x.items.flatMap(item => item.people), ...x.payers.map(p => p.person), ...(x.supplierPayments||[]).map(p=>p.person),
         ...(x.treat ? [x.treat] : []), ...(x.voucherOwner ? [x.voucherOwner] : []),
       ] : [];
       changes.push({kind:'expense',recordId:entity,members:JSON.stringify([...new Set([...participants(old),...participants(current)])])});
