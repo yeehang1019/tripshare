@@ -305,3 +305,19 @@ test('Revoking login access invalidates accepted invites and inactive members ca
  await h.post({action:'revoke',id,grant:id+':b@example.com'});assert.equal((await h.post({action:'acceptInvite',token:first.token},'b@example.com')).status,410);
  const second=await h.post({action:'createInvite',id,person:'B',email:'b@example.com'});await h.post({action:'person',id,revision:0,entity:{id:'B',name:'B',active:false}});assert.equal((await h.post({action:'acceptInvite',token:second.token},'b@example.com')).status,410);h.sqlite.close();
 });
+
+test('Quick Pick split preferences persist privately and reject invalid or cross-group combinations',async()=>{
+ const h=await harness(),template={id:'split',name:'Toll',amount:350,currency:'MYR',category:'Transport',group:'group-one',payer:'A',people:['A','B']};
+ const saved=await h.workspaceSave({revision:0,action:'template',template});assert.equal(saved.status,200);assert.deepEqual(saved.data.templates[0].people,['A','B']);assert.equal((await h.workspaceRead('b@example.com')).data.templates.length,0);
+ for(const people of [['A','A'],[null],[''],[42]])assert.equal((await h.workspaceSave({revision:1,action:'template',template:{...template,people}})).status,400);
+ assert.equal((await h.workspaceSave({revision:1,action:'template',template:{...template,group:''}})).status,400);assert.equal((await h.workspaceRead()).revision,1);assert.equal(h.sqlite.prepare('SELECT count(*) AS n FROM trips').get().n,0);h.sqlite.close();
+});
+test('Supplier Paid update preserves the original expense and incremental sync key; server rejects stale or unauthorized writes',async()=>{
+ const h=await harness(),e=ledger.normalize({name:'Supplier flow',people:['A','B'],bills:[],payments:[]}),{id}=await h.post({action:'create',data:e});await h.post({action:'grant',id,email:'b@example.com',person:'B',permissions:[]});
+ const b=ledger.blankExpense(e,'A');b.id='same-bill';b.merchant='Hotel';b.date='2026-10-01';b.items[0].amount=10000;b.paymentStatus='postpaid';
+ assert.equal((await h.post({action:'expense',id,revision:0,entity:b})).status,200);const initial=await h.syncRead();assert.equal(initial.entries[0].unpaid_minor,5000);
+ const paid={...b,paymentStatus:'paid',paidOn:'2026-10-02',payers:[{person:'A',amount:-1}]};assert.equal((await h.post({action:'expense',id,revision:1,entity:paid},'b@example.com')).status,403);
+ assert.equal((await h.post({action:'expense',id,revision:0,entity:paid})).status,409);assert.equal((await h.post({action:'expense',id,revision:1,entity:{...paid,paidOn:'2026-02-30'}})).status,400);
+ assert.equal((await h.post({action:'expense',id,revision:1,entity:paid})).status,200);const latest=(await h.get('owner@example.com')).trips[0];assert.equal(latest.data.expenses.length,1);assert.equal(latest.data.expenses[0].date,b.date);assert.equal(latest.data.expenses[0].paidOn,'2026-10-02');assert.equal(ledger.ledger(latest.data).total,10000);assert.equal(latest.data.payments.length,0);
+ const delta=await h.syncRead(initial.next_cursor);assert.equal(delta.entries.length,1);assert.deepEqual(delta.entries[0].key,initial.entries[0].key);assert.equal(delta.entries[0].record_type,'expense');assert.equal(delta.entries[0].date,'2026-10-01');assert.equal(delta.entries[0].consumed_minor,initial.entries[0].consumed_minor);assert.equal(delta.entries[0].unpaid_minor,0);assert.deepEqual((await h.syncRead(initial.next_cursor)).entries,delta.entries);h.sqlite.close();
+});

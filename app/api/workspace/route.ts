@@ -26,7 +26,8 @@ export async function POST(request:Request){
       const t=body.template;
       if(!t||typeof t.id!=='string'||!t.id||t.id.length>150||typeof t.name!=='string'||!t.name.trim()||t.name.length>100||!currencies.includes(t.currency)||!categories.includes(t.category)||typeof t.group!=='string'||typeof t.payer!=='string')throw Error('Check template details');
       cents(t.amount);if(t.amount<=0)throw Error('Enter a template amount');
-      const template={id:t.id,name:t.name.trim(),amount:t.amount,currency:t.currency,category:t.category,group:t.group,payer:t.payer,pinned:t.pinned===true};
+      if(t.people!==undefined&&(!Array.isArray(t.people)||t.people.length>100||new Set(t.people).size!==t.people.length||t.people.some((p:unknown)=>typeof p!=='string'||!p||p.length>150)||!t.group&&t.people.length))throw Error('Save split people only for a specific group');
+      const template={people:t.people||[],id:t.id,name:t.name.trim(),amount:t.amount,currency:t.currency,category:t.category,group:t.group,payer:t.payer,pinned:t.pinned===true};
       data.templates=[...data.templates.filter((x:any)=>x.id!==t.id),template];if(data.templates.length>100)throw Error('Template limit: 100');
     }else if(body.action==='notificationsRead'){if(typeof body.readAt!=='string'||!Number.isFinite(Date.parse(body.readAt))||Date.parse(body.readAt)>Date.now()+60000)throw Error('Invalid read time');data.notificationReadAt=body.readAt;}else if(body.action==='deleteTemplate')data.templates=data.templates.filter((t:any)=>t.id!==body.id);
     else if(body.action==='fx'){

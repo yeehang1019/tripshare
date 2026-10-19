@@ -116,8 +116,8 @@ test('Planner compact view and full cost view separate estimates from bills and 
  const props={event:e,busy:false,canPlan:true,canExpense:true,draft:null,setDraft(){},onBegin(){},onSave:async()=>true,onAction:async()=>true,onDelete(){},onExpense(){},onShare(){},onDirty(){}};
  const privateView=renderToStaticMarkup(React.createElement(TripPlanner,{...props,section:'Itinerary',initialDay:e.start,showFinancial:false}));
  assert.match(privateView,/Group costs are private/);assert.doesNotMatch(privateView,/Private supplier details|1,234.56|9,876.54|Supplier unpaid/);
- const costs=renderToStaticMarkup(React.createElement(tripCosts.default,{event:e,canAdd:true,canEdit:true,busy:false,onAdd(){},onEdit(){},onOpenMoney(){}}));
- assert.match(costs,/Plan estimate/);assert.match(costs,/Recorded spending/);assert.match(costs,/Supplier bills unpaid/);assert.match(costs,/Prepaid \/ deposits/);assert.match(costs,/Update \/ mark paid/);assert.match(costs,/\+ Deposit/);
+ const costs=renderToStaticMarkup(React.createElement(tripCosts.default,{event:e,canAdd:true,canEdit:true,busy:false,onAdd(){},onEdit(){},onMarkPaid(){},onOpenMoney(){}}));
+ assert.match(costs,/Plan estimate/);assert.match(costs,/Recorded spending/);assert.match(costs,/Supplier bills unpaid/);assert.match(costs,/Prepaid \/ deposits/);assert.match(costs,/Mark supplier paid/);assert.match(costs,/Edit bill/);assert.match(costs,/\+ Deposit/);
  assert.equal(e.expenses.length,1);
 });
 test('Planner opens the requested date rather than resetting to the first travel day',()=>{

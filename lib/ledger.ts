@@ -12,6 +12,7 @@ export type Item = {
 };
 export type Expense = {
   paymentStatus?: "paid" | "postpaid" | "prepaid";
+  paidOn?:string;
   id: string;
   date: string;
   merchant: string;
@@ -276,6 +277,8 @@ export function blankExpense(e: Event, person: string): Expense {
 }
 export function calculate(b: Expense, settlement: string) {
   check(!b.paymentStatus || ['paid', 'postpaid', 'prepaid'].includes(b.paymentStatus), 'Invalid payment status');
+  if(b.paidOn!==undefined)check(typeof b.paidOn==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(b.paidOn)&&Number.isFinite(Date.parse(b.paidOn))&&new Date(b.paidOn+'T12:00:00Z').toISOString().slice(0,10)===b.paidOn&&b.paidOn>=b.date&&b.paidOn>='2000-01-01'&&b.paidOn<='2100-12-31'&&(b.paymentStatus||'paid')==='paid','Check payment date (on or after the expense date)');
+
   check(b.items.length > 0 && b.items.length <= 300, "Add 1–300 items");
   check(
     currencies.includes(b.currency) && currencies.includes(settlement),
@@ -815,6 +818,7 @@ export function repeatExpense(source:Expense,date=today()):Expense{
   const copy=structuredClone(source),itemIds=new Map<string,string>();
   copy.id=crypto.randomUUID();
   copy.date=date;
+  delete copy.paidOn;
   copy.activity='';
   copy.createdBy='';
   copy.deleted=false;

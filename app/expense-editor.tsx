@@ -34,7 +34,9 @@ export default function ExpenseEditor({
     [confirmed, setConfirmed] = useState(false);
   const edit = e.expenses.some((x) => x.id === b.id);
   const update = (patch: Partial<Expense>) => {
-    set({ ...b, ...patch });
+    const next={...b,...patch};
+    if(patch.paymentStatus&&patch.paymentStatus!=='paid')delete next.paidOn;
+    set(next);
     setConfirmed(false);
   };
   const item = (index: number, patch: Partial<Item>) =>
@@ -199,6 +201,7 @@ export default function ExpenseEditor({
           <div><b>Amount & people</b><small>Who paid, and who shared it?</small></div>
         </div>
         <div className="fields">
+          {b.paidOn!==undefined&&<Field label="Supplier payment date"><input type="date" min={b.date} value={b.paidOn} onChange={v=>update({paidOn:v.target.value})}/><small>Expense date stays the date the cost was incurred.</small></Field>}
           <Field label="Payment status">
             <Pick label="Payment status" value={b.paymentStatus || 'paid'} options={[
               {id:'paid',name:'Consumed & paid'},

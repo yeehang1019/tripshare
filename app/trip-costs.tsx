@@ -14,6 +14,7 @@ type Props = {
   busy: boolean;
   onAdd: (activity?: Activity, status?: Expense['paymentStatus']) => void;
   onEdit: (expense: Expense) => void;
+  onMarkPaid?: (expense: Expense) => void;
   onOpenMoney: (activity?: string) => void;
 };
 export function TripCostSummary({event, compact=false}: {event: Event; compact?: boolean}) {
@@ -26,7 +27,7 @@ export function TripCostSummary({event, compact=false}: {event: Event; compact?:
     {!compact&&<div><span>Prepaid / deposits</span><strong>{fmt(summary.total.prepaid)}</strong><small>Not consumed yet</small></div>}
   </div>;
 }
-export default function TripCosts({event:e, canAdd, canEdit, busy, onAdd, onEdit, onOpenMoney}: Props) {
+export default function TripCosts({event:e, canAdd, canEdit, busy, onAdd, onEdit, onMarkPaid, onOpenMoney}: Props) {
   const summary = useMemo(() => tripFinance(e), [e]);
   const [query,setQuery]=useState(''),[filter,setFilter]=useState('All plans'),[limit,setLimit]=useState(30);
   const fmt = (n: number) => money(n, e.settlement);
@@ -37,7 +38,8 @@ export default function TripCosts({event:e, canAdd, canEdit, busy, onAdd, onEdit
   });
   function billList(cost:TripCost){return cost.bills.slice(0,50).map(b=><div className="trip-linked-bill" key={b.id}>
     <span><b>{b.merchant}</b><small>{dateLabel(b.date)} · {money(calculate(b,e.settlement).cashTotal,b.currency)} · {b.paymentStatus==='postpaid'?'Unpaid supplier bill':b.paymentStatus==='prepaid'?'Prepaid / deposit':'Paid expense'}</small></span>
-    {canEdit&&<button className="secondary compact" disabled={busy} onClick={()=>onEdit(b)}>{b.paymentStatus==='postpaid'?'Update / mark paid':b.paymentStatus==='prepaid'?'Review deposit':'Edit bill'}</button>}
+    {canEdit&&b.paymentStatus==='postpaid'&&onMarkPaid&&<button className="primary compact" disabled={busy} onClick={()=>onMarkPaid(b)}>Mark supplier paid</button>}
+    {canEdit&&<button className="secondary compact" disabled={busy} onClick={()=>onEdit(b)}>{b.paymentStatus==='postpaid'?'Edit bill':b.paymentStatus==='prepaid'?'Review deposit':'Edit bill'}</button>}
   </div>)}
   return <div className="trip-costs"><section className="panel">
     <div className="section-title"><div><p className="eyebrow">TRIP COSTS · {e.settlement}</p><h2>Know where the money stands</h2><p className="muted">The same bills as Money. Every expense is counted once.</p></div>{canAdd&&<button className="primary" disabled={busy} onClick={()=>onAdd()}><Plus size={17}/> Record expense</button>}</div>

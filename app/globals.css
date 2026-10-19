@@ -631,3 +631,18 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible{
 .focus-locked{margin-left:auto;padding:0 10px;color:var(--muted);font-size:11px;line-height:1.7}.focus-tabs>button:disabled{cursor:default;opacity:.5}
 @media(min-width:851px){:root[data-visual] .workspace-app>header{min-height:72px;padding-top:12px;padding-bottom:12px}:root[data-visual] .workspace-app>main{padding-top:23px}:root[data-visual] .workspace-sidebar{gap:15px;padding-top:20px}}
 .workbench-row[draggable=true]{cursor:grab}.workbench-row[draggable=true]:active{cursor:grabbing}
+
+/* Money review flows reuse the workspace's accessible surface and text tokens. */
+.money-review-sheet{width:min(94vw,920px);max-height:90dvh;overflow-y:auto;background:var(--surface);color:var(--text)}
+.payment-review-total{display:grid;gap:8px;padding:20px;border:1px solid var(--border);border-radius:16px;margin:16px 0;background:var(--background)}
+.payment-review-total strong{font-size:clamp(1.7rem,5vw,2.6rem);color:var(--primary)}
+.payment-review-total small,.payment-review-total span{color:var(--muted)}
+.conflict-group{margin:14px 0;padding:14px;border:1px solid var(--border);border-radius:14px}
+.conflict-group h3{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:0 0 12px}
+.conflict-group h3 small{font-size:12px;font-weight:500;color:var(--muted)}
+.conflict-columns{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.conflict-columns>div{display:flex;flex-direction:column;gap:10px;padding:12px;border-radius:10px;background:var(--background);min-width:0;overflow-wrap:anywhere}
+.conflict-columns>div>b{font-size:12px;color:var(--muted)}
+.financial-snapshot{display:grid;gap:6px}.financial-snapshot small{line-height:1.5}
+.conflict-choice{display:flex;gap:8px;align-items:center;padding-top:8px;margin-top:auto;font-size:13px}
+@media(max-width:650px){.conflict-columns{grid-template-columns:1fr}.money-review-sheet{max-height:88dvh}.conflict-review .checks{position:sticky;bottom:0;background:var(--surface);padding:12px 0}}
