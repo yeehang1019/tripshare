@@ -218,3 +218,34 @@ Personal Money shows own consumption, actual supplier funding, prepaid/unpaid sh
 - **CHANGE NOW:** enforce the member read boundary on JSON, attachment APIs, historical travel records and cached representations; all implemented in this release.
 - **IMPROVE LATER:** supported browser/phone acceptance, optional language preference, and a separately designed revocable itinerary-only anonymous link if explicitly needed. Whole-group JSON loading/authorization and ledger recomputation remain the first likely scale bottlenecks.
 - **DO NOT ADD:** another role database, a second ledger, anonymous financial sharing, or changes to prepaid/postpaid settlement policy as incidental scope.
+
+# Approved mist-violet workbench — 2026-10-20
+
+## Scope and control flow
+
+The user approved the recommended mist-violet direction after three concrete desktop/mobile samples. Trip now opens at the day itinerary. Planning administrators get four primary destinations: Itinerary, Bookings, Money and More. The selected trip's full Money workspace uses the same outer navigation, with Expenses / Settlement / Overview and a grouped secondary menu for authorized personal, team and history destinations. The owner's member-view picker remains available in More Money. Daily groups and money-only administrators keep their existing supported workspace. Existing account theme selections remain intact; the violet light palette is refined, and all three light/dark themes remain selectable.
+
+The primary screen removes the repeated trip hero, permanent filter form, daily cost summary and seven-button tool strip. More groups the existing planning, travel/export, financial and team tools. Existing templates, bulk changes, Plan B, flight timezones/return legs, attendance/waitlists, booking files/photos, checklists, private preferences, calendar export, offline packs, budget/refund and recovery capabilities remain reachable. Estimates do not create bills. No ledger, API projection, permission grant, schema or hosting audience change is introduced.
+
+Row activation → existing onBegin/revision capture → parent-owned Activity draft → desktop inline editor or mobile dialog → optional schedule-impact review → existing server-verified CAS write → saved list. New plans and drafts outside the current filtered selection retain the dialog fallback. Fields are progressively disclosed without clearing hidden values. A restored draft explicitly selects its own row; changing the draft date does not unmount the editor. Dates, filters, row actions and pagination stay locked while editing; plan inputs are also disabled during a save. Save errors leave the draft available with the existing review-latest and browser recovery actions.
+
+Member itineraries show time, title and short meeting information, with long routes, addresses and notes inside Details & map. A hotel appears once as Tonight on intermediate stay days and as timed check-in/check-out entries on the boundary days. Tonight remains end-exclusive. Full private booking fields and group finances continue to be excluded by the existing server projection.
+
+## Review
+
+- **Correctness / recovery:** fixed the restored-draft selection case so an inline draft cannot be hidden behind a different default row. Inline eligibility uses the saved record's membership in the current day, allowing date edits without switching surfaces. Collapsing editor sections retains controlled values. Busy inputs cannot accept edits that would otherwise be cleared when an in-flight save finishes.
+- **Concurrency / idempotency:** revision capture, CAS, immutable expense IDs and dirty navigation guards stay in the existing parent/server flow. Limited the local schedule-impact exception handler to preview calculation; an exception from committing a plan no longer causes an implicit second commit attempt. No new automatic retry path is added.
+- **Authorization / isolation:** the four-page shell is enabled only for planning administrators; secondary links are filtered through existing allowed destinations. Owner access controls remain owner-only. Ordinary members and money-only administrators retain their existing separate navigation and server projections. Existing API tests exercise cross-group access, member revocation and stale writes.
+- **Compatibility / operations:** existing routes, simple-itinerary sign-in links, three themes and original tool implementations are retained. No new dependency, external API call, storage binding or database migration. Deployment is an application-only roll-forward; the prior v56 version provides a compatible application rollback while retaining its member data protections.
+- **Performance / maintenance:** bounded workbench pagination and lazy tool modules are retained. No duplicate editor is mounted for a selected plan. The existing whole-group JSON load/authorization and ledger recomputation remain the first likely scale bottlenecks; this design does not introduce a new query or polling loop. The older CSS cascade remains a non-blocking maintenance opportunity.
+
+## Verification and limits
+
+159 focused API, ledger, planner, workflow and SSR regressions passed. Coverage includes authorized secondary navigation, inline restored drafts/date edits, save-state input locking, all existing travel tools, long member details, hotel checkout, personal-only Money, original-currency amounts, stale writes and group isolation. TypeScript with generated current Cloudflare declarations passed. Production build is required in the source packaging workflow before publication. Source whitespace checks passed.
+
+Browser-control skill is unavailable. No actual browser/phone visual acceptance, tap/drag/focus interaction, clipboard, print, hosted sign-in round trip or supplier/calendar interaction is claimed. These remain acceptance limits, rather than evidence of a known defect. Tests do not modify live trip records, financial records, account theme preferences or permissions.
+
+- **KEEP:** the existing permission projections, separate Trip and Money records, CAS/draft recovery, theme preference identity, original supplier expense IDs and bounded/lazy rendering.
+- **CHANGE NOW:** simplify primary navigation, remove repeated screen content, preserve all advanced functions, keep restored/date-edited drafts visible and prevent edits during save; implemented in this release. No known release blocker remains after automated checks.
+- **IMPROVE LATER:** supported phone/browser acceptance, consolidation of superseded CSS rules and measured optimization of whole-group JSON/ledger recomputation if real group sizes warrant it.
+- **DO NOT ADD:** new roles, a second ledger, a replacement design library, new dependencies, anonymous booking/financial links or speculative features as part of this visual change.

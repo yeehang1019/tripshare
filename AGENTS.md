@@ -9,3 +9,4 @@
 - Use the Sites workflow to open, package and publish the existing project. Keep source credentials in session memory and retain current site audience. Schema migrations are additive, generated through Drizzle, and applied through Sites publication. Never rewrite applied migration history.
 
 - Before any visual redesign, present multiple concrete samples and wait for the user's selection. Functional corrections can proceed using engineering judgment; ask when behavior or scope is materially ambiguous.
+- The user approved the mist-violet workbench on 2026-10-20. Planning administrators use Itinerary / Bookings / Money / More, desktop inline editing and a single mobile editor. Keep advanced fields and existing tools accessible through grouped disclosure; ordinary members retain the short itinerary and personal Money. Preserve the three account-selectable light/dark themes and saved preferences.

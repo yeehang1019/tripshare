@@ -340,7 +340,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible{
 @media(max-width:480px){.workspace-app>header{flex-wrap:wrap;gap:8px;min-height:78px}.workspace-app .header-right{justify-content:flex-end;flex:1 1 100%;margin-top:-2px}.workspace-app .brand{font-size:22px}.workspace-app .header-right .pick{max-width:140px;flex-basis:140px}.workspace-app .hub-stat>strong{font-size:21px}.workspace-app .hero-stat>strong{font-size:34px}.workspace-app .hub-stat>span{font-size:8px;letter-spacing:.8px}}
 [data-motion-mode=full] .sidebar-navigation button[aria-current=page]{animation:nav-arrive .35s ease both}[data-motion-mode=full] .quick-launch:hover{border-color:var(--contrast);box-shadow:0 0 18px color-mix(in srgb,var(--contrast) 18%,transparent)}@keyframes nav-arrive{from{opacity:.4;translate:-5px 0}to{opacity:1;translate:0 0}}@media(prefers-reduced-motion:reduce){.sidebar-navigation button{animation:none!important}}
 /* v42: three complete worlds, with intentional daylight and night surfaces. */
-:root[data-visual=arcade][data-theme=light]{--background:#F5F5FA;--surface:#FFFFFF;--border:#DDDDE8;--primary:#7047BC;--secondary:#A03E75;--accent:#526783;--text:#262333;--muted:#686276;--primary-foreground:#FFFFFF;}
+:root[data-visual=arcade][data-theme=light]{--background:#F6F4F9;--surface:#FFFFFF;--border:#E5DEED;--primary:#7150A5;--secondary:#956080;--accent:#64738B;--text:#30283E;--muted:#72677F;--primary-foreground:#FFFFFF;}
 :root[data-visual=arcade][data-theme=night]{--background:#15141B;--surface:#211F2A;--border:#3C3848;--primary:#C2A7F4;--secondary:#E5A5C7;--accent:#A5B9D5;--text:#F1EDF7;--muted:#B7AFC4;--primary-foreground:#241B35;}
 :root[data-visual=glass][data-theme=light]{--background:#F7F4EE;--surface:#FFFDFA;--border:#E2DAD0;--primary:#91573F;--secondary:#6D7160;--accent:#8C6963;--text:#3C332E;--muted:#75685E;--primary-foreground:#FFFFFF;}
 :root[data-visual=glass][data-theme=night]{--background:#201C19;--surface:#2C2622;--border:#4B4038;--primary:#E0B194;--secondary:#C0C2A7;--accent:#C8A9A2;--text:#F4EBE2;--muted:#BBABA0;--primary-foreground:#302117;}
@@ -711,3 +711,138 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible{
 .personal-money-simple small{font-size:14px;line-height:1.7;color:var(--muted)}.personal-money-simple .field input{min-height:48px;font-size:16px}
 .personal-bill-detail{border-bottom:1px solid var(--border);padding:4px 0}.personal-bill-detail>summary{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:18px 0;min-height:62px;cursor:pointer}.personal-bill-detail>summary:before{content:'+';color:var(--primary);font-size:22px}.personal-bill-detail[open]>summary:before{content:'−'}.personal-bill-detail>summary>span{flex:1;min-width:0}.personal-bill-detail>summary b{font-size:18px;overflow-wrap:anywhere}.personal-bill-detail>summary small{display:block}.personal-bill-detail>summary strong{font-size:19px;color:var(--text);text-align:right}.personal-bill-body{padding:8px 0 22px;font-size:17px;line-height:1.7}.personal-bill-body h3{font-size:18px;margin-top:18px}.personal-bill-body .plan-money{margin:16px 0}.personal-bill-body .plan-money span{font-size:15px}
 @media(max-width:700px){.simple-timeline-item{grid-template-columns:82px minmax(0,1fr);gap:14px;padding:22px 0}.simple-clock b{font-size:19px}.simple-clock span{font-size:14px}.simple-plan h3{font-size:20px}.simple-plan p{font-size:17px}.simple-date-strip button{flex-basis:72px;min-height:86px}.simple-tonight strong{font-size:20px}.simple-tonight{padding:16px}.personal-money-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.personal-money-summary strong{font-size:21px}:root[data-visual] .workspace-app.simple-member-app>main{padding:20px 16px 38px}.simple-member-switch{width:100%}.simple-member-switch button{flex:1;padding:10px 12px}.personal-claim{flex-wrap:wrap;gap:8px}.personal-bill-detail>summary{gap:10px}.personal-bill-detail>summary strong{font-size:17px}}
+
+/* Approved mist-violet workbench: quiet surfaces, four primary pages, direct editing. */
+.trip-primary-nav{display:flex;gap:6px}
+.trip-primary-nav button{display:flex;align-items:center;gap:11px;min-height:46px;padding:12px;border:0;border-radius:10px;background:transparent;color:var(--muted);font-size:14px;text-align:left}
+.trip-primary-nav button[aria-current=page]{background:var(--surface-soft);color:var(--primary);font-weight:650}
+.trip-primary-desktop{flex-direction:column}.trip-primary-mobile{display:none}
+.money-section-navigation{display:flex;align-items:flex-start;gap:6px;flex-wrap:wrap;margin:0 0 20px;padding:0 0 12px;border-bottom:1px solid var(--border)}
+.money-section-navigation>button,.money-section-navigation summary{min-height:44px;padding:11px 14px;border:0;border-radius:9px;background:transparent;color:var(--muted);font-size:13px}
+.money-section-navigation>button[aria-current=page],.money-section-navigation summary.active{background:var(--surface-soft);color:var(--primary);font-weight:600}
+.money-section-navigation details{min-width:0}
+.money-section-navigation details>div{display:grid;gap:4px;padding:10px;margin-top:7px;border:1px solid var(--border);border-radius:11px;background:var(--surface)}
+.money-section-navigation details button{min-height:44px;padding:10px;text-align:left;font-size:13px;background:transparent;color:var(--text);border:0;border-radius:8px}
+.money-section-navigation details button[aria-current=page]{color:var(--primary);background:var(--surface-soft)}
+.money-view-as{display:grid;gap:7px;padding:6px 4px 12px;border-bottom:1px solid var(--border);margin-bottom:5px;font-size:12px;color:var(--muted)}
+.money-view-as .pick{width:100%;min-height:44px}
+:root[data-visual] .calm-trip-workspace{--chrome-width:194px;--rail-width:0px}
+.calm-trip-workspace .context-rail,.calm-trip-workspace .rail-toggle{display:none}
+.calm-trip-workspace .sidebar-insignia{padding:8px 0;border:0;background:transparent}
+.calm-trip-workspace .sidebar-workspace-label{display:none}
+.calm-trip-workspace .sidebar-section{font-size:11px}
+.calm-trip-workspace .sidebar-groups b{font-size:13px;font-weight:550}
+:root[data-visual] .calm-trip-workspace .topline h1{font-size:29px;font-weight:650;letter-spacing:-.7px;text-shadow:none}
+.calm-trip-workspace .topline{margin-bottom:12px}
+.calm-trip-workspace .topline .eyebrow{display:none}
+.calm-trip-workspace .topline p{font-size:13px;margin:6px 0 0}
+.trip-group-menu{margin:0 0 22px;color:var(--muted)}
+.trip-group-menu>summary{width:fit-content;min-height:44px;padding:10px 0;font-size:13px}
+.trip-group-menu[open] .event-switch{margin-top:8px;justify-content:flex-start}
+.trip-group-menu .event-switch .pill{display:none}
+.trip-tools-page{max-width:1000px;margin:0 auto}
+.trip-tools-groups{display:grid;grid-template-columns:1fr 1fr;gap:24px 30px}
+.trip-tools-group{min-width:0;padding:19px 21px;border:1px solid var(--border);border-radius:14px;background:var(--surface)}
+.trip-tools-group h3{font-size:12px;font-weight:600;color:var(--muted);margin:0 0 12px;letter-spacing:.2px}
+.trip-tools-group button{display:flex;gap:10px;align-items:center;width:100%;min-height:48px;text-align:left;background:transparent;border:0;border-bottom:1px solid var(--border);border-radius:0;padding:11px 0;color:var(--text);font-size:14px}
+.trip-tools-group button:last-child{border-bottom:0}
+.trip-tools-group button>span{flex:1;min-width:0}
+.trip-tools-group button small{display:block;color:var(--muted);font-size:12px;font-weight:400;margin-top:2px}
+.trip-tools-group button>svg{color:var(--muted);flex:none}
+.trip-tools-group button>svg:last-child{width:15px}
+.planner-toolbar{display:flex;justify-content:space-between;align-items:center;gap:14px;margin:0 0 13px}
+.planner-toolbar h2{font-size:20px;color:var(--text);font-weight:600;margin:0}
+.planner-toolbar .primary{display:flex;align-items:center;gap:7px;min-height:44px;font-size:14px}
+.planner-filter-drawer{border:0;margin:0 0 16px;color:var(--muted)}
+.planner-filter-drawer>summary{font-size:13px;min-height:44px;padding:10px 0;width:fit-content}
+.planner-filter-drawer>summary svg{display:inline;vertical-align:middle;margin:0 5px}
+.planner-filter-drawer[open]{padding:0 16px 14px;background:var(--surface);border:1px solid var(--border);border-radius:12px}
+.planner-filter-drawer fieldset{min-width:0;border:0;padding:0;margin:0}
+.planner-filter-drawer fieldset:disabled{opacity:.65}
+.planner-day-caption{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:17px}
+.planner-day-caption h3{font-size:16px;color:var(--text);margin:0;font-weight:600}
+.planner-day-caption>span{font-size:12px;color:var(--muted)}
+.calm-trip-workspace .plan-day-tabs{position:static;display:flex;gap:6px;margin:0 0 21px;padding:0 0 17px;border-bottom:1px solid var(--border);background:transparent}
+.calm-trip-workspace .plan-day-tabs button{flex:1 0 62px;min-height:66px;padding:10px 6px;text-align:center;align-items:center;border:0;border-radius:10px;background:transparent;color:var(--muted)}
+.calm-trip-workspace .plan-day-tabs button b{font-size:18px;font-weight:600;color:var(--text)}
+.calm-trip-workspace .plan-day-tabs button span{font-size:11px}
+.calm-trip-workspace .plan-day-tabs button.active{background:var(--primary);color:var(--primary-foreground)}
+.calm-trip-workspace .plan-day-tabs button.active b{color:inherit}
+.calm-trip-workspace .detail-workbench{grid-template-columns:minmax(230px,.95fr) minmax(0,1.15fr);gap:23px}
+:root[data-visual] .calm-trip-workspace .detail-workbench>.workbench-master{border:0;background:transparent;box-shadow:none;border-radius:0}
+.calm-trip-workspace .workbench-heading{background:transparent;padding:0 0 12px;border:0}
+.calm-trip-workspace .workbench-heading h3{font-size:13px;font-weight:500;color:var(--muted)}
+.calm-trip-workspace .workbench-row{background:transparent;min-height:88px;padding:16px 12px;gap:11px}
+.calm-trip-workspace .workbench-row[aria-pressed=true]{background:var(--surface);box-shadow:0 3px 12px color-mix(in srgb,var(--text) 4%,transparent);border-radius:12px;border-bottom-color:transparent}
+.calm-trip-workspace .workbench-row b{font-size:15px;font-weight:550;color:var(--text)}
+.calm-trip-workspace .workbench-row small{font-size:12px;line-height:1.6}
+.calm-trip-workspace .workbench-row>span.workbench-clock{flex:0 0 42px;min-width:0;font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--primary)}
+.calm-trip-workspace .workbench-meta{font-size:11px;max-width:65px}
+:root[data-visual] .calm-trip-workspace .detail-workbench>.workbench-detail{padding:21px;border:1px solid var(--border);border-radius:14px;box-shadow:none}
+.calm-trip-workspace .workbench-detail .plan-editor{border:0!important;box-shadow:none!important;padding:0!important;margin:0!important;border-radius:0!important}
+.plan-editor .section-title{flex-wrap:wrap;gap:10px}
+.plan-editor-body{min-width:0;padding:0;margin:0;border:0}
+.plan-editor .section-title h2{flex:1;min-width:100px;font-size:18px!important;font-weight:600}
+.plan-editor .section-title .primary{font-size:13px;min-height:44px}
+.plan-editor .fields{grid-template-columns:repeat(auto-fit,minmax(min(100%,160px),1fr));gap:0 12px}
+.plan-editor .field{min-width:0;margin:0 0 14px}
+.plan-editor .field>span{font-size:12px}
+.plan-editor input,.plan-editor .pick,.plan-editor textarea{width:100%;min-width:0;min-height:44px;font-size:14px;padding:11px;background:var(--surface-soft);color:var(--text);border-color:var(--border)}
+.plan-editor .plan-extra{border-top:1px solid var(--border);margin:0;padding:0}
+.plan-editor .plan-extra>summary{min-height:48px;padding:13px 0;font-size:13px;color:var(--muted)}
+.plan-editor .plan-extra[open]{padding-bottom:12px}
+.plan-editor .plan-save-hint{font-size:12px;line-height:1.7;margin-top:18px}
+.plan-editor>.save{width:100%;min-height:46px;font-size:14px}
+.calm-trip-workspace .plan-tonight{background:var(--surface-soft);border:0;padding:12px 14px;font-size:13px;border-radius:10px;margin-bottom:19px}
+.simple-trip-heading h1{font-weight:600;letter-spacing:-.7px}
+.simple-trip-heading p{font-size:14px;margin:5px 0}
+.simple-dates-fit{display:grid;grid-template-columns:repeat(auto-fit,minmax(36px,1fr));gap:5px}
+.simple-dates-fit button{min-width:0;min-height:68px;padding:9px 3px;border:0;background:transparent;border-radius:10px}
+.simple-dates-fit button b{font-size:21px}.simple-dates-fit button span{font-size:12px}
+.simple-tonight{padding:13px 16px;border:0;background:var(--surface-soft);gap:12px;margin:16px 0}
+.simple-tonight span{font-size:12px}.simple-tonight strong{font-size:17px;font-weight:600}
+.simple-tonight>svg{width:20px;height:20px}
+.simple-day-title{margin:22px 0 6px}.simple-day-title h2{font-size:20px;font-weight:600;margin-bottom:4px}.simple-day-title p{font-size:13px}
+.simple-timeline-item{grid-template-columns:90px minmax(0,1fr);gap:18px;padding:21px 0}
+.simple-plan h3{font-size:19px;margin:0 0 6px;font-weight:600}.simple-plan p{font-size:15px;line-height:1.6;margin:6px 0}.simple-plan small{font-size:13px}
+.simple-clock b{font-size:20px;font-variant-numeric:tabular-nums}.simple-clock span{font-size:12px}
+.simple-plan-details{margin:7px 0}.simple-plan-details>summary{font-size:14px;min-height:44px;padding:10px 0;color:var(--primary)}
+.simple-plan-details .secondary{display:inline-flex;min-height:44px;font-size:14px;margin-top:8px}
+.simple-itinerary .simple-link-notice{position:static;width:auto;max-width:none;padding:10px 13px;box-shadow:none;margin:0 0 12px;font-size:13px}
+@media(min-width:761px){.calm-trip-workspace .workbench-detail .plan-editor .section-title{position:sticky;top:-21px;z-index:2;background:var(--surface);padding:12px 0;border-bottom:1px solid var(--border);margin-bottom:18px}}
+@media(max-width:850px){
+ :root[data-visual] .calm-trip-workspace{--chrome-width:0px}
+ .trip-primary-mobile{display:flex;position:fixed;left:12px;right:12px;bottom:calc(8px + env(safe-area-inset-bottom));z-index:40;padding:7px;gap:4px;background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:0 4px 18px color-mix(in srgb,var(--text) 8%,transparent)}
+ .trip-primary-mobile button{flex:1;justify-content:center;flex-direction:column;gap:4px;min-height:58px;font-size:12px;padding:7px 2px}
+ .calm-trip-workspace .mobile-space-switch{display:none}
+ .calm-trip-workspace .header-right .sync-status,.calm-trip-workspace .install-app{display:none}
+ :root[data-visual] .calm-trip-workspace>header{min-height:66px;flex-wrap:nowrap;gap:10px}
+ .calm-trip-workspace>header .brandmark,.calm-trip-workspace .space-header-label{display:none}
+ .calm-trip-workspace>header .header-right{flex:0 1 auto;margin:0;gap:5px}
+ .calm-trip-workspace .topline{margin-bottom:4px}
+ .calm-trip-workspace .topline .top-actions .primary{font-size:14px;padding:10px 12px}
+ :root[data-visual] .calm-trip-workspace .topline h1{font-size:26px}
+ .trip-tools-groups{grid-template-columns:1fr;gap:16px}
+ .calm-trip-workspace>main{padding-bottom:calc(125px + env(safe-area-inset-bottom))!important}
+ .calm-trip-workspace .plan-day-tabs button{flex:1 0 44px;padding:8px 4px}
+}
+@media(max-width:760px){
+ .calm-trip-workspace .detail-workbench{grid-template-columns:1fr;gap:0}
+ .calm-trip-workspace .workbench-row{min-height:92px;padding:16px 11px}
+ .calm-trip-workspace .workbench-row b{font-size:17px}
+ .calm-trip-workspace .workbench-row>span.workbench-clock{font-size:15px;flex-basis:45px}
+ .calm-trip-workspace .workbench-row .workbench-meta{display:none}
+ .calm-trip-workspace .workbench-row small{font-size:13px}
+ .planner-toolbar h2{font-size:18px}.planner-toolbar .primary{font-size:14px;padding:10px 13px}
+ .plan-editor input,.plan-editor textarea,.plan-editor .pick{font-size:16px}
+ .plan-editor .field>span{font-size:13px}
+ .plan-editor .fields{gap:0 10px}
+ .simple-dates-fit{display:grid;grid-template-columns:repeat(auto-fit,minmax(36px,1fr));gap:3px}
+ .simple-dates-fit button{min-height:65px}
+ .simple-timeline-item{grid-template-columns:72px minmax(0,1fr);gap:12px}
+ .simple-clock b{font-size:18px}.simple-plan h3{font-size:19px}
+ .simple-trip-heading{margin-bottom:14px}.simple-trip-heading h1{font-size:26px}
+ .simple-member-controls{gap:12px;margin-bottom:20px}
+ .simple-member-switch button{font-size:15px;min-height:46px}
+}
+@media print{.trip-primary-nav,.trip-group-menu{display:none!important}}

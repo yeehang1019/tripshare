@@ -6,7 +6,7 @@ import {createServer} from 'vite';
 import {fileURLToPath} from 'node:url';
 import {readFileSync} from 'node:fs';
 import {normalize,blankExpense,today} from '../lib/ledger.ts';
-const root=fileURLToPath(new URL('..',import.meta.url)),vite=await createServer({appType:'custom',configFile:false,root,resolve:{alias:{'@':root}},server:{middlewareMode:true}});
+const root=fileURLToPath(new URL('..',import.meta.url)),vite=await createServer({appType:'custom',configFile:false,root,resolve:{alias:{'@':root}},server:{middlewareMode:true,hmr:false}});
 after(()=>vite.close());
 const experience=await vite.ssrLoadModule('/app/experience.tsx');
 const design=await vite.ssrLoadModule('/app/workspace-design.tsx');
@@ -57,7 +57,7 @@ test('All six complete theme modes keep text and primary buttons readable',()=>{
 
 test('Trip and Money have distinct navigation and personal members keep personal scope',()=>{
  const e=normalize({name:'Trip',people:['A'],bills:[],payments:[]});const r={id:'trip',data:e,owner:true,permissions:[],person:'A'};
- assert.deepEqual(spaces.spaceDestinations(r,'trip'),['Simple itinerary','Trip Plan','Itinerary','Bookings','Trip costs','Checklist','Travel kit','Files & photos']);
+ assert.deepEqual(spaces.spaceDestinations(r,'trip'),['Simple itinerary','Trip Plan','Itinerary','Bookings','Trip costs','Checklist','Travel kit','Files & photos','Trip tools']);
  assert.deepEqual(spaces.spaceDestinations(r,'money'),['Dashboard','Expenses','Settlement','My spending','People & Access','Settings','History']);
  assert.deepEqual(spaces.spaceDestinations({...r,owner:false,personal:{expenses:[]}},'money'),['My spending']);
  assert.doesNotMatch(spaces.spaceDestinations(r,'money').join(','),/Trip Plan/);
@@ -102,7 +102,7 @@ test('Trip sidebar opens dedicated planner sections without duplicating internal
  const e=normalize({name:'Thailand',kind:'trip',people:['A'],bills:[],payments:[]});
  const props={event:e,busy:false,canPlan:true,canExpense:false,draft:null,setDraft(){},onBegin(){},onSave:async()=>true,onAction:async()=>true,onDelete(){},onExpense(){},onShare(){},onDirty(){}};
  const bookings=renderToStaticMarkup(React.createElement(TripPlanner,{...props,section:'Bookings'}));
- assert.match(bookings,/Bookings &amp; reservations/);assert.doesNotMatch(bookings,/Trip essentials|Before you go|planner-tabs/);
+ assert.match(bookings,/<h2>Bookings<\/h2>/);assert.doesNotMatch(bookings,/Trip essentials|Before you go|planner-tabs/);
  const checklist=renderToStaticMarkup(React.createElement(TripPlanner,{...props,section:'Checklist'}));
  assert.match(checklist,/Before you go/);assert.doesNotMatch(checklist,/Bookings &amp; reservations|Trip essentials/);
  for(const section of spaces.tripSections)assert.equal(spaces.isTripSection(section),true);
@@ -166,9 +166,9 @@ test('Daily hotel rows distinguish check-in, overnight stay and timed checkout w
  e.activities=[{id:'hotel',name:'Krabi Phranang Palace',type:'Hotel',status:'Booked',date:e.start,endDate:e.end,time:'14:00',endTime:'11:30',location:'Krabi',url:'',notes:'',budget:231700,category:'Accommodation',people:['A']}];
  const before=JSON.stringify(e),props={event:e,section:'Itinerary',busy:false,canPlan:false,canExpense:false,draft:null,setDraft(){},onBegin(){},onSave:async()=>true,onAction:async()=>true,onDelete(){},onExpense(){},onShare(){},onDirty(){}};
  const render=initialDay=>renderToStaticMarkup(React.createElement(TripPlanner,{...props,initialDay}));
- assert.match(render(e.start),/23 Nov · Check-in 14:00/);
- assert.match(render('2026-11-24'),/24 Nov · Staying overnight/);
- const checkout=render(e.end);assert.match(checkout,/25 Nov · Check-out 11:30/);assert.doesNotMatch(checkout,/Tonight:/);assert.match(checkout,/Krabi Phranang Palace/);
+ assert.match(render(e.start),/<h3>23 Nov<\/h3>/);assert.match(render(e.start),/Check-in 14:00/);
+ assert.match(render('2026-11-24'),/<h3>24 Nov<\/h3>/);assert.match(render('2026-11-24'),/Staying overnight/);
+ const checkout=render(e.end);assert.match(checkout,/<h3>25 Nov<\/h3>/);assert.match(checkout,/Check-out 11:30/);assert.doesNotMatch(checkout,/Tonight:/);assert.match(checkout,/Krabi Phranang Palace/);
  e.activities[0].endTime='';assert.match(render(e.end),/Check-out time not set/);e.activities[0].endTime='11:30';
  assert.equal(JSON.stringify(e),before);
 });
@@ -192,4 +192,58 @@ test('Personal Money uses member IDs with duplicate names and exposes only relat
  const bill=blankExpense(e,'A');bill.merchant='Shared hotel';bill.items[0].amount=30000;const hidden=blankExpense(e,'C');hidden.merchant='PRIVATE_C';hidden.items[0].people=['C'];hidden.items[0].amount=10000;e.expenses=[bill,hidden];
  const html=renderToStaticMarkup(React.createElement(PersonalMoney,{view:personalView(e,'B'),currency:e.settlement}));assert.match(html,/I need to repay<\/span><strong>RM\s*100\.00/);assert.match(html,/Others owe me<\/span><strong>RM\s*0\.00/);assert.match(html,/Shared hotel/);assert.match(html,/Where my amount comes from/);assert.doesNotMatch(html,/PRIVATE_C|Add expense|People &amp; Access|Edit bill/);
  bill.currency='THB';bill.rate=.125;const foreignHtml=renderToStaticMarkup(React.createElement(PersonalMoney,{view:personalView(e,'B'),currency:e.settlement}));assert.match(foreignHtml,/Original item shares · THB/);assert.match(foreignHtml,/THB\s*100\.00/);assert.match(foreignHtml,/RM\s*12\.50/);
+});
+
+test('Compact planner navigation retains four primary pages and groups secondary destinations under More',()=>{
+ const html=renderToStaticMarkup(React.createElement(design.TripPrimaryNavigation,{tab:'Travel kit',mobile:true,onNavigate(){},onMoney(){}}));
+ assert.equal((html.match(/<button /g)||[]).length,4);
+ for(const label of ['Itinerary','Bookings','Money','More'])assert.match(html,new RegExp('<span>'+label+'<\\/span>'));
+ assert.match(html,/aria-current="page"[^>]*>[\s\S]*?<span>More<\/span>/);
+ assert.doesNotMatch(html,/Trip costs|Checklist|People &amp; Access/);
+ const money=renderToStaticMarkup(React.createElement(design.TripPrimaryNavigation,{tab:'Settlement',onNavigate(){},onMoney(){}}));
+ assert.match(money.match(/<button[^>]*aria-current="page"[^>]*>([\s\S]*?)<\/button>/)[1],/<span>Money<\/span>/);
+});
+
+test('Money keeps its main sections visible and only offers the supplied authorized secondary destinations',()=>{
+ const limited=renderToStaticMarkup(React.createElement(design.MoneySectionNavigation,{tab:'Settlement',destinations:['Dashboard','Expenses','Settlement','History'],onNavigate(){}}));
+ for(const label of ['Overview','Expenses','Settlement','More Money','History'])assert.ok(limited.includes(label));
+ assert.doesNotMatch(limited,/People &amp; Access|Settings|View member/);
+ const owner=renderToStaticMarkup(React.createElement(design.MoneySectionNavigation,{tab:'People & Access',destinations:['Dashboard','Expenses','Settlement','People & Access','Settings','History'],viewAs:React.createElement('select',{'aria-label':'Viewing'},React.createElement('option',{},'YH')),onNavigate(){}}));
+ assert.match(owner,/People &amp; Access/);assert.match(owner,/View member/);assert.match(owner,/aria-label="Viewing"/);
+});
+
+test('Restored hotel draft remains visible inline when editing dates away from the selected day',()=>{
+ const e=normalize({name:'Trip',people:['A'],bills:[],payments:[]});e.start='2026-11-23';e.end='2026-11-26';
+ e.activities=[{id:'first',name:'First stop',type:'Activity',date:e.start,time:'09:00',location:'',url:'',notes:'',budget:0,category:'Activity',people:['A']},{id:'hotel',name:'Original hotel',type:'Hotel',date:e.start,endDate:'2026-11-25',time:'14:00',endTime:'11:30',location:'Krabi',url:'',notes:'Original note',budget:231700,category:'Accommodation',people:['A']}];
+ const before=JSON.stringify(e),draft={...e.activities[1],name:'Recovered hotel draft',date:'2026-11-24',reference:'RECOVERED-REF'};
+ const props={event:e,section:'Itinerary',initialDay:e.start,busy:false,canPlan:true,canExpense:true,draft,setDraft(){},onBegin(){},onSave:async()=>false,onAction:async()=>false,onDelete(){},onExpense(){},onShare(){},onDirty(){}};
+ const html=renderToStaticMarkup(React.createElement(TripPlanner,props));
+ assert.match(html,/class="panel plan-editor"/);assert.match(html,/value="Recovered hotel draft"/);assert.match(html,/value="2026-11-24"/);assert.match(html,/value="RECOVERED-REF"/);
+ assert.match(html,/<details class="plan-extra"><summary>Booking &amp; practical details/);assert.match(html,/Travellers &amp; capacity/);assert.match(html,/Connections &amp; alternatives/);
+ assert.match(html,/class="planner-filters" disabled=""|disabled="" class="planner-filters"/);
+ const saving=renderToStaticMarkup(React.createElement(TripPlanner,{...props,busy:true}));
+ assert.match(saving,/<fieldset disabled="" class="plan-editor-body">/);assert.match(saving,/>Saving…<\/button>/);
+ assert.equal(JSON.stringify(e),before);
+});
+
+test('More keeps existing travel tools accessible and omits unauthorized owner and history destinations',async()=>{
+ const {TripTools}=await vite.ssrLoadModule('/app/trip-tools.tsx');
+ const event=normalize({name:'Trip',people:['A'],bills:[],payments:[]});
+ const props={group:'trip',event,revision:1,session:'',canPlan:true,canPreferences:true,busy:false,disabled:false,onApply:async()=>false,onDirty(){},onBegin(){},onBulk:async()=>false,onNavigate(){},onOpenMoney(){},availableRoutes:['Trip Plan','Checklist','Simple itinerary','Travel kit','Files & photos','Trip costs']};
+ const planner=renderToStaticMarkup(React.createElement(TripTools,props));
+ for(const label of ['Shift plans','Plan library','Calendar','Offline pack','Private preferences','Ticket wallet','Today / Next','Trip overview &amp; dates','Checklist','Booking files &amp; photos','Open Money'])assert.ok(planner.includes(label),label);
+ assert.doesNotMatch(planner,/Member access|>History</);
+ const owner=renderToStaticMarkup(React.createElement(TripTools,{...props,canManageAccess:true,availableRoutes:[...props.availableRoutes,'People & Access','History']}));
+ assert.match(owner,/Member access \(Owner\)/);assert.match(owner,/>History</);
+});
+
+test('Member itinerary places long travel text in collapsed details and avoids a duplicate overnight entry',async()=>{
+ const {default:SimpleItinerary}=await vite.ssrLoadModule('/app/simple-itinerary.tsx');
+ const e=normalize({name:'Trip',people:['A'],bills:[],payments:[]});e.start='2026-11-23';e.end='2026-11-25';
+ e.activities=[{id:'hotel',name:'Krabi stay',type:'Hotel',status:'Booked',date:e.start,endDate:e.end,time:'14:00',endTime:'11:30',location:'Ao Nang',notes:'',url:'',budget:0,category:'Accommodation',people:['A']},{id:'bus',name:'Bus to Krabi',type:'Transport',date:e.start,time:'12:00',from:'Long departure address',to:'Long arrival address',location:'Shared meeting point',notes:'Bring luggage',url:'',budget:0,category:'Transport',people:['A']}];
+ const first=renderToStaticMarkup(React.createElement(SimpleItinerary,{event:e,initialDay:e.start}));
+ assert.match(first,/<details class="simple-plan-details"><summary>Details &amp; map<\/summary><p>Long departure address → Long arrival address/);
+ assert.match(first,/Bring luggage/);assert.doesNotMatch(first,/<details[^>]*open/);
+ const middle=renderToStaticMarkup(React.createElement(SimpleItinerary,{event:e,initialDay:'2026-11-24'}));
+ assert.equal((middle.match(/Krabi stay/g)||[]).length,1);assert.match(middle,/Tonight we stay/);assert.doesNotMatch(middle,/simple-timeline-item/);
 });

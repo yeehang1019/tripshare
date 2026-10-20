@@ -89,9 +89,9 @@ import {TravelKit,BookingFiles} from "./travel-kit";
 import {newPlan} from "@/lib/trip-plan";
 import {SpaceSwitch,SpaceBridge,TripLanding,isTripSection,spaceDestinations,tripRecords,resolveSpaceRoute,type Space} from "./space-navigation";
 import {Search,PanelRight} from "lucide-react";
-import {AppearancePanel,WorkspaceChrome,QuickNavigator,completeThemes,monthBounds} from "./workspace-design";
+import {AppearancePanel,WorkspaceChrome,QuickNavigator,TripPrimaryNavigation,MoneySectionNavigation,completeThemes,monthBounds} from "./workspace-design";
 import {useWorkspace,TemplateShelf,PersonalHub,SettlementPreview,PayoutDetails,TravelFunding,feedback} from "./experience";
-import SimpleItinerary from './simple-itinerary';
+import SimpleItinerary,{itineraryDate} from './simple-itinerary';
 import PersonalMoney from './personal-money';
 import type {personalView} from '@/lib/personal';
 export type RecordT = {
@@ -372,7 +372,7 @@ export default function TripApp({ shared = false, authenticatedEmail = "", authe
     setCat("All");
     setMerchant("");
     setSettlementScope(rec.owner || (!shared && !!rec.person) ? "mine" : "everyone");
-    setTab(spaceIntent.current==="trip"&&e.kind==="trip"&&(!rec.personal||!!rec.planning)?"Trip Plan":!rec.owner && !shared && rec.permissions.length === 0 && rec.person ? "My spending" : "Dashboard");
+    setTab(spaceIntent.current==="trip"&&e.kind==="trip"&&(!rec.personal||!!rec.planning)?"Itinerary":!rec.owner && !shared && rec.permissions.length === 0 && rec.person ? "My spending" : "Dashboard");
     setBill(null);
     setActivity(null);
 setPlannerDirty(false);setKitDirty(false);setTemplateDirty(false);
@@ -388,7 +388,7 @@ setPlannerDirty(false);setKitDirty(false);setTemplateDirty(false);
     const params=new URLSearchParams(window.location.search);
     const route=resolveSpaceRoute(records,params.get('space'),params.get('group'));
     spaceIntent.current=route.space;if(route.record)setId(route.record.id);
-    setTab(route.space==='trip'?(params.get('simple')==='1'||route.record?.personal&&!route.record.permissions.includes('plan')?'Simple itinerary':'Trip Plan'):route.record?.personal?'My spending':'Dashboard');
+    setTab(route.space==='trip'?(params.get('simple')==='1'||route.record?.personal&&!route.record.permissions.includes('plan')?'Simple itinerary':'Itinerary'):route.record?.personal?'My spending':'Dashboard');
     setFocusActivity(params.get('activity')||'');setRouteReady(true);
   },[loaded,routeReady,shared]);
   useEffect(()=>{
@@ -551,7 +551,7 @@ setPlannerDirty(false);setKitDirty(false);setTemplateDirty(false);
   }
   function choose(id:string){
     const target=records.find(r=>r.id===id);
-    const next=spaceIntent.current==='trip'&&target?.data.kind==='trip'&&(!target.personal||target.planning)?'Trip Plan':target?.personal?'My spending':'Dashboard';
+    const next=spaceIntent.current==='trip'&&target?.data.kind==='trip'&&(!target.personal||target.planning)?'Itinerary':target?.personal?'My spending':'Dashboard';
     const run=()=>{clearUnsavedInput();setFocusExpense('');setFocusActivity('');setId(id);setTab(next)};
     if(editing.current)setConfirm({title:'Leave unsaved input?',description:'Open editors will close. Expense and plan drafts remain recoverable on this browser.',run});else run();
   }
@@ -840,12 +840,13 @@ setPlannerDirty(false);setKitDirty(false);setTemplateDirty(false);
       clearUnsavedInput();setFocusExpense('');spaceIntent.current=next;setFocusActivity(next==="trip"?activityId:"");setActivityFilter(next==="money"?activityId:"");
       if(next==='trip'){
         if(e?.kind!=='trip'||rec?.personal&&!rec?.planning){const first=tripRecords(records)[0];if(first)setId(first.id)}
-        setTab(activityId?'Itinerary':'Trip Plan');
+        setTab('Itinerary');
       }else setTab(rec?.personal?'My spending':activityId?'Expenses':'Dashboard');
     };
     if(editing.current)setConfirm({title:'Switch workspace?',description:'Open editors will close. Expense and plan drafts remain recoverable on this browser.',run});else run();
   }
   const destinations=spaceDestinations(rec,space,shared);
+  const compactTrip=e?.kind==="trip"&&can("plan")&&(space==="trip"||!rec.personal);
   const spaceRecords=space==='trip'?(shared?records.filter(r=>r.data.kind==='trip'):tripRecords(records)):records;
   const switcher=<SpaceSwitch space={space} onChange={switchSpace}/>;
   const confirmationDialog=(<AlertDialog
@@ -876,7 +877,16 @@ setPlannerDirty(false);setKitDirty(false);setTemplateDirty(false);
         </AlertDialogContent>
       </AlertDialog>);
   const notificationBell=!shared?<NotificationBell session={authenticatedSession} workspace={workspace} onGroup={choose}/>:null;
-  const chrome=<WorkspaceChrome records={spaceRecords} selected={rec?.id||""} onGroup={choose} onAppearance={()=>setAppearanceOpen(true)} onSearch={()=>setQuickOpen(true)} onNavigate={navigate} destinations={destinations} tab={tab} style={workspace.data.style} palette={paletteLabels[palette]} event={e} member={!!rec?.personal} railOpen={railOpen} onRailClose={toggleRail} space={space} spaceSwitch={switcher}/>;
+  const ownerViewPicker=e&&rec.owner?<Pick
+              label="Viewing"
+              value={me}
+              options={e.people}
+              onChange={(p) => {
+                setMe(p);
+                localStorage.setItem("tripshare-person-" + rec.id, p);
+              }}
+            />:null;
+  const chrome=<WorkspaceChrome records={spaceRecords} selected={rec?.id||""} onGroup={choose} onAppearance={()=>setAppearanceOpen(true)} onSearch={()=>setQuickOpen(true)} onNavigate={navigate} destinations={destinations} tab={tab} style={workspace.data.style} palette={paletteLabels[palette]} event={e} member={!!rec?.personal} railOpen={railOpen} onRailClose={toggleRail} space={space} spaceSwitch={switcher} compactTrip={compactTrip} onMoney={()=>{if(space!=="money")switchSpace("money")}}/>;
   const appearance=<AppearancePanel open={appearanceOpen} onOpenChange={setAppearanceOpen} workspace={workspace} palette={palette} labels={paletteLabels} mode={theme} motion={motionMode} onChange={(p,m,v)=>saveAppearance(p as PaletteName,m as ThemeMode,v as MotionMode)} shared={shared}/>;
   const moneyReviews=<>
     {supplierBill&&<SupplierPayment key={supplierBill.expense.id} expense={supplierBill.expense} event={rec.entryContext||e!} busy={busy} onCancel={()=>setSupplierBill(null)} onSave={async entity=>{if(await send('expense',{entity,revision:supplierBill.revision})){setNotice('Supplier payment saved on the original bill. Consumption counted once.');celebrateSave();return true}return false}}/>}
@@ -908,7 +918,7 @@ setPlannerDirty(false);setKitDirty(false);setTemplateDirty(false);
       </>},{id:'settlement',label:'My settlement',render:()=> <><section className="panel"><h2>My settlement</h2>{view.transfers.map(t=><div key={t.from+':'+t.to} className="expense-row"><strong>{t.fromName} → {t.toName}: {fmt(t.amount)}</strong>{t.to!==rec.person&&<PayoutDetails group={rec.id} person={t.to} event={payoutEvent} session={authenticatedSession} editable={false}/>}</div>)}{!view.transfers.length&&<p>All settled.</p>}<PayoutDetails group={rec.id} person={rec.person} event={payoutEvent} session={authenticatedSession} editable/><h3>Repayment history</h3>{view.payments.map(p=><p key={p.id}>{p.date} · {p.fromName} → {p.toName} · {fmt(p.amount)}</p>)}</section><SettlementExport event={payoutEvent} transfers={view.transfers}/></>},...(rec.entryContext&&can('addExpense')?[{id:'quick',label:'Quick Picks',render:()=> <>{rec.entryContext&&can('addExpense')&&!bill&&<TemplateShelf key={rec.id+templateEpoch} workspace={workspace} event={{...rec.entryContext,expenses:rec.ownEntries||[]}} group={rec.id} canAdd busy={busy} onDirty={setTemplateDirty} onSaved={()=>{}} onRecord={async entity=>{if(await send('expense',{entity})){celebrateSave();return true}return false}}/>}</>}]:[]),...(rec.ownEntries?.length?[{id:'submitted',label:'My submitted bills',render:()=> <>{!!rec.ownEntries?.length&&<section className="panel"><h2>My submitted bills</h2><p>You can edit bills you created. This does not reveal other people’s full ledger.</p>{rec.ownEntries.filter(b=>!b.deleted).map(b=><div className="split-row" key={b.id}><span>{b.merchant}<small>{b.date} · {b.currency}</small></span><span className="checks">{calculate(b,rec.data.settlement).effectivePaymentStatus==='postpaid'&&<button className="primary" disabled={busy} onClick={()=>openSupplierPayment(b)}>Mark supplier paid</button>}<button className="secondary" onClick={()=>{if(editing.current)setConfirm({title:"Replace unsaved input?",description:"Your unsaved changes will be discarded.",run:()=>{clearUnsavedInput();edit(b)}});else edit(b)}}>Edit my bill</button></span></div>)}</section>}</>}]:[]),{id:'history',label:'History',render:()=> <><ChangeHistory key={rec.id} record={rec} onAction={send} user={user}/></>} ]}/><button className="mobile-quick-add primary" hidden={!can('addExpense')||!!bill} onClick={requestAdd} aria-label="Add shared expense"><Plus size={23}/></button></main></div>;
   }
   return (
-    <div data-space={space} className={"app workspace-app"+(railOpen?" rail-open":"")}>
+    <div data-space={space} className={"app workspace-app"+(compactTrip?" calm-trip-workspace":"")+(railOpen?" rail-open":"")}>
       <MotionLayer scene={`${rec?.id || "empty"}-${tab}-${workspace.data.style}-${palette}`} mode={motionMode} style={workspace.data.style} palette={completeThemes.find(t=>t.style===workspace.data.style)!.palette} celebrate={celebrate} />
       {chrome}{appearance}{quickNavigator}{moneyReviews}
       <header>
@@ -950,17 +960,7 @@ setPlannerDirty(false);setKitDirty(false);setTemplateDirty(false);
             </span>
             {!shared && <span className="sync-email"> · {user || "signed in"}</span>}
           </span>
-          {e && rec.owner && (
-            <Pick
-              label="Viewing"
-              value={me}
-              options={e.people}
-              onChange={(p) => {
-                setMe(p);
-                localStorage.setItem("tripshare-person-" + rec.id, p);
-              }}
-            />
-          )}
+          {!compactTrip&&ownerViewPicker}
           {e && !rec.owner && !shared && rec.person && (
             <span className="pill" title="Your account is linked to this member">
               <UserRound size={14} /> {name(rec.person)}
@@ -1031,15 +1031,15 @@ setPlannerDirty(false);setKitDirty(false);setTemplateDirty(false);
                       ? "EVERYDAY, TOGETHER"
                       : "YOUR SHARED ADVENTURE"}
                 </p>
-                <h1>{space==="trip"&&(e?.kind!=="trip"||rec?.personal)?"Your trips":e?.name || (space==="trip"?"Your trips":"Your shared money")}</h1>
+                <h1>{space==="trip"&&(e?.kind!=="trip"||rec?.personal&&!rec.planning)?"Your trips":e?.name || (space==="trip"?"Your trips":"Your shared money")}</h1>
                 <p className="muted">
                   {space==='trip'&&(e?.kind!=='trip'||rec?.personal&&!rec.planning)?'Trips you can plan · spending stays in Money.':e
-                    ? `${e.people.length} people · ${e.kind === "daily" ? "Daily group" : [e.start, e.end].filter(Boolean).join(" — ") || "Trip"} · Settle in ${e.settlement}`
+                    ? `${e.people.length} people · ${e.kind === "daily" ? "Daily group" : [e.start, e.end].filter(Boolean).map(itineraryDate).join(" – ") || "Trip"}${space==='trip'?'':' · Settle in '+e.settlement}`
                     : "Trips, daily groups, and every shared expense."}
                 </p>
               </div>
               <div className="top-actions">
-                {space==="money" && can("addExpense") && (
+                {space==="money" && !["Expenses","My spending"].includes(tab) && can("addExpense") && (
                   <button className="primary" onClick={requestAdd}>
                     <Plus size={18} /> Add expense
                   </button>
@@ -1047,7 +1047,7 @@ setPlannerDirty(false);setKitDirty(false);setTemplateDirty(false);
               </div>
             </div>
             {!shared && (
-              <div className="event-switch">
+              <details className={compactTrip?"trip-group-menu":"event-menu-expanded"} open={!compactTrip||undefined}><summary hidden={!compactTrip}>{space==='trip'?'Switch / new trip':'Switch / new group'}</summary><div className="event-switch">
                 {spaceRecords.length > 0 && (
                   <Pick
                     label="Event"
@@ -1088,9 +1088,11 @@ setPlannerDirty(false);setKitDirty(false);setTemplateDirty(false);
                     + New Daily Group
                   </button>}
                 </>}
-              </div>
+              </div></details>
             )}
-            {e && destinations.length>1 && (
+            {compactTrip&&<TripPrimaryNavigation mobile tab={tab} onNavigate={navigate} onMoney={()=>{if(space!=="money")switchSpace("money")}}/>}
+            {compactTrip&&space==='money'&&<MoneySectionNavigation viewAs={ownerViewPicker} destinations={destinations} tab={tab} onNavigate={navigate}/>}
+            {e && !compactTrip && destinations.length>1 && (
               <Tabs
                 value={tab}
                 onValueChange={navigate}
@@ -1288,7 +1290,7 @@ setPlannerDirty(false);setKitDirty(false);setTemplateDirty(false);
                               setSettings(null);
                               setCreating(false);setTemplateSource(null);
                               spaceIntent.current=isNew&&data.kind==='trip'?'trip':'money';
-                              setTab(isNew&&data.kind==='trip'?'Trip Plan':'Dashboard');
+                              setTab(isNew&&data.kind==='trip'?'Itinerary':'Dashboard');
                               setNotice("Group saved. Trip and Money stay linked.");
                             }
                           }}
@@ -1482,7 +1484,7 @@ setPlannerDirty(false);setKitDirty(false);setTemplateDirty(false);
                   /></DialogContent></Dialog>
                 )}
                 {isTripSection(tab) && canViewTrip && e.kind === "trip" && (
-                  <>{(tab==='Simple itinerary'||!can('plan'))&&<SimpleItinerary key={rec.id} group={rec.id} event={e} initialDay={plannerSelection.day} onDayChange={day=>setPlannerSelection(s=>({...s,day}))} canCopyLink={rec.owner||can('plan')}/ >}{tab!=='Simple itinerary'&&!shared&&can('plan')&&<TripTools key={rec.id+':'+toolsEpoch} group={rec.id} event={e} revision={rec.revision} session={authenticatedSession} canPlan={can('plan')} canPreferences={rec.owner||!!rec.person} busy={busy} disabled={!!(bill||activity||plannerDirty||kitDirty)} onDirty={setToolsDirty} onBegin={()=>setError('')} saveError={error} onNewPlan={()=>{setError('');setDraftRevision(rec.revision);setTab('Itinerary');setActivity(newPlan(e,'Activity',plannerSelection.day||e.start||today()))}} onRefresh={()=>load(true).then(Boolean)} onBulk={(entity,revision)=>send('planBulk',{entity,revision:revision??rec.revision}).then(Boolean)} onApply={async(activities,revision)=>!!(await send('planBatch',{entity:{activities},revision}))}/ >}{['Trip Plan','Itinerary','Bookings','Checklist'].includes(tab)&&can('plan')&&<TripPlanner section={tab==='Trip Plan'?'Overview':tab} onDayChange={day=>setPlannerSelection(s=>({...s,day}))} initialDay={plannerSelection.day} initialType={plannerSelection.type} onSectionChange={(v,day,type)=>{setPlannerSelection({day:day||'',type:type||'All'});navigate(v==='Overview'?'Trip Plan':v)}} key={rec.id+tab+jumpEpoch} event={e} busy={busy} canPlan={can("plan")} canExpense={can("addExpense")} draft={activity} setDraft={value=>{if(!value&&localScope&&activity)removeDraft(localScope,"plan",activity.id);setActivity(value)}} onDirty={setPlannerDirty}
+                  <>{(tab==='Simple itinerary'||!can('plan'))&&<SimpleItinerary key={rec.id} group={rec.id} event={e} initialDay={plannerSelection.day} onDayChange={day=>setPlannerSelection(s=>({...s,day}))} canCopyLink={rec.owner||can('plan')}/ >}{tab==='Trip tools'&&!shared&&can('plan')&&<TripTools availableRoutes={[...destinations,...spaceDestinations(rec,"money",shared)]} onNavigate={navigate} canManageAccess={!!rec.owner} onOpenMoney={()=>switchSpace('money')} key={rec.id+':'+toolsEpoch} group={rec.id} event={e} revision={rec.revision} session={authenticatedSession} canPlan={can('plan')} canPreferences={rec.owner||!!rec.person} busy={busy} disabled={!!(bill||activity||plannerDirty||kitDirty)} onDirty={setToolsDirty} onBegin={()=>setError('')} saveError={error} onNewPlan={()=>{setError('');setDraftRevision(rec.revision);setTab('Itinerary');setActivity(newPlan(e,'Activity',plannerSelection.day||e.start||today()))}} onRefresh={()=>load(true).then(Boolean)} onBulk={(entity,revision)=>send('planBulk',{entity,revision:revision??rec.revision}).then(Boolean)} onApply={async(activities,revision)=>!!(await send('planBatch',{entity:{activities},revision}))}/ >}{['Trip Plan','Itinerary','Bookings','Checklist'].includes(tab)&&can('plan')&&<TripPlanner section={tab==='Trip Plan'?'Overview':tab} onDayChange={day=>setPlannerSelection(s=>({...s,day}))} initialDay={plannerSelection.day} initialType={plannerSelection.type} onSectionChange={(v,day,type)=>{setPlannerSelection({day:day||'',type:type||'All'});navigate(v==='Overview'?'Trip Plan':v)}} key={rec.id+tab+jumpEpoch} event={e} busy={busy} canPlan={can("plan")} canExpense={can("addExpense")} draft={activity} setDraft={value=>{if(!value&&localScope&&activity)removeDraft(localScope,"plan",activity.id);setActivity(value)}} onDirty={setPlannerDirty}
                     saveError={error} onReviewLatest={reviewLatestPlan} showFinancial={!rec.personal} onBegin={()=>{setError("");setDraftRevision(rec.revision)}}
                     onSave={async entity=>!!(await send("activity",{entity,revision:draftRevision}))}
                     onAction={(action,entity)=>send(action,{entity})}

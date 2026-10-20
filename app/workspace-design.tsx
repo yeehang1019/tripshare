@@ -1,6 +1,6 @@
 "use client";
 import {useState,useMemo} from "react";
-import {Palette,ArrowUpRight,Orbit,Layers,MapPinned,Users,Sparkles,Search,LayoutDashboard,ReceiptText,HandCoins,UserRound,Settings2,Plus,X,History} from 'lucide-react';
+import {Palette,ArrowUpRight,Orbit,Layers,MapPinned,Users,Sparkles,Search,LayoutDashboard,ReceiptText,HandCoins,UserRound,Settings2,Plus,X,History,Ticket,Wallet,Grid2X2} from 'lucide-react';
 import {Dialog,DialogContent,DialogTitle,DialogDescription} from '@/components/ui/dialog';
 import {type useWorkspace} from './experience';
 import type {RecordT} from './trip-app';
@@ -19,7 +19,15 @@ export function AppearancePanel({open,onOpenChange,workspace:w,palette,mode,moti
   return <Dialog open={open} onOpenChange={onOpenChange}><DialogContent className="appearance-studio complete-studio"><DialogTitle><Sparkles size={22}/> Choose your world</DialogTitle><DialogDescription>Three complete themes. Every colour and detail belongs together.</DialogDescription><div className="complete-themes">{completeThemes.map(t=><button key={t.style} data-look={t.style} aria-pressed={selected.style===t.style} disabled={shared||saving||!w.ready||w.busy} onClick={()=>selectTheme(t)}><span className="theme-cover"><span>{t.symbol}</span><i/><i/><i/></span><span className="theme-description"><b>{t.name}</b><small>{t.subtitle}</small><p>{t.detail}</p></span><span className="theme-choice">{selected.style===t.style?'Selected':'Choose theme'}</span></button>)}</div><div className="studio-controls"><label>Lighting<select value={mode} onChange={e=>onChange(selected.palette,e.target.value,motion)}><option value="light">Daylight</option><option value="night">After dark</option></select></label><label>Motion<select value={motion} onChange={e=>onChange(selected.palette,mode,e.target.value)}><option value="full">Expressive · adaptive</option><option value="smooth">Balanced</option><option value="battery">Minimal</option></select></label></div>{!shared&&<div className="studio-controls"><button className="secondary" disabled={!w.ready||w.busy} aria-pressed={w.data.sound} onClick={()=>w.save({action:'appearance',style:w.data.style,sound:!w.data.sound,haptics:w.data.haptics})}>Sound {w.data.sound?'on':'off'}</button><button className="secondary" disabled={!w.ready||w.busy} aria-pressed={w.data.haptics} onClick={()=>w.save({action:'appearance',style:w.data.style,sound:w.data.sound,haptics:!w.data.haptics})}>Haptics {w.data.haptics?'on':'off'}</button></div>}{w.error&&<p role="alert">{w.error}</p>}</DialogContent></Dialog>;
 }
 const navigationIcons:Record<string,typeof Palette>={Dashboard:LayoutDashboard,'Trip Plan':MapPinned,Itinerary:MapPinned,Bookings:Layers,'Trip costs':ReceiptText,Checklist:Layers,'Travel kit':Layers,'Files & photos':Layers,Expenses:ReceiptText,Settlement:HandCoins,'My spending':UserRound,Settings:Settings2,'People & Access':Users,History};
-type NavigationProps={destinations?:string[];onNavigate?:(tab:string)=>void;onSearch?:()=>void;tab?:string;railOpen?:boolean;onRailClose?:()=>void;space?:"trip"|"money";spaceSwitch?:import("react").ReactNode};
+type NavigationProps={destinations?:string[];onNavigate?:(tab:string)=>void;onSearch?:()=>void;tab?:string;railOpen?:boolean;onRailClose?:()=>void;space?:"trip"|"money";spaceSwitch?:import("react").ReactNode;compactTrip?:boolean;onMoney?:()=>void};
+export function TripPrimaryNavigation({tab,onNavigate,onMoney,mobile=false}:{tab:string;onNavigate:(tab:string)=>void;onMoney:()=>void;mobile?:boolean}){
+ const active=['Dashboard','Expenses','Settlement','My spending','People & Access','Settings','History'].includes(tab)?'money':tab==='Bookings'?'Bookings':tab==='Itinerary'?'Itinerary':'Trip tools';
+ return <nav className={'trip-primary-nav '+(mobile?'trip-primary-mobile':'trip-primary-desktop')} aria-label="Trip pages">{[{id:'Itinerary',label:'Itinerary',Icon:MapPinned},{id:'Bookings',label:'Bookings',Icon:Ticket},{id:'money',label:'Money',Icon:Wallet},{id:'Trip tools',label:'More',Icon:Grid2X2}].map(({id,label,Icon})=><button type="button" key={id} aria-current={id===active?'page':undefined} onClick={()=>id==='money'?onMoney():onNavigate(id)}><Icon size={19}/><span>{label}</span></button>)}</nav>;
+}
+export function MoneySectionNavigation({destinations,tab,onNavigate,viewAs}:{destinations:string[];tab:string;onNavigate:(tab:string)=>void;viewAs?:import("react").ReactNode}){
+ const primary=['Expenses','Settlement','Dashboard'].filter(t=>destinations.includes(t)),extra=destinations.filter(t=>!primary.includes(t));
+ return <nav className="money-section-navigation" aria-label="Money pages">{primary.map(t=><button type="button" key={t} aria-current={tab===t?'page':undefined} onClick={()=>onNavigate(t)}>{t==='Dashboard'?'Overview':t}</button>)}{!!extra.length&&<details><summary className={extra.includes(tab)?'active':''}>More Money</summary><div>{viewAs&&<div className="money-view-as"><span>View member</span>{viewAs}</div>}{extra.map(t=><button type="button" key={t} aria-current={tab===t?'page':undefined} onClick={event=>{event.currentTarget.closest('details')?.removeAttribute('open');onNavigate(t)}}>{t}</button>)}</div></details>}</nav>;
+}
 export function recentVisibleExpenses(record?:RecordT){
   if(!record)return [];
   const rows=record.personal
@@ -27,7 +35,7 @@ export function recentVisibleExpenses(record?:RecordT){
     :record.data.expenses.filter(b=>!b.deleted).map(b=>({id:b.id,title:b.merchant,date:b.date,amount:calculate(b,record.data.settlement).total,category:b.category}));
   return rows.sort((a,b)=>b.date.localeCompare(a.date)||a.id.localeCompare(b.id)).slice(0,3);
 }
-export function WorkspaceChrome({records,selected,onGroup,onAppearance,style,palette,event,member,destinations=[],onNavigate,onSearch,tab,railOpen=false,onRailClose,space="money",spaceSwitch}:{records:RecordT[];selected:string;onGroup:(id:string)=>void;onAppearance:()=>void;style:string;palette:string;event?:Event;member:boolean}&NavigationProps){
+export function WorkspaceChrome({records,selected,onGroup,onAppearance,style,palette,event,member,destinations=[],onNavigate,onSearch,tab,railOpen=false,onRailClose,space="money",spaceSwitch,compactTrip=false,onMoney}:{records:RecordT[];selected:string;onGroup:(id:string)=>void;onAppearance:()=>void;style:string;palette:string;event?:Event;member:boolean}&NavigationProps){
   const [query,setQuery]=useState('');
   const styles:Record<string,string>={glass:'Cloud Crème',arcade:'Neon Odyssey',cosmic:'Apex GT'};
   const matches=records.filter(r=>r.data.name.toLowerCase().includes(query.trim().toLowerCase()));
@@ -35,10 +43,10 @@ export function WorkspaceChrome({records,selected,onGroup,onAppearance,style,pal
   return <>
     <aside className="workspace-sidebar" aria-label="Your groups">
       <div className="sidebar-insignia"><Orbit size={27}/><span>YOUR SHARED<br/><b>UNIVERSE</b></span></div>
-      {spaceSwitch}
+      {!compactTrip&&spaceSwitch}
       <div className="sidebar-workspace-label">{space==='trip'?'TRIP / JOURNEY PLANNING':'MONEY / SHARED EXPENSES'}</div>
       {onSearch&&<button className="sidebar-search" onClick={onSearch}><Search size={15}/> Quick jump <kbd>⌘K</kbd></button>}
-      <nav className="sidebar-navigation" aria-label="Workspace sections">{destinations.map(item=>{const Icon=navigationIcons[item]||Layers;return <button key={item} aria-current={item===tab?'page':undefined} onClick={()=>onNavigate?.(item)}><Icon size={17}/>{item}</button>})}</nav>
+      {compactTrip&&onNavigate&&onMoney?<TripPrimaryNavigation tab={tab||'Itinerary'} onNavigate={onNavigate} onMoney={onMoney}/>:<nav className="sidebar-navigation" aria-label="Workspace sections">{destinations.map(item=>{const Icon=navigationIcons[item]||Layers;return <button key={item} aria-current={item===tab?'page':undefined} onClick={()=>onNavigate?.(item)}><Icon size={17}/>{item}</button>})}</nav>}
       <div className="sidebar-section">{space==='trip'?'YOUR TRIPS':'MONEY GROUPS'} <small>{records.length}</small></div>
       {records.length>5&&<input className="group-filter" aria-label="Filter groups" placeholder="Find a group…" value={query} onChange={e=>setQuery(e.target.value)}/>}
       <div className="sidebar-groups">{matches.map((r,i)=><button key={r.id} aria-current={r.id===selected?'true':undefined} onClick={()=>onGroup(r.id)}><span className={'group-orbit orbit-'+i%3}>{r.data.kind==='trip'?<MapPinned size={18}/>:<Users size={18}/>}</span><span><b>{r.data.name}</b><small>{r.data.kind==='trip'?'Trip space':'Daily circle'}</small></span><ArrowUpRight size={14}/></button>)}{!matches.length&&<p className="sidebar-empty">{records.length?'No matching groups.':'Your groups will appear here.'}</p>}</div>
