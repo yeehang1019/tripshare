@@ -87,7 +87,7 @@ import TripAlbum from "./trip-album";
 import {PeopleAccess,ChangeHistory,NotificationBell,SettlementExport} from "./collaboration";
 import {TravelKit,BookingFiles} from "./travel-kit";
 import {newPlan} from "@/lib/trip-plan";
-import {SpaceSwitch,SpaceBridge,TripLanding,isTripSection,spaceDestinations,tripRecords,resolveSpaceRoute,type Space} from "./space-navigation";
+import {SpaceSwitch,SpaceBridge,TripLanding,isTripSection,spaceDestinations,tripRecords,resolveSpaceRoute,destinationLabel,type Space} from "./space-navigation";
 import {Search,PanelRight} from "lucide-react";
 import {AppearancePanel,WorkspaceChrome,QuickNavigator,completeThemes,monthBounds} from "./workspace-design";
 import {useWorkspace,TemplateShelf,PersonalHub,SettlementPreview,PayoutDetails,TravelFunding,feedback} from "./experience";
@@ -1029,13 +1029,13 @@ setPlannerDirty(false);setKitDirty(false);setTemplateDirty(false);
           <>
             <div className="topline">
               <div>
-                <p className="eyebrow">
-                  {space==="trip"?"TRIP / PLAN THE JOURNEY":shared
+                {space!=="trip"&&<p className="eyebrow">
+                  {shared
                     ? "SHARED WITH YOU"
                     : e?.kind === "daily"
                       ? "EVERYDAY, TOGETHER"
                       : "YOUR SHARED ADVENTURE"}
-                </p>
+                </p>}
                 <h1>{space==="trip"&&(e?.kind!=="trip"||rec?.personal)?"Your trips":e?.name || (space==="trip"?"Your trips":"Your shared money")}</h1>
                 <p className="muted">
                   {space==='trip'&&(e?.kind!=='trip'||rec?.personal&&!rec.planning)?'Trips you can plan · spending stays in Money.':e
@@ -1068,9 +1068,7 @@ setPlannerDirty(false);setKitDirty(false);setTemplateDirty(false);
                     onChange={choose}
                   />
                 )}
-                <span className="pill">
-                  {space==="trip"?"TRIP WORKSPACE":e?.kind === "daily" ? "DAILY GROUP" : "TRIP GROUP"}
-                </span>
+                {space!=="trip"&&<span className="pill">{e?.kind === "daily" ? "DAILY GROUP" : "TRIP GROUP"}</span>}
               </div>
             )}
             {e && destinations.length>1 && (
@@ -1093,9 +1091,9 @@ setPlannerDirty(false);setKitDirty(false);setTemplateDirty(false);
                                 ? UserRound
                                 : Settings2;
                     return (
-                      <TabsTrigger key={t} value={t} title={t}>
+                      <TabsTrigger key={t} value={t} title={destinationLabel(t,destinations.includes('Trip Plan'))}>
                         <Icon className="nav-icon" size={17} />
-                        <span className="nav-label">{t}</span>
+                        <span className="nav-label">{destinationLabel(t,destinations.includes('Trip Plan'))}</span>
                       </TabsTrigger>
                     );
                   })}

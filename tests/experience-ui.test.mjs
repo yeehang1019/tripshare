@@ -213,7 +213,8 @@ test('Restored full Admin sidebar exposes every allowed destination without a Mo
   const html=renderToStaticMarkup(React.createElement(design.WorkspaceChrome,{records:[record],selected:'trip',onGroup(){},onAppearance(){},style:'arcade',palette:'Cyberpunk',event:e,member:false,space,destinations,tab:destinations[1],onNavigate(){}}));
   const nav=html.match(/<nav class="sidebar-navigation"[\s\S]*?<\/nav>/)[0];
   assert.equal((nav.match(/<button\b/g)||[]).length,destinations.length);
-  for(const label of destinations)assert.ok(nav.includes(label.replaceAll('&','&amp;')),label);
+  for(const destination of destinations){const label=destination==='Trip Plan'?'Overview':destination==='Simple itinerary'&&space==='trip'?'Preview member view':destination;assert.ok(nav.includes(label.replaceAll('&','&amp;')),label);}
+  if(space==='trip'){assert.match(nav,/>Overview<\/button>/);assert.match(nav,/>Preview member view<\/button>/);assert.doesNotMatch(nav,/>Trip Plan<\/button>/);}
   assert.doesNotMatch(nav,/>More</);assert.match(nav,/aria-current="page"/);
  }
  const app=readFileSync(new URL('../app/trip-app.tsx',import.meta.url),'utf8');

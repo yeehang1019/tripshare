@@ -811,3 +811,10 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible{
  .trip-entry-workspace .space-switch small{white-space:normal;line-height:1.4}
 }
 @media print{.workspace-create-bar,.trip-tools-menu{display:none!important}}
+.planner-next-grid.planner-next-solo,.plan-overview-grid.plan-details-only{grid-template-columns:minmax(0,1fr)}
+.overview-money-summary{display:flex;flex-wrap:wrap;gap:10px 28px;padding:14px 18px;margin:0 0 18px;background:var(--surface);border:1px solid var(--border);border-radius:12px;color:var(--muted);font-size:13px}
+.overview-money-summary span{display:flex;flex-wrap:wrap;gap:8px;align-items:baseline}.overview-money-summary b{color:var(--text);font-size:15px}
+.trip-essential-dates{display:grid;gap:8px;margin:12px 0 18px}.trip-essential-dates p{display:flex;gap:12px;flex-wrap:wrap;margin:0;font-size:14px}.trip-essential-dates b{min-width:100px}.trip-essential-dates span{overflow-wrap:anywhere;color:var(--muted)}
+.planner-status-metrics{grid-template-columns:repeat(auto-fit,minmax(min(100%,170px),1fr))}
+@media(max-width:600px){.planner-status-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.planner-status-metrics>div:last-child:nth-child(odd){grid-column:1/-1}.overview-money-summary{gap:10px;font-size:12px}.overview-money-summary>span{flex:1 1 140px;flex-direction:column;gap:3px}}
+@media(min-width:851px){.trip-entry-workspace .event-switch{display:none}}

@@ -342,3 +342,27 @@ Browser-control skill is unavailable. Real 5.9/6/6.9-inch phone layouts, large-t
 - **CHANGE NOW:** scoped duplicate tool/add cleanup, explained tool names, top-level creation with dirty-input protection and fluid phone rules; implemented and automated checks passed.
 - **IMPROVE LATER:** supported real-device acceptance, user-selected next small cleanup, measured CSS/component consolidation and observed whole-group bottlenecks.
 - **DO NOT ADD:** another broad navigation redesign, hardcoded per-phone models/inches, new roles/ledger, new dependencies, speculative tools or new financial synchronization.
+
+# Second approved cleanup: duplicate Overview navigation — 2026-10-20
+
+## Scope and flow
+
+The user approved the screenshot review. Admin navigation now displays Trip Plan as Overview and Simple itinerary as Preview member view, consistently in the desktop sidebar, phone tabs and quick jump. Internal destination values remain unchanged so existing routing, dirty guards, focused records, simple-view links and member-only destinations retain their behavior. Ordinary member labels/routes are unchanged.
+
+Removed the planner header's duplicate Trip costs link and the overview's Open itinerary shortcut. The main Trip costs/Itinerary destinations remain, and each Coming up row still opens its specific travel day. Overview no longer has a separate Money snapshot tab: its initial summary shows only Plan estimate and Recorded spending from the existing tripFinance calculation, guarded by showFinancial. Full prepaid/unpaid/deposit/bill management stays in Trip costs and Money. No financial write or duplicated ledger exists.
+
+Trip details & days becomes Trip details. Removed its second daily itinerary list while retaining destination/date/timezone editing, member/group information, budget and filtered booking readiness. Read-only essentials now show saved dates, destination and timezone explicitly. Empty preparation metrics (0 / 0) and an empty Needs attention panel are omitted; active tasks/warnings remain actionable. The Coming up panel and metric grid fill the available space. Removed repeated Trip context captions and the now-empty desktop event-switch wrapper; phone trip selection remains available.
+
+## Review and verification
+
+- **Correctness / compatibility:** this is a display/entry cleanup. Existing destination IDs, planner sections, type chooser, detailed forms, linked return flights, booking/cost/checklist tools, selected-day routing and Money accounting are retained. No database, API, permission, theme preference, audience or dependency changes.
+- **Authorization / isolation:** the short financial summary is conditional on the existing showFinancial boundary; renamed navigation does not grant access. All server grants and personal-member projections remain unchanged. Source review confirmed no authorization or tenant selection mutation.
+- **Concurrency / recovery:** existing callbacks, revisions/CAS, stable expense IDs, unsaved-input guards and browser draft recovery are unchanged. A contextual Coming up click uses its original date-aware route. No added retry or write path.
+- **Performance / maintenance:** the duplicate financial summary component and daily list no longer mount in Overview secondary tabs. Existing tripFinance memoization remains; no added network requests. Whole-group loading/authorization and ledger recomputation remain the first likely bottlenecks. Centralized display labels avoid changing internal routing keys; the legacy component/CSS size remains non-blocking debt.
+
+73 relevant existing SSR, planner, workflow and trip-finance checks passed; the existing full-navigation expectation was updated for visible labels. TypeScript with current generated Cloudflare declarations and whitespace checks passed. No new tests mirroring this reversible UI cleanup were added. Packaging requires the Sites production build. Browser-control skill remains unavailable; actual desktop/phone layout, focus and swipe acceptance remain unverified. Tests did not change live trip/bill records, roles or preferences. Application-only rollback to v60 is compatible without migration.
+
+- **KEEP:** detailed Admin capabilities, contextual record/day links, independent Trip/Money, current backend isolation, member view and stable routes.
+- **CHANGE NOW:** the approved duplicate links, labels, overview/detail overlap and empty panels; implemented.
+- **IMPROVE LATER:** supported browser/device acceptance and the next separately reviewed small cleanup.
+- **DO NOT ADD:** another menu layer, route migration, broad redesign or new financial/state architecture for a UI duplication issue.

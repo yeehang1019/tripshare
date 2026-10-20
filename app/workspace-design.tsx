@@ -4,6 +4,7 @@ import {Palette,ArrowUpRight,Orbit,Layers,MapPinned,Users,Sparkles,Search,Layout
 import {Dialog,DialogContent,DialogTitle,DialogDescription} from '@/components/ui/dialog';
 import {type useWorkspace} from './experience';
 import type {RecordT} from './trip-app';
+import {destinationLabel} from './space-navigation';
 import {searchIndex,searchRecords,type SearchHit} from '@/lib/workspace-search';
 import {calculate,money,type Event} from '@/lib/ledger';
 export function monthBounds(now=new Date()):[string,string]{const year=now.getFullYear(),month=now.getMonth()+1;return [`${year}-${String(month).padStart(2,'0')}-01`,`${year}-${String(month).padStart(2,'0')}-${String(new Date(year,month,0).getDate()).padStart(2,'0')}`]}
@@ -38,7 +39,7 @@ export function WorkspaceChrome({records,selected,onGroup,onAppearance,style,pal
       {spaceSwitch}
       <div className="sidebar-workspace-label">{space==='trip'?'TRIP / JOURNEY PLANNING':'MONEY / SHARED EXPENSES'}</div>
       {onSearch&&<button className="sidebar-search" onClick={onSearch}><Search size={15}/> Quick jump <kbd>⌘K</kbd></button>}
-      <nav className="sidebar-navigation" aria-label="Workspace sections">{destinations.map(item=>{const Icon=navigationIcons[item]||Layers;return <button key={item} aria-current={item===tab?'page':undefined} onClick={()=>onNavigate?.(item)}><Icon size={17}/>{item}</button>})}</nav>
+      <nav className="sidebar-navigation" aria-label="Workspace sections">{destinations.map(item=>{const Icon=navigationIcons[item]||Layers;return <button key={item} aria-current={item===tab?'page':undefined} onClick={()=>onNavigate?.(item)}><Icon size={17}/>{destinationLabel(item,destinations.includes('Trip Plan'))}</button>})}</nav>
       <div className="sidebar-section">{space==='trip'?'YOUR TRIPS':'MONEY GROUPS'} <small>{records.length}</small></div>
       {records.length>5&&<input className="group-filter" aria-label="Filter groups" placeholder="Find a group…" value={query} onChange={e=>setQuery(e.target.value)}/>}
       <div className="sidebar-groups">{matches.map((r,i)=><button key={r.id} aria-current={r.id===selected?'true':undefined} onClick={()=>onGroup(r.id)}><span className={'group-orbit orbit-'+i%3}>{r.data.kind==='trip'?<MapPinned size={18}/>:<Users size={18}/>}</span><span><b>{r.data.name}</b><small>{r.data.kind==='trip'?'Trip space':'Daily circle'}</small></span><ArrowUpRight size={14}/></button>)}{!matches.length&&<p className="sidebar-empty">{records.length?'No matching groups.':'Your groups will appear here.'}</p>}</div>
@@ -51,7 +52,7 @@ export function QuickNavigator({open,onOpenChange,records,destinations,onGroup,o
   const [query,setQuery]=useState('');
   const index=useMemo(()=>searchIndex(records),[records]);
   const matches=useMemo(()=>searchRecords(index,query),[index,query]);
-  const actions=[...(onAdd?[{name:'Add expense',detail:'Record a shared bill',run:onAdd,icon:Plus}]:[]),...destinations.map(name=>({name,detail:'Open workspace section',run:()=>onNavigate(name),icon:navigationIcons[name]||Layers})),{name:'Appearance',detail:'Style, colours and motion',run:onAppearance,icon:Palette}];
+  const actions=[...(onAdd?[{name:'Add expense',detail:'Record a shared bill',run:onAdd,icon:Plus}]:[]),...destinations.map(name=>({name:destinationLabel(name,destinations.includes('Trip Plan')),detail:'Open workspace section',run:()=>onNavigate(name),icon:navigationIcons[name]||Layers})),{name:'Appearance',detail:'Style, colours and motion',run:onAppearance,icon:Palette}];
   const matchingActions=actions.filter(a=>(a.name+' '+a.detail).toLowerCase().includes(query.trim().toLowerCase()));
   const matchingGroups=records.filter(r=>r.data.name.toLowerCase().includes(query.trim().toLowerCase())).slice(0,12);
   function run(action:()=>void){onOpenChange(false);setQuery('');action()}
