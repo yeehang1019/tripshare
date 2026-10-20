@@ -160,3 +160,15 @@ test('Hybrid itinerary keeps drag targets in the list and excludes ongoing stays
  const html=renderToStaticMarkup(React.createElement(focusWorkspace.DetailWorkbench,{label:'Plans',rows:[{id:'stay',title:'Ongoing hotel'},{id:'flight',title:'Flight'}],canDrag:id=>id==='flight',onReorder(){},renderDetail:id=>React.createElement('p',{},id)}));
  assert.equal((html.match(/draggable="true"/g)||[]).length,1);assert.equal((html.match(/draggable="false"/g)||[]).length,1);
 });
+
+test('Daily hotel rows distinguish check-in, overnight stay and timed checkout without changing the booking',()=>{
+ const e=normalize({name:'Trip',people:['A'],bills:[],payments:[]});e.start='2026-11-23';e.end='2026-11-25';
+ e.activities=[{id:'hotel',name:'Krabi Phranang Palace',type:'Hotel',status:'Booked',date:e.start,endDate:e.end,time:'14:00',endTime:'11:30',location:'Krabi',url:'',notes:'',budget:231700,category:'Accommodation',people:['A']}];
+ const before=JSON.stringify(e),props={event:e,section:'Itinerary',busy:false,canPlan:false,canExpense:false,draft:null,setDraft(){},onBegin(){},onSave:async()=>true,onAction:async()=>true,onDelete(){},onExpense(){},onShare(){},onDirty(){}};
+ const render=initialDay=>renderToStaticMarkup(React.createElement(TripPlanner,{...props,initialDay}));
+ assert.match(render(e.start),/23 Nov · Check-in 14:00/);
+ assert.match(render('2026-11-24'),/24 Nov · Staying overnight/);
+ const checkout=render(e.end);assert.match(checkout,/25 Nov · Check-out 11:30/);assert.doesNotMatch(checkout,/Tonight:/);assert.match(checkout,/Krabi Phranang Palace/);
+ e.activities[0].endTime='';assert.match(render(e.end),/Check-out time not set/);e.activities[0].endTime='11:30';
+ assert.equal(JSON.stringify(e),before);
+});

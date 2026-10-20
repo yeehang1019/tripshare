@@ -178,3 +178,15 @@ Official implementation references: https://developers.cloudflare.com/d1/sql-api
 - CHANGE NOW: remove the competing individual translate before publishing.
 - IMPROVE LATER: verify the Hotel form at desktop/mobile widths and with the on-screen keyboard in a supported browser/device. Whole-group JSON remains the first known data-scale bottleneck; this CSS change adds no runtime work.
 - DO NOT ADD: a replacement dialog system, new booking features, dependencies or schema changes for this positioning fix.
+
+
+# Hotel checkout day review — 2026-10-20
+
+- Scope: per-day itinerary master rows now show hotel check-in/check-out using the selected day and the corresponding time, or an explicit time-not-set label. Intermediate days say Staying overnight. Checkout remains a reminder on the departure day; the Tonight section already excludes checkout day. All-days and Bookings retain their original reservation start details. No dates/times are inferred or bookings duplicated.
+- Problem → impact → root cause → fix → priority: checkout-day rows displayed the original check-in date/time, making a departing hotel look like a new stay. Generic reservation subtitles ignored the selected itinerary day. Use day-aware hotel subtitles and replace the ambiguous Check-out / end label. MEDIUM usability issue.
+- Simple family itinerary: preview alternatives only; no new public share route or access-policy change shipped before design selection. Existing /view requires authentication and membership. Any future anonymous itinerary link must serve an allowlisted planning-only projection with revocation, excluding bills, booking credentials, private preferences and private group data.
+- Validation: 45 focused SSR/planner tests passed, including day-specific check-in/stay/check-out and missing-time cases, end-exclusive Tonight and no mutation of saved booking data. TypeScript with current generated Worker declarations and production build passed. Browser/device geometry unavailable in this environment.
+- KEEP: checkout reminders, end-exclusive Tonight stays, current layout/themes and all permission/financial boundaries.
+- CHANGE NOW: day-aware checkout labels before publishing.
+- IMPROVE LATER: user-selected accessible family itinerary page and actual phone acceptance; whole-group JSON remains the existing scale limit.
+- DO NOT ADD: financial or personal information to anonymous share links, inferred hotel checkout times, or an unsolicited overall redesign.

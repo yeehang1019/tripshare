@@ -7,3 +7,5 @@
 - After each requested implementation, review correctness, authorization and cross-group isolation, concurrency/idempotency, compatibility, error recovery and the first likely performance bottleneck. Fix release blockers before publishing. Record concrete non-blocking improvements instead of adding speculative features automatically.
 - Update `docs/engineering-review.md` with the shipped scope, tests, known limits and the verdict: KEEP / CHANGE NOW / IMPROVE LATER / DO NOT ADD. State unavailable verification explicitly. Do not claim an actual device, browser or external calendar test from SSR/unit checks.
 - Use the Sites workflow to open, package and publish the existing project. Keep source credentials in session memory and retain current site audience. Schema migrations are additive, generated through Drizzle, and applied through Sites publication. Never rewrite applied migration history.
+
+- Before any visual redesign, present multiple concrete samples and wait for the user's selection. Functional corrections can proceed using engineering judgment; ask when behavior or scope is materially ambiguous.
