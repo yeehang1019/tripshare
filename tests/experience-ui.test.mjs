@@ -5,6 +5,7 @@ import {renderToStaticMarkup} from 'react-dom/server';
 import {createServer} from 'vite';
 import {fileURLToPath} from 'node:url';
 import {readFileSync} from 'node:fs';
+import postcss from 'postcss';
 import {normalize,blankExpense,today} from '../lib/ledger.ts';
 const root=fileURLToPath(new URL('..',import.meta.url)),vite=await createServer({appType:'custom',configFile:false,root,resolve:{alias:{'@':root}},server:{middlewareMode:true,hmr:false}});
 after(()=>vite.close());
@@ -228,4 +229,50 @@ test('Restored detailed plan dialog retains busy locking and never retries a fai
  const save=source.split('\n').find(line=>line.includes('async function savePlan()'));
  assert.equal((save.match(/await commitPlan\(draft\)/g)||[]).length,1);
  assert.ok(save.indexOf('catch')<save.indexOf('await commitPlan(draft)'));
+});
+
+test('Trip has one contextual add entry and keeps detailed functions without duplicate quick-add buttons',()=>{
+ const e=normalize({name:'Thailand',people:['A'],bills:[],payments:[]});e.start='2026-11-23';e.end='2026-11-25';
+ const before=JSON.stringify(e),props={event:e,busy:false,canPlan:true,canExpense:true,draft:null,setDraft(){},onBegin(){},onSave:async()=>true,onAction:async()=>true,onDelete(){},onExpense(){},onShare(){},onDirty(){}};
+ for(const section of ['Overview','Itinerary','Bookings','Checklist']){
+  const html=renderToStaticMarkup(React.createElement(TripPlanner,{...props,section}));
+  assert.equal((html.match(/class="primary add-plan-entry"/g)||[]).length,section==='Checklist'?0:1);
+  assert.doesNotMatch(html,/Quick add|Add to trip|\+ Add plan|class="plan-quick"/);
+  if(section==='Bookings')assert.match(html,/>Add booking<\/button>/);
+  if(section==='Checklist')assert.match(html,/Add task/);
+ }
+ const readOnly=renderToStaticMarkup(React.createElement(TripPlanner,{...props,section:'Overview',canPlan:false}));assert.doesNotMatch(readOnly,/add-plan-entry/);
+ const source=readFileSync(new URL('../app/trip-planner.tsx',import.meta.url),'utf8');assert.match(source,/view==='Bookings'\?bookingTypes:planTypes/);assert.match(source,/setAddTypeOpen\(false\);add\(type/);
+ assert.equal(JSON.stringify(e),before);
+});
+
+test('Trip tools are collapsed with task descriptions and preserve authorization without a floating dock',async()=>{
+ const {TripTools}=await vite.ssrLoadModule('/app/trip-tools.tsx');const e=normalize({name:'Trip',people:['A'],bills:[],payments:[]});
+ const props={group:'g',event:e,revision:0,session:'',canPlan:true,canPreferences:true,busy:false,disabled:false,onApply:async()=>true,onDirty(){},onBegin(){},onBulk:async()=>true};
+ const html=renderToStaticMarkup(React.createElement(TripTools,props));assert.match(html,/<details class="trip-tools-menu"><summary>/);assert.doesNotMatch(html,/<details open|mobile-trip-dock|Travel shortcuts|\+ Plan/);
+ for(const name of ['Today &amp; next stop','Booking references','Shift plans','Calendar','Plan library','Private preferences','Offline pack'])assert.ok(html.includes(name),name);
+ assert.match(html,/Flight \/ hotel numbers and booking links/);assert.match(html,/departure times and directions/);
+ const limited=renderToStaticMarkup(React.createElement(TripTools,{...props,canPreferences:false,canPlan:false}));assert.doesNotMatch(limited,/Private preferences|Shift plans/);
+ const locked=renderToStaticMarkup(React.createElement(TripTools,{...props,disabled:true}));assert.equal((locked.match(/class="trip-tool-launch" disabled=""/g)||[]).length,7);
+});
+
+test('New Trip creation is above trip context, separate from plan additions, and guarded against unsaved input',()=>{
+ const source=readFileSync(new URL('../app/trip-app.tsx',import.meta.url),'utf8');
+ const creation=source.indexOf('className="workspace-create-bar"');assert.ok(creation>0);assert.ok(creation<source.indexOf('className="mobile-space-switch"',creation));assert.ok(creation<source.indexOf('className="topline"',creation));
+ assert.equal((source.match(/onClick=\{\(\)=>startNewEvent\('trip'\)\}/g)||[]).length,1);
+ const picker=source.slice(source.indexOf('<div className="event-switch">'),source.indexOf('{e && destinations.length>1'));assert.doesNotMatch(picker,/New Trip|startNewEvent|New Daily/);
+ assert.match(source,/if\(editing.current\)setConfirm\(\{title:'Create a new space\?'/);assert.match(source,/!shared&&loaded&&canCreateEvents&&<div className="workspace-create-bar"/);
+});
+
+test('Responsive Trip rules use viewport width, safe areas and readable controls from 320 through 480 CSS pixels',()=>{
+ const css=readFileSync(new URL('../app/globals.css',import.meta.url),'utf8'),focused=css.slice(css.indexOf('/* Focused Trip entry cleanup:'));
+ const tree=postcss.parse(focused);
+ function styles(selector,width){const result={};tree.walkRules(rule=>{if(!rule.selector.split(',').map(s=>s.trim()).includes(selector))return;for(let parent=rule.parent;parent;parent=parent.parent){if(parent.type==='atrule'&&parent.name==='media'){const max=parent.params.match(/max-width:\s*(\d+)px/);if(max&&width>Number(max[1]))return;if(parent.params==='print')return;}}rule.walkDecls(decl=>result[decl.prop]=decl.value)});return result;}
+ for(const width of [320,360,375,390,393,412,414,430,440,480]){
+  assert.equal(styles('.trip-tools-menu .trip-tools-bar',width)['grid-template-columns'],width<=380?'minmax(0,1fr)':'repeat(2,minmax(0,1fr))');
+  const nav=styles(':root[data-visual] .trip-entry-workspace .navigation',width);assert.equal(nav['overflow-x'],'auto');assert.match(nav.bottom,/safe-area-inset-bottom/);assert.equal(nav.width,'auto');
+  assert.equal(styles(':root[data-visual] .trip-entry-workspace .navigation button',width)['min-height'],'58px');
+  assert.equal(styles('.trip-entry-workspace .navigation .nav-label',width)['white-space'],'nowrap');
+ }
+ assert.match(focused,/font-size:16px!important;min-width:0/);assert.match(focused,/100dvh - 24px - env\(safe-area-inset-top\)/);
 });

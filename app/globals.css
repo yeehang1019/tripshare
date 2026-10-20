@@ -340,7 +340,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible{
 @media(max-width:480px){.workspace-app>header{flex-wrap:wrap;gap:8px;min-height:78px}.workspace-app .header-right{justify-content:flex-end;flex:1 1 100%;margin-top:-2px}.workspace-app .brand{font-size:22px}.workspace-app .header-right .pick{max-width:140px;flex-basis:140px}.workspace-app .hub-stat>strong{font-size:21px}.workspace-app .hero-stat>strong{font-size:34px}.workspace-app .hub-stat>span{font-size:8px;letter-spacing:.8px}}
 [data-motion-mode=full] .sidebar-navigation button[aria-current=page]{animation:nav-arrive .35s ease both}[data-motion-mode=full] .quick-launch:hover{border-color:var(--contrast);box-shadow:0 0 18px color-mix(in srgb,var(--contrast) 18%,transparent)}@keyframes nav-arrive{from{opacity:.4;translate:-5px 0}to{opacity:1;translate:0 0}}@media(prefers-reduced-motion:reduce){.sidebar-navigation button{animation:none!important}}
 /* v42: three complete worlds, with intentional daylight and night surfaces. */
-:root[data-visual=arcade][data-theme=light]{--background:#F5F5FA;--surface:#FFFFFF;--border:#DDDDE8;--primary:#7047BC;--secondary:#A03E75;--accent:#526783;--text:#262333;--muted:#686276;--primary-foreground:#FFFFFF;}
+:root[data-visual=arcade][data-theme=light]{--background:#F6F4F9;--surface:#FFFFFF;--border:#E5DEED;--primary:#7150A5;--secondary:#956080;--accent:#64738B;--text:#30283E;--muted:#72677F;--primary-foreground:#FFFFFF;}
 :root[data-visual=arcade][data-theme=night]{--background:#15141B;--surface:#211F2A;--border:#3C3848;--primary:#C2A7F4;--secondary:#E5A5C7;--accent:#A5B9D5;--text:#F1EDF7;--muted:#B7AFC4;--primary-foreground:#241B35;}
 :root[data-visual=glass][data-theme=light]{--background:#F7F4EE;--surface:#FFFDFA;--border:#E2DAD0;--primary:#91573F;--secondary:#6D7160;--accent:#8C6963;--text:#3C332E;--muted:#75685E;--primary-foreground:#FFFFFF;}
 :root[data-visual=glass][data-theme=night]{--background:#201C19;--surface:#2C2622;--border:#4B4038;--primary:#E0B194;--secondary:#C0C2A7;--accent:#C8A9A2;--text:#F4EBE2;--muted:#BBABA0;--primary-foreground:#302117;}
@@ -682,7 +682,6 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible{
 /* Compact controls follow the existing themes and hybrid workspace. */
 .budget-category-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.7rem;margin:1rem 0}.budget-category-list article{padding:.9rem;border:1px solid var(--border);border-radius:12px;background:var(--surface);color:var(--text)}.budget-category-list small{display:block;color:var(--muted);margin:.35rem 0}.flight-practical{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.55rem;margin:.8rem 0}.flight-practical div{padding:.5rem;border:1px solid var(--border);border-radius:8px}.flight-practical dt{font-size:.7rem;color:var(--muted)}.flight-practical dd{margin:.2rem 0 0;overflow-wrap:anywhere}.sheet-action-bar{position:sticky;bottom:0;display:flex;gap:.6rem;flex-wrap:wrap;padding:.8rem 0 calc(.8rem + env(safe-area-inset-bottom));background:var(--surface);border-top:1px solid var(--border);z-index:3}
 @media(max-width:680px){.budget-category-list{grid-template-columns:1fr}.workspace-app button,.workspace-app .secondary,.workspace-app input,.workspace-app select{min-height:44px}.workspace-editor-sheet input,.trip-tools-sheet input{font-size:16px}.trip-tools-bar{display:flex;overflow-x:auto;gap:.5rem;scroll-snap-type:x proximity;padding:.45rem 0}.trip-tool-launch{flex:0 0 150px;scroll-snap-align:start;min-height:56px}.plan-day-tabs{position:sticky;top:0;background:var(--background);z-index:10;padding:.5rem 0}.workspace-editor-sheet .expense-editor>.save,.workspace-editor-sheet .plan-editor>.save{position:sticky;bottom:0;z-index:5;margin-bottom:env(safe-area-inset-bottom);box-shadow:0 -8px 18px var(--surface)}.trip-tools-sheet,.money-review-sheet{padding-bottom:calc(1.25rem + env(safe-area-inset-bottom))}.trip-tools-sheet .checks{gap:.5rem}.flight-practical{grid-template-columns:1fr}.reference-card .text-button{width:100%;text-align:center}.save-status{flex-wrap:wrap}.save-status .text-button{margin-left:0}}
-.mobile-trip-dock{display:none}@media(max-width:680px){.mobile-trip-dock{display:flex;position:fixed;left:50%;transform:translateX(-50%);bottom:calc(82px + env(safe-area-inset-bottom));width:calc(100% - 32px);max-width:390px;gap:.45rem;padding:.5rem;background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:0 6px 20px color-mix(in srgb,var(--text) 12%,transparent);z-index:38}.mobile-trip-dock button{flex:1;padding:.6rem .4rem;font-size:.75rem;white-space:nowrap}}
 @media print{.mobile-trip-dock,.save-status,.trip-tools-bar{display:none!important}}
 
 /* Approved simple itinerary / personal Money: inherit each complete theme. */
@@ -740,3 +739,75 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible{
 }
 
 .plan-editor-body{min-width:0;padding:0;margin:0;border:0}
+
+/* Focused Trip entry cleanup: one tool menu, one local add, global creation above context. */
+.workspace-create-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:0 0 18px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+.workspace-create-bar>span{font-size:12px;color:var(--muted)}
+.workspace-create-bar>div{display:flex;flex-wrap:wrap;gap:8px}
+.workspace-create-bar .secondary{min-height:44px;padding:10px 14px;font-size:13px;background:var(--surface);color:var(--text)}
+.trip-tools-menu{min-width:0;margin:0 0 16px;padding:0;border:1px solid var(--border);border-radius:12px;background:var(--surface)}
+.trip-tools-menu>summary{display:flex;align-items:center;gap:10px;min-height:52px;padding:12px 14px;list-style:none;color:var(--text);font-size:14px}
+.trip-tools-menu>summary::-webkit-details-marker{display:none}
+.trip-tools-menu>summary>svg:first-child{color:var(--primary);flex:none}
+.trip-tools-menu>summary>svg:last-child{margin-left:auto;flex:none}
+.trip-tools-menu[open]>summary>svg:last-child{transform:rotate(180deg)}
+.trip-tools-menu>summary>span{min-width:0}
+.trip-tools-menu>summary small{font-size:12px;line-height:1.5;color:var(--muted);margin-top:2px;font-weight:400}
+.trip-tools-menu .trip-tools-bar{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:0;padding:0 12px 12px;overflow:visible}
+.trip-tools-menu .trip-tool-launch{min-width:0;min-height:72px;padding:12px;white-space:normal;box-shadow:none}
+.trip-tools-menu .trip-tool-launch b{font-size:14px;font-weight:600}
+.trip-tools-menu .trip-tool-launch small{font-size:12px;line-height:1.5;overflow-wrap:anywhere}
+.plan-type-sheet{width:min(620px,calc(100vw - 24px))!important;max-width:620px!important;max-height:calc(100dvh - 24px);overflow-y:auto;overscroll-behavior:contain;background:var(--surface)!important;color:var(--text)!important;border-color:var(--border)!important;border-radius:18px!important;padding:24px!important}
+.plan-type-choices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}
+.plan-type-choices>button{justify-content:flex-start;text-align:left;gap:12px;min-height:76px;padding:14px;white-space:normal;background:var(--surface);color:var(--text);min-width:0}
+.plan-type-choices>button>svg{flex:none;width:20px;height:20px;color:var(--primary)}
+.plan-type-choices>button>span{display:grid;gap:4px;min-width:0}
+.plan-type-choices small{font-size:12px;line-height:1.5;font-weight:400;color:var(--muted);overflow-wrap:anywhere}
+:root[data-visual] .trip-entry-workspace .plan-hero{gap:16px;align-items:flex-start;padding:20px;margin-bottom:18px;background:var(--surface);border:1px solid var(--border);box-shadow:none}
+:root[data-visual] .trip-entry-workspace .plan-hero::before{display:none}
+:root[data-visual] .trip-entry-workspace .plan-hero h2{font-size:24px;font-weight:600;color:var(--text);margin:3px 0 0;line-height:1.3;overflow-wrap:anywhere}
+:root[data-visual] .trip-entry-workspace .plan-hero .eyebrow{font-size:10px;color:var(--muted);margin:0 0 5px}
+:root[data-visual] .trip-entry-workspace .plan-hero>.plan-actions{display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+.trip-entry-workspace .plan-secondary-actions{display:flex;flex-wrap:wrap;align-items:center;gap:12px}
+.trip-entry-workspace .plan-secondary-actions button{min-height:44px;font-size:13px}
+.trip-entry-workspace .add-plan-entry{min-height:46px;white-space:nowrap;font-size:14px}
+.trip-entry-workspace .topline>div,.trip-entry-workspace .event-switch,.trip-entry-workspace .focus-sections{min-width:0}
+.trip-entry-workspace .event-switch .pick{min-width:0}
+@media(max-width:850px){
+ :root[data-visual] .trip-entry-workspace>main{width:100%;max-width:100%;padding:18px max(12px,env(safe-area-inset-right)) calc(112px + env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left))}
+ .trip-entry-workspace .workspace-create-bar{margin-bottom:12px;padding-bottom:12px}
+ .trip-entry-workspace .workspace-create-bar>span{font-size:12px}
+ .trip-entry-workspace .mobile-space-switch{margin-bottom:18px}
+ :root[data-visual] .trip-entry-workspace .topline{gap:10px;margin-bottom:4px;padding-bottom:10px}
+ :root[data-visual] .trip-entry-workspace .topline h1{font-size:clamp(25px,6vw,31px);line-height:1.25;letter-spacing:-.7px;overflow-wrap:anywhere}
+ .trip-entry-workspace .topline .muted{font-size:12px;line-height:1.7;overflow-wrap:anywhere}
+ .trip-entry-workspace .event-switch{margin:0 0 14px}
+ .trip-entry-workspace .event-switch .pick{min-width:0;font-size:14px;min-height:46px;max-width:none;flex:1 1 100%}
+ :root[data-visual] .trip-entry-workspace .navigation{position:fixed!important;left:max(8px,env(safe-area-inset-left))!important;right:max(8px,env(safe-area-inset-right))!important;bottom:max(8px,env(safe-area-inset-bottom))!important;top:auto!important;width:auto!important;max-width:none!important;margin:0!important;display:flex!important;justify-content:flex-start!important;gap:4px!important;padding:6px!important;overflow-x:auto;overscroll-behavior-x:contain;scroll-padding:6px;scroll-snap-type:x proximity;background:var(--surface)!important;z-index:40;border-radius:15px;height:auto!important}
+ :root[data-visual] .trip-entry-workspace .navigation button{flex:0 0 auto!important;min-width:88px;min-height:58px;font-size:12px!important;padding:7px 10px!important;scroll-snap-align:center}
+ .trip-entry-workspace .navigation .nav-label{max-width:none;overflow:visible;text-overflow:clip;white-space:nowrap;font-size:12px;line-height:1.4}
+ :root[data-visual] .trip-entry-workspace .plan-hero{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;padding:16px;align-items:start}
+ :root[data-visual] .trip-entry-workspace .plan-hero h2{font-size:22px}
+ :root[data-visual] .trip-entry-workspace .plan-hero>.plan-actions{display:contents;width:auto}
+ :root[data-visual] .trip-entry-workspace .plan-hero .add-plan-entry{grid-column:2;grid-row:1;min-width:0;padding:10px 12px;align-self:center;flex:none}
+ .trip-entry-workspace .plan-secondary-actions{grid-column:1/-1;justify-content:flex-start;gap:18px;border-top:1px solid var(--border);padding-top:6px}
+ .trip-entry-workspace .focus-tabs{display:flex;flex-wrap:wrap;gap:4px;max-width:100%}
+ .trip-entry-workspace .focus-tabs>button{flex:1 1 90px;min-width:0;min-height:44px;white-space:normal;font-size:12px;line-height:1.4;padding:10px 8px}
+ .trip-entry-workspace .planner-filters{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+ .trip-entry-workspace .planner-filters>.field:first-child{grid-column:1/-1}
+ .trip-entry-workspace .planner-filters .field,.trip-entry-workspace .planner-filters input,.trip-entry-workspace .planner-filters .pick{min-width:0}
+ .trip-entry-workspace .plan-entry-body{min-width:0}
+ .trip-entry-workspace .workbench-row b,.trip-entry-workspace .workbench-row small{overflow-wrap:anywhere}
+ .workspace-editor-sheet input,.workspace-editor-sheet textarea,.workspace-editor-sheet .pick,.trip-tools-sheet input,.trip-tools-sheet .pick{font-size:16px!important;min-width:0}
+ .workspace-editor-sheet,.trip-tools-sheet{max-height:calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom))!important;overscroll-behavior:contain}
+}
+@media(max-width:380px){
+ .trip-tools-menu .trip-tools-bar,.plan-type-choices{grid-template-columns:minmax(0,1fr)}
+ .plan-type-sheet{padding:20px 16px!important}
+ :root[data-visual] .trip-entry-workspace .plan-hero{gap:10px}
+ :root[data-visual] .trip-entry-workspace .plan-hero h2{font-size:20px}
+ :root[data-visual] .trip-entry-workspace .plan-hero .add-plan-entry{gap:6px;padding:10px;font-size:13px}
+ :root[data-visual] .trip-entry-workspace .plan-hero .eyebrow{letter-spacing:1px;font-size:9px}
+ .trip-entry-workspace .space-switch small{white-space:normal;line-height:1.4}
+}
+@media print{.workspace-create-bar,.trip-tools-menu{display:none!important}}
