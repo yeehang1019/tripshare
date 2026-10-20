@@ -3,7 +3,7 @@ import {checksum,restoredGroup,checkpointDiff} from '@/lib/checkpoints';
 import {InputError,validateInput,trackedRequest,type RequestContext} from '@/lib/request-observability';
 import {readJSON,RequestTooLarge} from '@/lib/http-body';
 import { database } from "@/db/raw";
-import { memberRecord,collaboratorRecord,auditVisible,personalAuditValue } from "@/lib/personal";
+import { memberRecord,collaboratorRecord,travellerContext,auditVisible,personalAuditValue } from "@/lib/personal";
 import {
   normalize,
   shiftPlans,
@@ -87,7 +87,7 @@ async function getTrips(r: Request) {
       .all();
     const canCreate=await appOwner(who),contexts=[];
     for(const row of rows.results as any[]){const a=await access(row,who);if(a.blocked||!a.owner&&!a.permissions.length&&(!a.person||!JSON.parse(row.data).people.some((p:any)=>p.id===a.person)))continue;const memberKeys=await linkedPeople(database(),row.id);contexts.push({row,a,memberKeys})}
-    const etag='"'+await checksum(JSON.stringify([who.user,who.email,canCreate,contexts.map(({row,a,memberKeys})=>[row.id,row.revision,a,memberKeys])]))+'"';
+    const etag='"'+await checksum(JSON.stringify(['member-view-v1',who.user,who.email,canCreate,contexts.map(({row,a,memberKeys})=>[row.id,row.revision,a,memberKeys])]))+'"';
     if(r.headers.get('If-None-Match')===etag)return new Response(null,{status:304,headers:{ETag:etag}});
     const trips = [];
     for (const {row,a,memberKeys} of contexts) {
@@ -112,6 +112,7 @@ async function getTrips(r: Request) {
           createdBy: payment.createdBy === who.email ? who.email : "",
         }));
       }
+      if(!a.owner&&!a.permissions.includes('plan')){const travel=travellerContext(data);data.activities=travel.activities;data.travel=undefined;data.checklist=undefined;}
       trips.push({ id: row.id, revision: row.revision, data, memberKeys, ...a });
     }
     return Response.json({trips,user:who.email,canCreate},{headers:{ETag:etag}});
@@ -339,7 +340,7 @@ async function postTrip(r: Request,context:RequestContext) {
     if(b.action==='history'){
       if(!a.owner&&!a.permissions.length&&!a.person)return response({error:'Group access required'},403);
       const full=a.owner||a.permissions.includes('viewAll')||a.permissions.includes('editAll');
-      return response({entries:data.audit.filter(x=>auditVisible(data,x,a.person,actor,full)).slice(-150).reverse().map(x=>{
+      return response({entries:data.audit.filter(x=>(a.owner||a.permissions.includes('plan')||!['activity','deleteActivity','planBasics','planChecklist','planOrder','travelKit','planBulk','planBatch','planAlternative'].includes(x.restoredAction||x.action))&&auditVisible(data,x,a.person,actor,full)).slice(-150).reverse().map(x=>{
         if(a.owner)return x;
         if(!full&&x.actor!==actor)return {id:x.id,date:x.date,action:x.action,entity:x.entity,actor:'Group collaborator',before:personalAuditValue(data,x.before,a.person,x.restoredAction||x.action),after:personalAuditValue(data,x.after,a.person,x.restoredAction||x.action)};
         const sanitize=(value:unknown)=>value===null?null:JSON.parse(JSON.stringify(value,(key,v)=>key==='createdBy'&&v!==actor?'':v));

@@ -57,7 +57,7 @@ test('All six complete theme modes keep text and primary buttons readable',()=>{
 
 test('Trip and Money have distinct navigation and personal members keep personal scope',()=>{
  const e=normalize({name:'Trip',people:['A'],bills:[],payments:[]});const r={id:'trip',data:e,owner:true,permissions:[],person:'A'};
- assert.deepEqual(spaces.spaceDestinations(r,'trip'),['Trip Plan','Itinerary','Bookings','Trip costs','Checklist','Travel kit','Files & photos']);
+ assert.deepEqual(spaces.spaceDestinations(r,'trip'),['Simple itinerary','Trip Plan','Itinerary','Bookings','Trip costs','Checklist','Travel kit','Files & photos']);
  assert.deepEqual(spaces.spaceDestinations(r,'money'),['Dashboard','Expenses','Settlement','My spending','People & Access','Settings','History']);
  assert.deepEqual(spaces.spaceDestinations({...r,owner:false,personal:{expenses:[]}},'money'),['My spending']);
  assert.doesNotMatch(spaces.spaceDestinations(r,'money').join(','),/Trip Plan/);
@@ -171,4 +171,25 @@ test('Daily hotel rows distinguish check-in, overnight stay and timed checkout w
  const checkout=render(e.end);assert.match(checkout,/25 Nov · Check-out 11:30/);assert.doesNotMatch(checkout,/Tonight:/);assert.match(checkout,/Krabi Phranang Palace/);
  e.activities[0].endTime='';assert.match(render(e.end),/Check-out time not set/);e.activities[0].endTime='11:30';
  assert.equal(JSON.stringify(e),before);
+});
+
+test('Member navigation hides booking and group Money management while delegated managers retain their scope',()=>{
+ const e=normalize({name:'Trip',people:['A','B'],bills:[],payments:[]});const member={id:'trip',data:e,owner:false,permissions:[],person:'B',planning:e,personal:{}};
+ assert.deepEqual(spaces.spaceDestinations(member,'trip'),['Simple itinerary']);assert.deepEqual(spaces.spaceDestinations(member,'money'),['My spending']);
+ const planner={...member,permissions:['plan']};assert.ok(spaces.spaceDestinations(planner,'trip').includes('Bookings'));assert.deepEqual(spaces.spaceDestinations(planner,'money'),['My spending']);
+ const moneyAdmin={...member,personal:undefined,permissions:['viewAll']};assert.deepEqual(spaces.spaceDestinations(moneyAdmin,'trip'),['Simple itinerary']);assert.ok(spaces.spaceDestinations(moneyAdmin,'money').includes('Expenses'));
+});
+
+test('Simple itinerary shows selected-day hotel phases and readable notes without booking controls or credentials',async()=>{
+ const {default:SimpleItinerary}=await vite.ssrLoadModule('/app/simple-itinerary.tsx');
+ const e=normalize({name:'Thailand',people:['A'],bills:[],payments:[]});e.start='2026-11-23';e.end='2026-11-25';e.activities=[{id:'stay',type:'Hotel',name:'Old hotel',date:e.start,endDate:e.end,time:'14:00',endTime:'11:30',status:'Booked',location:'Krabi',notes:'Bring luggage',url:'https://example.com/secret',reference:'SECRET_REFERENCE',budget:10000,category:'Accommodation',people:['A']},{id:'next',type:'Hotel',name:'Tonight hotel',date:e.end,endDate:'2026-11-26',time:'15:00',location:'Hatyai',notes:'',url:'',budget:0,category:'Accommodation',people:['A']}];
+ const html=renderToStaticMarkup(React.createElement(SimpleItinerary,{event:e,initialDay:e.end}));assert.match(html,/11:30/);assert.match(html,/Check-out/);assert.match(html,/Bring luggage/);assert.match(html,/Tonight we stay<\/span><strong>Tonight hotel/);assert.doesNotMatch(html,/SECRET_REFERENCE|example.com|Edit plan|Expense|Bookings|Trip costs|Copy itinerary link/);
+});
+
+test('Personal Money uses member IDs with duplicate names and exposes only related bill and repayment sources',async()=>{
+ const {personalView}=await vite.ssrLoadModule('/lib/personal.ts');const {default:PersonalMoney}=await vite.ssrLoadModule('/app/personal-money.tsx');
+ const e=normalize({name:'Trip',people:['A','B','C'],bills:[],payments:[]});e.people[0].name='Same';e.people[1].name='Same';
+ const bill=blankExpense(e,'A');bill.merchant='Shared hotel';bill.items[0].amount=30000;const hidden=blankExpense(e,'C');hidden.merchant='PRIVATE_C';hidden.items[0].people=['C'];hidden.items[0].amount=10000;e.expenses=[bill,hidden];
+ const html=renderToStaticMarkup(React.createElement(PersonalMoney,{view:personalView(e,'B'),currency:e.settlement}));assert.match(html,/I need to repay<\/span><strong>RM\s*100\.00/);assert.match(html,/Others owe me<\/span><strong>RM\s*0\.00/);assert.match(html,/Shared hotel/);assert.match(html,/Where my amount comes from/);assert.doesNotMatch(html,/PRIVATE_C|Add expense|People &amp; Access|Edit bill/);
+ bill.currency='THB';bill.rate=.125;const foreignHtml=renderToStaticMarkup(React.createElement(PersonalMoney,{view:personalView(e,'B'),currency:e.settlement}));assert.match(foreignHtml,/Original item shares · THB/);assert.match(foreignHtml,/THB\s*100\.00/);assert.match(foreignHtml,/RM\s*12\.50/);
 });

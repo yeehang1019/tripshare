@@ -7,7 +7,7 @@ async function authorize(request:Request,group:string,write=false){
   const who=await identity(request);if(!who)return null;
   const row:any=await database().prepare('SELECT * FROM trips WHERE id=?').bind(group).first();if(!row)return null;
   const a=await access(row,who);
-  if(write?!a.owner&&!a.permissions.includes('plan'):!a.owner&&!a.permissions.length&&!a.person)return null;
+  if(a.blocked||(write?!a.owner&&!a.permissions.includes('plan'):!a.owner&&!a.permissions.length&&!a.person))return null;
   const data=JSON.parse(row.data);if(data.kind!=='trip'||!a.owner&&!a.permissions.length&&!data.people.some((p:any)=>p.id===a.person))return null;
   return row;
 }

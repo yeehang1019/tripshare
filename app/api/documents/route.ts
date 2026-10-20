@@ -6,7 +6,7 @@ const reply=(data:unknown,status=200)=>Response.json(data,{status,headers:{'Cach
 async function authorize(request:Request,group:string,write=false){
  const who=await identity(request);if(!who)return null;
  const row:any=await database().prepare('SELECT * FROM trips WHERE id=?').bind(group).first();if(!row)return null;
- const a=await access(row,who);if(a.blocked||!a.owner&&!a.person&&!a.permissions.length||write&&!a.owner&&!a.permissions.includes('plan'))return null;
+ const a=await access(row,who);if(a.blocked||!a.owner&&!a.permissions.includes('plan'))return null;
  const data=JSON.parse(row.data);return data.kind==='trip'?data:null;
 }
 export async function GET(request:Request){

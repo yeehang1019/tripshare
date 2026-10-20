@@ -4,11 +4,11 @@ import {MapPinned,Wallet,ArrowUpRight,ArrowLeftRight,CalendarDays,Link2} from 'l
 import {calculate,money,type Event} from '@/lib/ledger';
 import type {RecordT} from './trip-app';
 export type Space='trip'|'money';
-export const tripSections=['Trip Plan','Itinerary','Bookings','Trip costs','Checklist','Travel kit','Files & photos'];
+export const tripSections=['Simple itinerary','Trip Plan','Itinerary','Bookings','Trip costs','Checklist','Travel kit','Files & photos'];
 export const isTripSection=(tab:string)=>tripSections.includes(tab);
 export function tripRecords(records:RecordT[]){return records.filter(r=>r.data.kind==='trip'&&(!!r.planning||!r.personal&&(r.owner||r.permissions.length>0)))}
 export function spaceDestinations(record:RecordT|undefined,space:Space,shared=false){
-  if(space==='trip')return tripSections;
+  if(space==='trip')return record&&(record.owner||record.permissions.includes('plan'))?tripSections:['Simple itinerary'];
   if(!record)return [];
   if(record.personal)return ['My spending'];
   return ['Dashboard','Expenses','Settlement',...(record.owner||(!shared&&record.data.people.some(p=>p.id===record.person))?['My spending']:[]),...(record.owner&&!shared?['People & Access','Settings']:[]),...(!shared?['History']:[])];

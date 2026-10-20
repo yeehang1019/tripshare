@@ -190,3 +190,31 @@ Official implementation references: https://developers.cloudflare.com/d1/sql-api
 - CHANGE NOW: day-aware checkout labels before publishing.
 - IMPROVE LATER: user-selected accessible family itinerary page and actual phone acceptance; whole-group JSON remains the existing scale limit.
 - DO NOT ADD: financial or personal information to anonymous share links, inferred hotel checkout times, or an unsolicited overall redesign.
+
+
+# Simple itinerary and personal Money — 2026-10-20
+
+## Shipped scope and flow
+
+The user selected the second preview (simple timeline) and personal-only read access to Money for ordinary members. Linked signed-in members receive a date strip, tonight's hotel (checkout date excluded), timed daily plans, selected-day hotel check-in/checkout reminders, locations and shared plan notes. No booking manager, trip cost dashboard, bill-edit or access-management controls appear in their simplified shell. Managers can open Simple itinerary within the existing Trip workspace and copy a group-scoped link; sign-in retains its group/space/simple query parameters. No anonymous publication or new sharing policy is introduced.
+
+Request identity → current group grant/member verification → server projection → member itinerary / personal Money. Manager permissions remain the existing explicit per-group grants: plan manages bookings; viewAll/editAll permits full group Money; the owner alone manages access. Delegated expense helpers retain existing explicit edit permissions and their own submitted records. A money-only administrator does not gain booking access. Ordinary membership with no management grants remains read-only for financial actions.
+
+Personal Money shows own consumption, actual supplier funding, prepaid/unpaid shares, remaining payments to/from related members, the originating bill, own item shares, and own repayment history with recorded source allocations. All balances/claims reuse the existing ledger and stable member IDs; no settlement or financial-write rules change. Original item shares display in the bill currency; final personal amounts and repayments display in settlement currency, including existing FX/adjustment rules. Pagination bounds initial bill/history rendering.
+
+## Review and corrections
+
+- **CHANGE NOW / access policy:** hiding Bookings alone would leave its structured credentials in member JSON. Added an allowlist travel projection excluding booking URLs/references, room assignments, contacts, seats, estimates, roster, bill data and operational checklist/favorites. Shared travel notes and common meeting details retain their existing shared meaning; administrators should keep sensitive credentials in their dedicated booking fields. Authorized planners keep the full travel context.
+- **CHANGE NOW / alternate paths:** enforce the same member projection in /api/view; validate active/current member binding there; restrict booking document list/download to planning administrators; hide travel audit payloads from non-planners. Album reads retain their existing shared-member scope; their upload remains plan-authorized. Inactive-member photo reads are denied.
+- **CHANGE NOW / caches:** version the /api/trips representation ETag so a still-open client cannot receive a 304 for the previous broader member projection after deployment. Current grants and inactive membership continue participating in authorization/cache decisions.
+- **CHANGE NOW / amounts:** never use display names as ledger identity; duplicate-name coverage verifies personal repayment direction by member ID. Item-line amounts use source currency rather than being mislabeled as settlement currency. Friend repayments and supplier funding stay separate.
+- No financial records, grants, sharing audiences or live group data were changed to test the feature. No schema or storage binding change. Publishing can roll forward without a migration; rolling back application code would restore the older, broader member travel projection and is inappropriate if this policy must remain enforced.
+
+## Verification and limits
+
+154 focused API/ledger/planner/workflow/SSR regressions passed, including the added member boundary, related expense sources, partial repayment, sign-in member revocation, checkout labels and duplicate display names. TypeScript with generated current Cloudflare declarations and the Sites production build passed. Money-only-admin and original THB versus converted MYR rendering assertions also passed before publication. Browser-control skill unavailable: actual device layout, date-strip interaction, clipboard and the hosted sign-in round trip are not claimed as tested. Existing provider recovery limits remain unchanged.
+
+- **KEEP:** current themes and management workspace, existing financial calculations, stable IDs/CAS, owner-only grants, separate per-group authorization, and authenticated access.
+- **CHANGE NOW:** enforce the member read boundary on JSON, attachment APIs, historical travel records and cached representations; all implemented in this release.
+- **IMPROVE LATER:** supported browser/phone acceptance, optional language preference, and a separately designed revocable itinerary-only anonymous link if explicitly needed. Whole-group JSON loading/authorization and ledger recomputation remain the first likely scale bottlenecks.
+- **DO NOT ADD:** another role database, a second ledger, anonymous financial sharing, or changes to prepaid/postpaid settlement policy as incidental scope.
