@@ -249,3 +249,37 @@ Browser-control skill is unavailable. No actual browser/phone visual acceptance,
 - **CHANGE NOW:** simplify primary navigation, remove repeated screen content, preserve all advanced functions, keep restored/date-edited drafts visible and prevent edits during save; implemented in this release. No known release blocker remains after automated checks.
 - **IMPROVE LATER:** supported phone/browser acceptance, consolidation of superseded CSS rules and measured optimization of whole-group JSON/ledger recomputation if real group sizes warrant it.
 - **DO NOT ADD:** new roles, a second ledger, a replacement design library, new dependencies, anonymous booking/financial links or speculative features as part of this visual change.
+
+# Independent Trip / Money navigation correction — 2026-10-20
+
+## User clarification and shipped scope
+
+This section supersedes v57's mixed primary navigation. The user wants Trip to cover the complete journey, including its linked expense view, and Money to be an independent place for both trip expenses and ordinary meals/outings. The detailed administrative functions were liked; the problem was the number of competing entry points.
+
+The global Trip / Money switch is visible again on desktop and phone. Each space owns its primary navigation: Trip has Itinerary / Bookings / More; Money has Expenses / Settlement / More. Trip's More contains journey overview/dates, checklists, booking files/photos, travel kit, templates, bulk moves, calendar/offline tools, private preferences and trip costs. Money's More contains existing supplier/prepaid/refund review and bulk tools, budgets, Quick Picks, spending overview, personal spending, authorized members/settings and history/recovery. Quick Picks no longer has another permanent dashboard-tab entry. Contextual bill and trip-expense links remain because they identify a particular record. Ordinary member and delegated personal-expense views keep their existing permission scope.
+
+Money starts at Expenses for either a Trip or Daily Group. Its group chooser and sidebar can filter the group list to All / Trips / Daily without moving or copying any records. A list filter does not implicitly change the selected group. A daily-only account has no booking/planning destinations in Trip. Each space remembers its selected group for the current app session, with authorized-record fallback when a remembered group is unavailable. Explicit linked-plan/bill navigation overrides that memory and uses the originating trip, including when opening its entire ledger without a specific activity ID.
+
+Admin plan details and editor sections are expanded by default again. All original fields and detailed financial calculations remain; mobile retains a single editor and desktop retains direct inline editing. The existing plan save lock, schedule-impact review, revision checks, error handling and draft recovery are preserved. Member itineraries remain concise with optional long details. No new visual theme, role, ledger, schema, storage binding, external integration or dependency.
+
+## Data/control flow and review
+
+Global switch or group choice → accepted dirty-navigation guard → select a currently authorized record for that space → render the space's three main pages → existing editor → original server-verified write. Trip expenses and Money still read/update the same expense IDs in the same group; estimates remain planning-only. There is no data synchronization job and no duplicated financial write.
+
+- **MEDIUM / navigation:** v57 mixed Money into Trip's primary menu and removed the explicit space switch. Restored independent purposes and purpose-specific menus; secondary tools have a grouped home.
+- **MEDIUM / record context:** a shared selected-group state could send a global return to the wrong purpose's last group. Added independent session selection. Conversely, an explicit linked expense must not restore an unrelated everyday group; contextual navigation deliberately selects its originating trip. Missing/revoked candidates fall back only within currently accessible records.
+- **Correctness / concurrency:** financial/edit callbacks, original IDs, supplier-paid updates, repayments, CAS, imports, privacy projections and recovery remain on the existing implementation. No record, permission or account theme is modified as a test. Closing/running tools retain their existing behavior; this change does not create a second save or retry path.
+- **Authorization / isolation:** menu destinations come from existing owner/grant decisions, with original API authorization as the security boundary. Money More filters its team/settings links by allowed destinations. Personal-only members do not gain Money tools or Bookings; money-only managers do not gain booking administration. No broadening of API fields or historical payloads.
+- **Compatibility / operations:** existing deep links, activity links, three themes and daily-group creation remain supported. An application-only rollback is possible without database changes, although v57's confusing navigation would return. Production packaging runs the final checks and build before pushing/saving the version.
+- **Performance / maintainability:** pure helpers centralize landing, primary-page and group-selection decisions; no new query or polling loop. Secondary financial components are mounted in their requested workspace page. Whole-group JSON reads and ledger recomputation remain the first scale bottlenecks; no new infrastructure is warranted.
+
+## Verification and limits
+
+161 focused API, ledger, planner, workflow and SSR regressions passed before packaging. Coverage includes independent per-space menus, daily-only accounts, remembered/revoked group fallback, explicit same-trip linking, daily/trip group filters, authorized financial tools, complete admin booking fields, personal member boundaries, financial amounts and stale writes. TypeScript with current generated Cloudflare declarations and source whitespace checks passed. The packaging workflow repeats the final relevant checks and requires a successful production build.
+
+Browser-control skill is unavailable; actual browser/phone layout, touch/focus, modal interaction, clipboard, sign-in and external-calendar round trips remain unverified. SSR and API checks are not represented as real-device acceptance.
+
+- **KEEP:** comprehensive admin pages/forms, the original ledger and expense identities, existing authorization/CAS/recovery, separate personal projections, and three saved theme choices.
+- **CHANGE NOW:** restore top-level Trip / Money, remove mixed/duplicate navigation, group existing tools and preserve explicit linked-trip context; implemented.
+- **IMPROVE LATER:** supported phone/browser acceptance and further legacy CSS consolidation; measure whole-group load costs before optimizing storage.
+- **DO NOT ADD:** another ledger, an expense-copy/sync process, a new role system, a broader redesign or speculative features to solve a navigation problem.

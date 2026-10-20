@@ -717,13 +717,6 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible{
 .trip-primary-nav button{display:flex;align-items:center;gap:11px;min-height:46px;padding:12px;border:0;border-radius:10px;background:transparent;color:var(--muted);font-size:14px;text-align:left}
 .trip-primary-nav button[aria-current=page]{background:var(--surface-soft);color:var(--primary);font-weight:650}
 .trip-primary-desktop{flex-direction:column}.trip-primary-mobile{display:none}
-.money-section-navigation{display:flex;align-items:flex-start;gap:6px;flex-wrap:wrap;margin:0 0 20px;padding:0 0 12px;border-bottom:1px solid var(--border)}
-.money-section-navigation>button,.money-section-navigation summary{min-height:44px;padding:11px 14px;border:0;border-radius:9px;background:transparent;color:var(--muted);font-size:13px}
-.money-section-navigation>button[aria-current=page],.money-section-navigation summary.active{background:var(--surface-soft);color:var(--primary);font-weight:600}
-.money-section-navigation details{min-width:0}
-.money-section-navigation details>div{display:grid;gap:4px;padding:10px;margin-top:7px;border:1px solid var(--border);border-radius:11px;background:var(--surface)}
-.money-section-navigation details button{min-height:44px;padding:10px;text-align:left;font-size:13px;background:transparent;color:var(--text);border:0;border-radius:8px}
-.money-section-navigation details button[aria-current=page]{color:var(--primary);background:var(--surface-soft)}
 .money-view-as{display:grid;gap:7px;padding:6px 4px 12px;border-bottom:1px solid var(--border);margin-bottom:5px;font-size:12px;color:var(--muted)}
 .money-view-as .pick{width:100%;min-height:44px}
 :root[data-visual] .calm-trip-workspace{--chrome-width:194px;--rail-width:0px}
@@ -743,13 +736,13 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible{
 .trip-tools-page{max-width:1000px;margin:0 auto}
 .trip-tools-groups{display:grid;grid-template-columns:1fr 1fr;gap:24px 30px}
 .trip-tools-group{min-width:0;padding:19px 21px;border:1px solid var(--border);border-radius:14px;background:var(--surface)}
-.trip-tools-group h3{font-size:12px;font-weight:600;color:var(--muted);margin:0 0 12px;letter-spacing:.2px}
-.trip-tools-group button{display:flex;gap:10px;align-items:center;width:100%;min-height:48px;text-align:left;background:transparent;border:0;border-bottom:1px solid var(--border);border-radius:0;padding:11px 0;color:var(--text);font-size:14px}
-.trip-tools-group button:last-child{border-bottom:0}
-.trip-tools-group button>span{flex:1;min-width:0}
-.trip-tools-group button small{display:block;color:var(--muted);font-size:12px;font-weight:400;margin-top:2px}
-.trip-tools-group button>svg{color:var(--muted);flex:none}
-.trip-tools-group button>svg:last-child{width:15px}
+.trip-tools-group>h3{font-size:12px;font-weight:600;color:var(--muted);margin:0 0 12px;letter-spacing:.2px}
+.trip-tools-group>button{display:flex;gap:10px;align-items:center;width:100%;min-height:48px;text-align:left;background:transparent;border:0;border-bottom:1px solid var(--border);border-radius:0;padding:11px 0;color:var(--text);font-size:14px}
+.trip-tools-group>button:last-child{border-bottom:0}
+.trip-tools-group>button>span{flex:1;min-width:0}
+.trip-tools-group>button small{display:block;color:var(--muted);font-size:12px;font-weight:400;margin-top:2px}
+.trip-tools-group>button>svg{color:var(--muted);flex:none}
+.trip-tools-group>button>svg:last-child{width:15px}
 .planner-toolbar{display:flex;justify-content:space-between;align-items:center;gap:14px;margin:0 0 13px}
 .planner-toolbar h2{font-size:20px;color:var(--text);font-weight:600;margin:0}
 .planner-toolbar .primary{display:flex;align-items:center;gap:7px;min-height:44px;font-size:14px}
@@ -814,7 +807,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible{
  :root[data-visual] .calm-trip-workspace{--chrome-width:0px}
  .trip-primary-mobile{display:flex;position:fixed;left:12px;right:12px;bottom:calc(8px + env(safe-area-inset-bottom));z-index:40;padding:7px;gap:4px;background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:0 4px 18px color-mix(in srgb,var(--text) 8%,transparent)}
  .trip-primary-mobile button{flex:1;justify-content:center;flex-direction:column;gap:4px;min-height:58px;font-size:12px;padding:7px 2px}
- .calm-trip-workspace .mobile-space-switch{display:none}
+ .calm-trip-workspace .mobile-space-switch{display:block}
  .calm-trip-workspace .header-right .sync-status,.calm-trip-workspace .install-app{display:none}
  :root[data-visual] .calm-trip-workspace>header{min-height:66px;flex-wrap:nowrap;gap:10px}
  .calm-trip-workspace>header .brandmark,.calm-trip-workspace .space-header-label{display:none}
@@ -846,3 +839,27 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible{
  .simple-member-switch button{font-size:15px;min-height:46px}
 }
 @media print{.trip-primary-nav,.trip-group-menu{display:none!important}}
+
+/* Trip and Money are separate purposes; each space owns its three main pages. */
+.money-group-filter{display:flex;gap:4px;min-width:0}
+.money-group-filter button{flex:1;min-width:0;min-height:44px;padding:8px 5px;border:0;border-radius:8px;background:transparent;color:var(--muted);font-size:12px}
+.money-group-filter button[aria-pressed=true]{background:var(--surface-soft);color:var(--primary);font-weight:600}
+.money-group-picker{display:grid;gap:11px;min-width:0;width:100%;max-width:500px}
+.money-group-picker label{display:grid;gap:6px;min-width:0;font-size:12px;color:var(--muted)}
+.money-group-picker select{width:100%;min-width:0;min-height:46px;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--text);font-size:14px;padding:10px}
+.money-workspace-tools .workflow-launch{display:block;margin:0 0 14px}
+.money-workspace-tools .workflow-launch button{border-bottom:0}
+.money-workspace-tools .workflow-launch small{font-size:12px;color:var(--muted)}
+.money-quick-picks{border-top:1px solid var(--border);padding-top:8px}
+.money-quick-picks>summary{min-height:46px;padding:12px 0;font-size:14px;color:var(--text)}
+.money-quick-picks .template-shelf{margin-top:12px}
+.money-quick-picks .template-shelf .template-grid{grid-template-columns:1fr}
+.calm-trip-workspace .workspace-sidebar .space-switch{flex-shrink:0}
+.calm-trip-workspace .workspace-sidebar .space-switch button{padding:10px 6px;min-height:56px;flex-direction:column;gap:5px}
+.calm-trip-workspace .workspace-sidebar .space-switch small{display:none}
+@media(max-width:850px){
+ .calm-trip-workspace .mobile-space-switch .space-switch{max-width:none;padding:4px;border-radius:12px}
+ .calm-trip-workspace .mobile-space-switch .space-switch button{min-height:48px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:15px;padding:9px}
+ .calm-trip-workspace .mobile-space-switch .space-switch small{display:none}
+ .money-group-picker select{font-size:16px}
+}

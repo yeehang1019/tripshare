@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "TripShare · Trip & Money",
-  description: "Plan the journey in Trip. Share expenses and settle fairly in Money. One connected group.",
+  description: "Manage the whole journey in Trip. Track trip bills and everyday shared expenses in Money, with clear splits and settlements.",
   manifest: "/manifest.webmanifest",
   applicationName: "TripShare",
   appleWebApp: {

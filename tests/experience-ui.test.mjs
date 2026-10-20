@@ -58,7 +58,7 @@ test('All six complete theme modes keep text and primary buttons readable',()=>{
 test('Trip and Money have distinct navigation and personal members keep personal scope',()=>{
  const e=normalize({name:'Trip',people:['A'],bills:[],payments:[]});const r={id:'trip',data:e,owner:true,permissions:[],person:'A'};
  assert.deepEqual(spaces.spaceDestinations(r,'trip'),['Simple itinerary','Trip Plan','Itinerary','Bookings','Trip costs','Checklist','Travel kit','Files & photos','Trip tools']);
- assert.deepEqual(spaces.spaceDestinations(r,'money'),['Dashboard','Expenses','Settlement','My spending','People & Access','Settings','History']);
+ assert.deepEqual(spaces.spaceDestinations(r,'money'),['Dashboard','Expenses','Settlement','My spending','People & Access','Settings','History','Money tools']);
  assert.deepEqual(spaces.spaceDestinations({...r,owner:false,personal:{expenses:[]}},'money'),['My spending']);
  assert.doesNotMatch(spaces.spaceDestinations(r,'money').join(','),/Trip Plan/);
 });
@@ -194,22 +194,32 @@ test('Personal Money uses member IDs with duplicate names and exposes only relat
  bill.currency='THB';bill.rate=.125;const foreignHtml=renderToStaticMarkup(React.createElement(PersonalMoney,{view:personalView(e,'B'),currency:e.settlement}));assert.match(foreignHtml,/Original item shares · THB/);assert.match(foreignHtml,/THB\s*100\.00/);assert.match(foreignHtml,/RM\s*12\.50/);
 });
 
-test('Compact planner navigation retains four primary pages and groups secondary destinations under More',()=>{
- const html=renderToStaticMarkup(React.createElement(design.TripPrimaryNavigation,{tab:'Travel kit',mobile:true,onNavigate(){},onMoney(){}}));
- assert.equal((html.match(/<button /g)||[]).length,4);
- for(const label of ['Itinerary','Bookings','Money','More'])assert.match(html,new RegExp('<span>'+label+'<\\/span>'));
- assert.match(html,/aria-current="page"[^>]*>[\s\S]*?<span>More<\/span>/);
- assert.doesNotMatch(html,/Trip costs|Checklist|People &amp; Access/);
- const money=renderToStaticMarkup(React.createElement(design.TripPrimaryNavigation,{tab:'Settlement',onNavigate(){},onMoney(){}}));
- assert.match(money.match(/<button[^>]*aria-current="page"[^>]*>([\s\S]*?)<\/button>/)[1],/<span>Money<\/span>/);
+test('Each independent space has three primary pages and cannot show the other space in its menu',()=>{
+ const e=normalize({name:'Trip',people:['A'],bills:[],payments:[]}),record={id:'trip',data:e,owner:true,permissions:[],person:'A'};
+ const render=(space,tab)=>renderToStaticMarkup(React.createElement(design.WorkspaceNavigation,{space,tab,destinations:spaces.spaceDestinations(record,space),mobile:true,onNavigate(){}}));
+ const trip=render('trip','Trip costs');assert.equal((trip.match(/<button /g)||[]).length,3);for(const label of ['Itinerary','Bookings','More'])assert.ok(trip.includes('<span>'+label+'</span>'));assert.doesNotMatch(trip,/<span>Money<\/span>|Expenses|Settlement/);
+ const financial=render('money','Settings');assert.equal((financial.match(/<button /g)||[]).length,3);for(const label of ['Expenses','Settlement','More'])assert.ok(financial.includes('<span>'+label+'</span>'));assert.doesNotMatch(financial,/Itinerary|Bookings/);
+ for(const html of [trip,financial])assert.match(html.match(/<button[^>]*aria-current="page"[^>]*>([\s\S]*?)<\/button>/)[1],/<span>More<\/span>/);
+ const member={...record,owner:false,permissions:[],personal:{expenses:[]}};assert.deepEqual(spaces.primarySpaceDestinations(spaces.spaceDestinations(member,'money'),'money'),['My spending']);assert.deepEqual(spaces.primarySpaceDestinations(spaces.spaceDestinations(member,'trip'),'trip'),['Simple itinerary']);
+ const switcher=renderToStaticMarkup(React.createElement(spaces.SpaceSwitch,{space:'money',onChange(){}}));assert.match(switcher,/Trip and Money workspaces/);assert.match(switcher,/Trips &amp; everyday spending/);
 });
 
-test('Money keeps its main sections visible and only offers the supplied authorized secondary destinations',()=>{
- const limited=renderToStaticMarkup(React.createElement(design.MoneySectionNavigation,{tab:'Settlement',destinations:['Dashboard','Expenses','Settlement','History'],onNavigate(){}}));
- for(const label of ['Overview','Expenses','Settlement','More Money','History'])assert.ok(limited.includes(label));
- assert.doesNotMatch(limited,/People &amp; Access|Settings|View member/);
- const owner=renderToStaticMarkup(React.createElement(design.MoneySectionNavigation,{tab:'People & Access',destinations:['Dashboard','Expenses','Settlement','People & Access','Settings','History'],viewAs:React.createElement('select',{'aria-label':'Viewing'},React.createElement('option',{},'YH')),onNavigate(){}}));
- assert.match(owner,/People &amp; Access/);assert.match(owner,/View member/);assert.match(owner,/aria-label="Viewing"/);
+test('Money More only offers authorized financial and group management destinations',async()=>{
+ const {default:MoneyWorkspaceTools}=await vite.ssrLoadModule('/app/money-workspace-tools.tsx');
+ const limited=renderToStaticMarkup(React.createElement(MoneyWorkspaceTools,{destinations:['Dashboard','History','Money tools'],disabled:false,onNavigate(){},actions:React.createElement('button',{},'Prepaid / refunds')}));assert.match(limited,/Spending overview|Prepaid \/ refunds/);assert.doesNotMatch(limited,/Members &amp; permissions|Group settings|Itinerary|Bookings/);
+ const owner=renderToStaticMarkup(React.createElement(MoneyWorkspaceTools,{destinations:['Dashboard','My spending','People & Access','Settings','History','Money tools'],disabled:false,onNavigate(){},viewAs:React.createElement('select',{'aria-label':'Viewing'},React.createElement('option',{},'YH'))}));assert.match(owner,/Members &amp; permissions/);assert.match(owner,/Group settings &amp; recovery/);assert.match(owner,/View member/);assert.match(owner,/aria-label="Viewing"/);
+});
+
+test('Global switching remembers independent groups while an explicit linked bill stays with its trip',()=>{
+ const e=normalize({name:'Trip',kind:'trip',people:['A'],bills:[],payments:[]}),trip={id:'trip',data:e,owner:true,permissions:[]},other={...trip,id:'other'},daily={...trip,id:'dinner',data:{...e,kind:'daily'}};
+ const records=[trip,daily,other];assert.equal(spaces.workspaceRecord(records,'trip','other','dinner').id,'other');assert.equal(spaces.workspaceRecord(records,'money','dinner','other').id,'dinner');assert.equal(spaces.workspaceRecord(records,'money','dinner','trip',true).id,'trip');assert.equal(spaces.workspaceRecord(records,'trip','dinner','dinner').id,'trip');assert.equal(spaces.workspaceRecord(records,'money','revoked','trip').id,'trip');
+ assert.equal(spaces.workspaceRecord([daily],'trip','','dinner'),undefined);assert.deepEqual(spaces.spaceDestinations(daily,'trip'),[]);assert.equal(spaces.defaultSpaceTab(daily,'money'),'Expenses');assert.equal(spaces.defaultSpaceTab({...trip,personal:{}},'money'),'My spending');assert.equal(spaces.defaultSpaceTab({...trip,owner:false},'trip'),'Simple itinerary');
+});
+
+test('Money group filters separate trip and everyday groups without changing selection or ledger records',()=>{
+ const e=normalize({name:'Thailand',kind:'trip',people:['A'],bills:[],payments:[]}),trip={id:'trip',data:e},daily={id:'daily',data:{...e,kind:'daily',name:'Dinner'}};const before=JSON.stringify([trip,daily]);
+ assert.deepEqual(spaces.moneyGroups([trip,daily],'trip').map(r=>r.id),['trip']);assert.deepEqual(spaces.moneyGroups([trip,daily],'daily').map(r=>r.id),['daily']);assert.equal(spaces.moneyGroups([trip,daily],'all').length,2);
+ const picker=renderToStaticMarkup(React.createElement(spaces.MoneyGroupPicker,{records:[trip,daily],selected:'daily',onChange(){}}));assert.match(picker,/Filter group list by purpose/);assert.match(picker,/selected=""[^>]*>Dinner · Daily/);assert.equal(JSON.stringify([trip,daily]),before);
 });
 
 test('Restored hotel draft remains visible inline when editing dates away from the selected day',()=>{
@@ -219,7 +229,7 @@ test('Restored hotel draft remains visible inline when editing dates away from t
  const props={event:e,section:'Itinerary',initialDay:e.start,busy:false,canPlan:true,canExpense:true,draft,setDraft(){},onBegin(){},onSave:async()=>false,onAction:async()=>false,onDelete(){},onExpense(){},onShare(){},onDirty(){}};
  const html=renderToStaticMarkup(React.createElement(TripPlanner,props));
  assert.match(html,/class="panel plan-editor"/);assert.match(html,/value="Recovered hotel draft"/);assert.match(html,/value="2026-11-24"/);assert.match(html,/value="RECOVERED-REF"/);
- assert.match(html,/<details class="plan-extra"><summary>Booking &amp; practical details/);assert.match(html,/Travellers &amp; capacity/);assert.match(html,/Connections &amp; alternatives/);
+ assert.match(html,/<details open="" class="plan-extra"><summary>Booking &amp; practical details/);assert.match(html,/Travellers &amp; capacity/);assert.match(html,/Connections &amp; alternatives/);
  assert.match(html,/class="planner-filters" disabled=""|disabled="" class="planner-filters"/);
  const saving=renderToStaticMarkup(React.createElement(TripPlanner,{...props,busy:true}));
  assert.match(saving,/<fieldset disabled="" class="plan-editor-body">/);assert.match(saving,/>Saving…<\/button>/);
@@ -231,10 +241,9 @@ test('More keeps existing travel tools accessible and omits unauthorized owner a
  const event=normalize({name:'Trip',people:['A'],bills:[],payments:[]});
  const props={group:'trip',event,revision:1,session:'',canPlan:true,canPreferences:true,busy:false,disabled:false,onApply:async()=>false,onDirty(){},onBegin(){},onBulk:async()=>false,onNavigate(){},onOpenMoney(){},availableRoutes:['Trip Plan','Checklist','Simple itinerary','Travel kit','Files & photos','Trip costs']};
  const planner=renderToStaticMarkup(React.createElement(TripTools,props));
- for(const label of ['Shift plans','Plan library','Calendar','Offline pack','Private preferences','Ticket wallet','Today / Next','Trip overview &amp; dates','Checklist','Booking files &amp; photos','Open Money'])assert.ok(planner.includes(label),label);
+ for(const label of ['Shift plans','Plan library','Calendar','Offline pack','Private preferences','Ticket wallet','Today / Next','Trip overview &amp; dates','Checklist','Booking files &amp; photos'])assert.ok(planner.includes(label),label);
  assert.doesNotMatch(planner,/Member access|>History</);
- const owner=renderToStaticMarkup(React.createElement(TripTools,{...props,canManageAccess:true,availableRoutes:[...props.availableRoutes,'People & Access','History']}));
- assert.match(owner,/Member access \(Owner\)/);assert.match(owner,/>History</);
+ assert.match(planner,/Estimates &amp; linked bills/);assert.doesNotMatch(planner,/Open Money|Member access|>History<|Add a plan/);
 });
 
 test('Member itinerary places long travel text in collapsed details and avoids a duplicate overnight entry',async()=>{
