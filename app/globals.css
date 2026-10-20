@@ -600,7 +600,8 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible{
 .focus-analytics[open]>.focus-sections,.focus-analytics[open]>.personal-hub{margin-top:18px}
 :root[data-visual] .workspace-app .trip-cost-summary>div{padding:14px 16px}
 :root[data-visual] .workspace-app .trip-cost-summary strong{font-size:23px}
-.workspace-editor-sheet{position:fixed!important;left:auto!important;right:18px!important;top:50%!important;transform:translateY(-50%)!important;width:min(950px,calc(100vw - 36px))!important;max-width:950px!important;max-height:calc(100dvh - 36px);overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:var(--border) transparent;border:1px solid var(--border)!important;background:var(--surface)!important;color:var(--text);padding:24px!important;border-radius:18px!important;display:block!important}
+/* Right-anchored editors replace the shared dialog centering. Tailwind v4 translate is independent of transform; initial preserves the reset through CSS minification. */
+.workspace-editor-sheet{position:fixed!important;left:auto!important;right:18px!important;top:50%!important;translate:initial!important;transform:translateY(-50%)!important;width:min(950px,calc(100vw - 36px))!important;max-width:950px!important;max-height:calc(100dvh - 36px);overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:var(--border) transparent;border:1px solid var(--border)!important;background:var(--surface)!important;color:var(--text);padding:24px!important;border-radius:18px!important;display:block!important}
 .workspace-editor-sheet .entry-grid{gap:18px;grid-template-columns:1.55fr 1fr}
 .workspace-editor-sheet .panel{background:var(--surface);border-color:var(--border);padding:18px;margin:0 0 18px;box-shadow:none}
 .workspace-editor-sheet .preview{top:0}

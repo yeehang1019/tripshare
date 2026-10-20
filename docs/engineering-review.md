@@ -167,3 +167,14 @@ Generated migration `0010_dapper_black_tarantula.sql` adds indexed trip_checkpoi
 - **DO NOT ADD:** AI, polls/RSVP for now, repayment evidence/recipient confirmation, automatic supplier/calendar writes, unreviewed financial retries or a large new distributed architecture.
 
 Official implementation references: https://developers.cloudflare.com/d1/sql-api/query-json/ (JSON SQL functions) and https://developers.cloudflare.com/d1/platform/limits/ (2,000,000-byte row/string limit and per-invocation query limits). These document platform capability; they do not verify this Site's provider recovery configuration.
+
+
+# Booking editor positioning review — 2026-10-20
+
+- Scope: fix the existing right-anchored Hotel/plan editor position. Shared Money editors use the same sheet and receive the same correction. No data, API, permission, financial calculation or schema changes.
+- Problem → impact → root cause → fix → priority: the shared Radix dialog includes Tailwind v4 individual `translate` centering, while `.workspace-editor-sheet` separately applies `transform: translateY(-50%)` and a right anchor. Both translations compose, shifting the sheet left by half its width and up by its full height in total; mobile inherits the same fault. Reset individual `translate` for this sheet and retain its one vertical centering transform, responsive gutters, bounded height and internal scrolling. MEDIUM usability defect.
+- Validation: 44 existing UI/planner regressions passed. Initial production build passed, but inspecting the emitted stylesheet caught Lightning CSS dropping `translate:none` next to `transform`; use the equivalent `translate:initial` reset, which survives minification. Final production build passed; emitted sheet rule retains `translate:initial!important` and its single vertical centering transform. Plain TypeScript requires the generated Cloudflare runtime declarations; generated them from the current built Worker configuration and TypeScript passed. Supported browser-control skill unavailable; no browser geometry, keyboard, focus or actual-device verification claimed.
+- KEEP: portal/focus management, right-side editor layout, responsive width/height, sticky actions and unsaved-draft handling.
+- CHANGE NOW: remove the competing individual translate before publishing.
+- IMPROVE LATER: verify the Hotel form at desktop/mobile widths and with the on-screen keyboard in a supported browser/device. Whole-group JSON remains the first known data-scale bottleneck; this CSS change adds no runtime work.
+- DO NOT ADD: a replacement dialog system, new booking features, dependencies or schema changes for this positioning fix.
