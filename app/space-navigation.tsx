@@ -1,35 +1,17 @@
 "use client";
-import {useMemo,useState} from "react";
+import {useMemo} from "react";
 import {MapPinned,Wallet,ArrowUpRight,ArrowLeftRight,CalendarDays,Link2} from 'lucide-react';
 import {calculate,money,type Event} from '@/lib/ledger';
 import type {RecordT} from './trip-app';
 export type Space='trip'|'money';
-export const tripSections=['Simple itinerary','Trip Plan','Itinerary','Bookings','Trip costs','Checklist','Travel kit','Files & photos','Trip tools'];
+export const tripSections=['Simple itinerary','Trip Plan','Itinerary','Bookings','Trip costs','Checklist','Travel kit','Files & photos'];
 export const isTripSection=(tab:string)=>tripSections.includes(tab);
 export function tripRecords(records:RecordT[]){return records.filter(r=>r.data.kind==='trip'&&(!!r.planning||!r.personal&&(r.owner||r.permissions.length>0)))}
 export function spaceDestinations(record:RecordT|undefined,space:Space,shared=false){
-  if(space==='trip')return record?.data.kind!=='trip'?[]:record.owner||record.permissions.includes('plan')?tripSections:['Simple itinerary'];
+  if(space==='trip')return record&&(record.owner||record.permissions.includes('plan'))?tripSections:['Simple itinerary'];
   if(!record)return [];
   if(record.personal)return ['My spending'];
-  return ['Dashboard','Expenses','Settlement',...(record.owner||(!shared&&record.data.people.some(p=>p.id===record.person))?['My spending']:[]),...(record.owner&&!shared?['People & Access','Settings']:[]),...(!shared?['History','Money tools']:[])];
-}
-export function primarySpaceDestinations(destinations:string[],space:Space){
- const preferred=space==='trip'?['Itinerary','Bookings','Trip tools']:['Expenses','Settlement','Money tools'];
- const primary=preferred.filter(tab=>destinations.includes(tab));
- return primary.length?primary:destinations;
-}
-export function workspaceRecord(records:RecordT[],space:Space,remembered:string,current:string,linked=false){
- const candidates=space==='trip'?tripRecords(records):records;
- return candidates.find(r=>r.id===(linked?current:remembered))||candidates.find(r=>r.id===current)||candidates[0];
-}
-export function moneyGroups(records:RecordT[],kind:string){return records.filter(r=>kind==='all'||r.data.kind===kind)}
-export function defaultSpaceTab(record:RecordT|undefined,space:Space){return space==='trip'?(record?.owner||record?.permissions.includes('plan')?'Itinerary':'Simple itinerary'):record?.personal?'My spending':'Expenses'}
-export function MoneyGroupFilter({value,onChange}:{value:string;onChange:(value:string)=>void}){
- return <div className="money-group-filter" role="group" aria-label="Filter group list by purpose">{[{id:'all',label:'All'},{id:'trip',label:'Trips'},{id:'daily',label:'Daily'}].map(item=><button type="button" key={item.id} aria-pressed={value===item.id} onClick={()=>onChange(item.id)}>{item.label}</button>)}</div>;
-}
-export function MoneyGroupPicker({records,selected,onChange}:{records:RecordT[];selected:string;onChange:(id:string)=>void}){
- const [kind,setKind]=useState('all'),visible=moneyGroups(records,kind);
- return <div className="money-group-picker"><MoneyGroupFilter value={kind} onChange={setKind}/><label><span>Money group</span><select value={visible.some(r=>r.id===selected)?selected:''} onChange={event=>{if(event.target.value)onChange(event.target.value)}}><option value="" disabled>{visible.length?'Choose a group':'No groups of this type'}</option>{visible.map(r=><option key={r.id} value={r.id}>{r.data.name} · {r.data.kind==='trip'?'Trip':'Daily'}</option>)}</select></label></div>;
+  return ['Dashboard','Expenses','Settlement',...(record.owner||(!shared&&record.data.people.some(p=>p.id===record.person))?['My spending']:[]),...(record.owner&&!shared?['People & Access','Settings']:[]),...(!shared?['History']:[])];
 }
 export function resolveSpaceRoute(records:RecordT[],requested:string|null,group:string|null){
   const space:Space=requested==='trip'?'trip':'money';
@@ -37,7 +19,7 @@ export function resolveSpaceRoute(records:RecordT[],requested:string|null,group:
   return {space,record:available.find(r=>r.id===group)||available[0]};
 }
 export function SpaceSwitch({space,onChange}:{space:Space;onChange:(space:Space)=>void}){
-  return <div className="space-switch" role="group" aria-label="Trip and Money workspaces"><button aria-pressed={space==='trip'} onClick={()=>{if(space!=='trip')onChange('trip')}}><MapPinned size={18}/><span>Trip<small>Everything for your trip</small></span></button><button aria-pressed={space==='money'} onClick={()=>{if(space!=='money')onChange('money')}}><Wallet size={18}/><span>Money<small>Trips & everyday spending</small></span></button></div>;
+  return <div className="space-switch" role="group" aria-label="Trip and Money workspaces"><button aria-pressed={space==='trip'} onClick={()=>onChange('trip')}><MapPinned size={18}/><span>Trip<small>Plan the journey</small></span></button><button aria-pressed={space==='money'} onClick={()=>onChange('money')}><Wallet size={18}/><span>Money<small>Share the costs</small></span></button></div>;
 }
 export function SpaceBridge({event,space,onOpen,personal}:{event:Event;space:Space;onOpen:()=>void;personal?:{consumed:number}}){
   const total=useMemo(()=>space==='trip'?personal?personal.consumed:event.expenses.filter(b=>!b.deleted).reduce((n,b)=>n+calculate(b,event.settlement).total,0):0,[event,space,personal]);

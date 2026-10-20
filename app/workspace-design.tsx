@@ -1,10 +1,9 @@
 "use client";
 import {useState,useMemo} from "react";
-import {Palette,ArrowUpRight,Orbit,Layers,MapPinned,Users,Sparkles,Search,LayoutDashboard,ReceiptText,HandCoins,UserRound,Settings2,Plus,X,History,Ticket,Wallet,Grid2X2} from 'lucide-react';
+import {Palette,ArrowUpRight,Orbit,Layers,MapPinned,Users,Sparkles,Search,LayoutDashboard,ReceiptText,HandCoins,UserRound,Settings2,Plus,X,History} from 'lucide-react';
 import {Dialog,DialogContent,DialogTitle,DialogDescription} from '@/components/ui/dialog';
 import {type useWorkspace} from './experience';
 import type {RecordT} from './trip-app';
-import {primarySpaceDestinations,moneyGroups,MoneyGroupFilter,type Space} from './space-navigation';
 import {searchIndex,searchRecords,type SearchHit} from '@/lib/workspace-search';
 import {calculate,money,type Event} from '@/lib/ledger';
 export function monthBounds(now=new Date()):[string,string]{const year=now.getFullYear(),month=now.getMonth()+1;return [`${year}-${String(month).padStart(2,'0')}-01`,`${year}-${String(month).padStart(2,'0')}-${String(new Date(year,month,0).getDate()).padStart(2,'0')}`]}
@@ -20,13 +19,7 @@ export function AppearancePanel({open,onOpenChange,workspace:w,palette,mode,moti
   return <Dialog open={open} onOpenChange={onOpenChange}><DialogContent className="appearance-studio complete-studio"><DialogTitle><Sparkles size={22}/> Choose your world</DialogTitle><DialogDescription>Three complete themes. Every colour and detail belongs together.</DialogDescription><div className="complete-themes">{completeThemes.map(t=><button key={t.style} data-look={t.style} aria-pressed={selected.style===t.style} disabled={shared||saving||!w.ready||w.busy} onClick={()=>selectTheme(t)}><span className="theme-cover"><span>{t.symbol}</span><i/><i/><i/></span><span className="theme-description"><b>{t.name}</b><small>{t.subtitle}</small><p>{t.detail}</p></span><span className="theme-choice">{selected.style===t.style?'Selected':'Choose theme'}</span></button>)}</div><div className="studio-controls"><label>Lighting<select value={mode} onChange={e=>onChange(selected.palette,e.target.value,motion)}><option value="light">Daylight</option><option value="night">After dark</option></select></label><label>Motion<select value={motion} onChange={e=>onChange(selected.palette,mode,e.target.value)}><option value="full">Expressive · adaptive</option><option value="smooth">Balanced</option><option value="battery">Minimal</option></select></label></div>{!shared&&<div className="studio-controls"><button className="secondary" disabled={!w.ready||w.busy} aria-pressed={w.data.sound} onClick={()=>w.save({action:'appearance',style:w.data.style,sound:!w.data.sound,haptics:w.data.haptics})}>Sound {w.data.sound?'on':'off'}</button><button className="secondary" disabled={!w.ready||w.busy} aria-pressed={w.data.haptics} onClick={()=>w.save({action:'appearance',style:w.data.style,sound:w.data.sound,haptics:!w.data.haptics})}>Haptics {w.data.haptics?'on':'off'}</button></div>}{w.error&&<p role="alert">{w.error}</p>}</DialogContent></Dialog>;
 }
 const navigationIcons:Record<string,typeof Palette>={Dashboard:LayoutDashboard,'Trip Plan':MapPinned,Itinerary:MapPinned,Bookings:Layers,'Trip costs':ReceiptText,Checklist:Layers,'Travel kit':Layers,'Files & photos':Layers,Expenses:ReceiptText,Settlement:HandCoins,'My spending':UserRound,Settings:Settings2,'People & Access':Users,History};
-type NavigationProps={destinations?:string[];onNavigate?:(tab:string)=>void;onSearch?:()=>void;tab?:string;railOpen?:boolean;onRailClose?:()=>void;space?:Space;spaceSwitch?:import("react").ReactNode};
-export function WorkspaceNavigation({space,destinations,tab,onNavigate,mobile=false}:{space:Space;destinations:string[];tab:string;onNavigate:(tab:string)=>void;mobile?:boolean}){
- const primary=primarySpaceDestinations(destinations,space),more=space==='trip'?'Trip tools':'Money tools';
- const active=primary.includes(tab)?tab:destinations.includes(tab)&&primary.includes(more)?more:'';
- const labels:Record<string,string>={'Trip tools':'More','Money tools':'More','Simple itinerary':'Itinerary','My spending':'My Money'};
- return <nav className={'trip-primary-nav '+(mobile?'trip-primary-mobile':'trip-primary-desktop')} aria-label={space==='trip'?'Trip pages':'Money pages'}>{primary.map(id=>{const Icon=id===more?Grid2X2:id==='Bookings'?Ticket:navigationIcons[id]||Layers;return <button type="button" key={id} aria-current={id===active?'page':undefined} onClick={()=>onNavigate(id)}><Icon size={19}/><span>{labels[id]||id}</span></button>})}</nav>;
-}
+type NavigationProps={destinations?:string[];onNavigate?:(tab:string)=>void;onSearch?:()=>void;tab?:string;railOpen?:boolean;onRailClose?:()=>void;space?:"trip"|"money";spaceSwitch?:import("react").ReactNode};
 export function recentVisibleExpenses(record?:RecordT){
   if(!record)return [];
   const rows=record.personal
@@ -35,9 +28,9 @@ export function recentVisibleExpenses(record?:RecordT){
   return rows.sort((a,b)=>b.date.localeCompare(a.date)||a.id.localeCompare(b.id)).slice(0,3);
 }
 export function WorkspaceChrome({records,selected,onGroup,onAppearance,style,palette,event,member,destinations=[],onNavigate,onSearch,tab,railOpen=false,onRailClose,space="money",spaceSwitch}:{records:RecordT[];selected:string;onGroup:(id:string)=>void;onAppearance:()=>void;style:string;palette:string;event?:Event;member:boolean}&NavigationProps){
-  const [query,setQuery]=useState(''),[kind,setKind]=useState('all');
+  const [query,setQuery]=useState('');
   const styles:Record<string,string>={glass:'Cloud Crème',arcade:'Neon Odyssey',cosmic:'Apex GT'};
-  const matches=moneyGroups(records,space==='money'?kind:'all').filter(r=>r.data.name.toLowerCase().includes(query.trim().toLowerCase()));
+  const matches=records.filter(r=>r.data.name.toLowerCase().includes(query.trim().toLowerCase()));
   const recent=useMemo(()=>railOpen&&space!=="trip"?recentVisibleExpenses(records.find(r=>r.id===selected)):[],[railOpen,records,selected,space]);
   return <>
     <aside className="workspace-sidebar" aria-label="Your groups">
@@ -45,10 +38,9 @@ export function WorkspaceChrome({records,selected,onGroup,onAppearance,style,pal
       {spaceSwitch}
       <div className="sidebar-workspace-label">{space==='trip'?'TRIP / JOURNEY PLANNING':'MONEY / SHARED EXPENSES'}</div>
       {onSearch&&<button className="sidebar-search" onClick={onSearch}><Search size={15}/> Quick jump <kbd>⌘K</kbd></button>}
-      {onNavigate&&<WorkspaceNavigation space={space} destinations={destinations} tab={tab||''} onNavigate={onNavigate}/>}
+      <nav className="sidebar-navigation" aria-label="Workspace sections">{destinations.map(item=>{const Icon=navigationIcons[item]||Layers;return <button key={item} aria-current={item===tab?'page':undefined} onClick={()=>onNavigate?.(item)}><Icon size={17}/>{item}</button>})}</nav>
       <div className="sidebar-section">{space==='trip'?'YOUR TRIPS':'MONEY GROUPS'} <small>{records.length}</small></div>
       {records.length>5&&<input className="group-filter" aria-label="Filter groups" placeholder="Find a group…" value={query} onChange={e=>setQuery(e.target.value)}/>}
-      {space==='money'&&<MoneyGroupFilter value={kind} onChange={setKind}/>}
       <div className="sidebar-groups">{matches.map((r,i)=><button key={r.id} aria-current={r.id===selected?'true':undefined} onClick={()=>onGroup(r.id)}><span className={'group-orbit orbit-'+i%3}>{r.data.kind==='trip'?<MapPinned size={18}/>:<Users size={18}/>}</span><span><b>{r.data.name}</b><small>{r.data.kind==='trip'?'Trip space':'Daily circle'}</small></span><ArrowUpRight size={14}/></button>)}{!matches.length&&<p className="sidebar-empty">{records.length?'No matching groups.':'Your groups will appear here.'}</p>}</div>
       <button className="sidebar-appearance" onClick={onAppearance}><Palette size={19}/><span><b>{styles[style]}</b><small>Complete theme</small></span><span className="live-colours"><i/><i/><i/></span></button>
     </aside>

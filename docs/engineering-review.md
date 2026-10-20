@@ -283,3 +283,30 @@ Browser-control skill is unavailable; actual browser/phone layout, touch/focus, 
 - **CHANGE NOW:** restore top-level Trip / Money, remove mixed/duplicate navigation, group existing tools and preserve explicit linked-trip context; implemented.
 - **IMPROVE LATER:** supported phone/browser acceptance and further legacy CSS consolidation; measure whole-group load costs before optimizing storage.
 - **DO NOT ADD:** another ledger, an expense-copy/sync process, a new role system, a broader redesign or speculative features to solve a navigation problem.
+
+# Restore full Admin baseline before incremental simplification — 2026-10-20
+
+## User request and shipped scope
+
+This decision supersedes the v57/v58 navigation redesigns. Restore the v56 full Admin interface first and stop, so later entry-point reductions can be reviewed one small area at a time. Trip and Money remain independent purposes. Trip restores Simple itinerary, Trip Plan, Itinerary, Bookings, Trip costs, Checklist, Travel kit and Files & photos, with the original direct travel-tool strip and mobile shortcuts. Money restores Dashboard, Expenses, Settlement and each authorized personal/access/settings/history destination, its original financial tools and Quick Picks. Full desktop sidebar and phone tab navigation use the same allowed destination list. Detailed plan forms return to the existing responsive dialog rather than the newer inline/More design. The prior theme palette/layout is restored, retaining all three saved theme identities and light/dark modes.
+
+The concise ordinary-member itinerary improvements remain: optional long details, date layout, end-exclusive overnight stays and timed checkout. Personal Money and all server projections/permissions are unchanged. The restored Admin source is v56 plus two existing correctness protections: disabling editor inputs/Cancel during a save, and keeping commit failures outside the local schedule-preview exception handler so a failed save does not trigger an implicit second commit. The unused v58 Money More wrapper is removed; no user records or files are deleted.
+
+## Engineering review
+
+- **Correctness / compatibility:** source restoration is scoped to Admin UI and navigation, not a wholesale old deployment or database restore. Existing trip records, expense identities, original incurred dates, prepaid/postpaid accounting, supplier-paid behavior, estimates, checklists, files and exports remain on the same implementations. No migration, dependency, storage binding or audience change.
+- **Authorization / isolation:** destinations still derive from the existing owner/grant checks; the server remains authoritative. Ordinary members retain only the concise trip/personal Money experience. Owner-only access management and private preferences keep their existing protection. Backend source is unchanged from v58 and matches the v56 protected member boundary.
+- **Concurrency / recovery:** original revision/CAS, dirty-navigation guards, browser draft recovery and stable expense IDs are retained. Inputs cannot change during plan save. Preview failure may fall through to one server-validated commit; commit failure never invokes an automatic second save.
+- **Performance:** pagination, selected-detail rendering and lazy travel-tool modules remain. Restoring more visible entry points intentionally increases visual density but adds no new API polling or background work. Whole-group JSON authorization/loading and ledger recomputation remain the first likely scale bottlenecks.
+- **Process:** do not make another reduction in this release. Future changes should identify one repeated/confusing entry point, explain the proposed small adjustment, and obtain the user's confirmation while preserving detailed functions.
+
+## Verification and limits
+
+157 focused API, ledger, planner, workflow and SSR/source regressions passed. TypeScript with current generated Cloudflare declarations and source whitespace checks passed. Packaging requires the final Sites production build. New coverage checks every full Admin sidebar destination, the phone destination mapping, retained member collapsed details, the restored responsive plan dialog, busy locking and single-attempt save exception boundary. The existing suite covers checkout phases, personal financial sources, stale writes and cross-group isolation. Tests do not modify live user records or preferences.
+
+Browser-control skill is unavailable. No actual browser/phone appearance, touch/focus, dialog placement, clipboard, hosted sign-in or external-calendar acceptance is claimed; supported device/browser acceptance remains outstanding.
+
+- **KEEP:** full v56 Admin entry points/details, separate Trip and Money purposes, concise member views, current server privacy/CAS/recovery, stable ledger records and saved theme choices.
+- **CHANGE NOW:** restore the prior complete Admin baseline while retaining save protections; no further entry-point reduction in this release.
+- **IMPROVE LATER:** user-confirmed small navigation reductions and supported phone/browser acceptance; measure whole-group load costs before changing storage.
+- **DO NOT ADD:** a new redesign, new role/ledger system, expense copying/synchronization, anonymous financial links or speculative functionality.
