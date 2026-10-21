@@ -396,6 +396,17 @@ test('Plan library is private, strips booking fields, enforces revisions and per
  for(let index=0;index<20;index++)assert.equal((await h.templateSave({action:'save',id:'bounded-'+index,revision:0,name:'Template '+index,data})).status,200);
  assert.equal((await h.templateSave({action:'save',id:'over-limit',revision:0,name:'Over limit',data})).status,409);assert.equal((await h.templateRead()).templates.length,20);assert.equal(h.sqlite.prepare('SELECT COUNT(*) AS n FROM trips').get().n,0);h.sqlite.close();
 });
+test('Booking intent round-trips through authorized plan saves and retired capacity does not block joining',async()=>{
+ const h=await harness(),e=ledger.normalize({name:'Booking intent',people:['A','B','C'],bills:[],payments:[]}),{id}=await h.post({action:'create',data:e});
+ await h.post({action:'grant',id,email:'planner@example.com',person:'B',permissions:['plan']});await h.post({action:'grant',id,email:'c@example.com',person:'C',permissions:[]});
+ const original=upgradePlan('tour',{booking:true,capacity:1,waitlist:['C'],reference:'OLD-REF',url:'https://example.com/booking',phone:'123',roomNotes:'Old assignment',travelMinutes:30,bufferMinutes:15});
+ assert.equal((await h.post({action:'activity',id,revision:0,entity:original},'c@example.com')).status,403);
+ assert.equal((await h.post({action:'activity',id,revision:0,entity:original},'planner@example.com')).status,200);
+ const edited={...original,people:['A','B'],notes:'Meet at 09:00 https://maps.app.goo.gl/example'};
+ assert.equal((await h.post({action:'activity',id,revision:1,entity:edited},'planner@example.com')).status,200);
+ const stored=(await h.get('owner@example.com')).trips[0].data;assert.deepEqual(stored.activities[0],edited);assert.equal(ledger.ledger(stored).total,0);assert.equal(stored.expenses.length,0);
+ assert.equal((await h.post({action:'activity',id,revision:2,entity:{...edited,booking:'true'}},'planner@example.com')).status,400);h.sqlite.close();
+});
 test('Template batch append is permission checked, atomic, repeat-safe and never creates Money records',async()=>{
  const h=await harness(),e=ledger.normalize({name:'Plan append',people:['A','B','C'],bills:[],payments:[]}),{id}=await h.post({action:'create',data:e});await h.post({action:'grant',id,email:'planner@example.com',person:'B',permissions:['plan']});await h.post({action:'grant',id,email:'c@example.com',person:'C',permissions:[]});
  const first=upgradePlan('lunch'),second=upgradePlan('museum',{time:'11:00',endTime:'12:00',travelFrom:'lunch',travelMinutes:30,bufferMinutes:15,capacity:2,waitlist:['C']});const entity={activities:[first,second]};

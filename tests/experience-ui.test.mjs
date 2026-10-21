@@ -195,12 +195,12 @@ test('Personal Money uses member IDs with duplicate names and exposes only relat
  bill.currency='THB';bill.rate=.125;const foreignHtml=renderToStaticMarkup(React.createElement(PersonalMoney,{view:personalView(e,'B'),currency:e.settlement}));assert.match(foreignHtml,/Original item shares · THB/);assert.match(foreignHtml,/THB\s*100\.00/);assert.match(foreignHtml,/RM\s*12\.50/);
 });
 
-test('Member itinerary places long travel text in collapsed details and avoids a duplicate overnight entry',async()=>{
+test('Member itinerary shows remarks directly without redundant headings, routes or a duplicate overnight entry',async()=>{
  const {default:SimpleItinerary}=await vite.ssrLoadModule('/app/simple-itinerary.tsx');
  const e=normalize({name:'Trip',people:['A'],bills:[],payments:[]});e.start='2026-11-23';e.end='2026-11-25';
  e.activities=[{id:'hotel',name:'Krabi stay',type:'Hotel',status:'Booked',date:e.start,endDate:e.end,time:'14:00',endTime:'11:30',location:'Ao Nang',notes:'',url:'',budget:0,category:'Accommodation',people:['A']},{id:'bus',name:'Bus to Krabi',type:'Transport',date:e.start,time:'12:00',from:'Long departure address',to:'Long arrival address',location:'Shared meeting point',notes:'Bring luggage',url:'',budget:0,category:'Transport',people:['A']}];
  const first=renderToStaticMarkup(React.createElement(SimpleItinerary,{event:e,initialDay:e.start}));
- assert.match(first,/<details class="simple-plan-details"><summary>Details &amp; map<\/summary><p>Long departure address → Long arrival address/);
+ assert.doesNotMatch(first,/Details &amp; map|Long departure address|Long arrival address|Today’s itinerary|Local times/);
  assert.match(first,/Bring luggage/);assert.doesNotMatch(first,/<details[^>]*open/);
  const middle=renderToStaticMarkup(React.createElement(SimpleItinerary,{event:e,initialDay:'2026-11-24'}));
  assert.equal((middle.match(/Krabi stay/g)||[]).length,1);assert.match(middle,/Tonight we stay/);assert.doesNotMatch(middle,/simple-timeline-item/);
@@ -283,7 +283,7 @@ test('One Itinerary destination supports day and all-date booking modes without 
  e.activities=[{id:'today',name:'Today walk',type:'Activity',date:e.start,time:'09:00',status:'Planning',people:['A'],budget:0,location:'',url:'',notes:'',category:'Activity'},{id:'hotel',name:'Later hotel booking',type:'Hotel',date:e.end,time:'15:00',status:'Booked',reference:'CONFIRM-25',people:['A'],budget:23000,location:'Krabi',url:'',notes:'',category:'Accommodation'}];
  const before=JSON.stringify(e),props={event:e,section:'Itinerary',initialDay:e.start,canPlan:true,canExpense:true,busy:false,draft:null,setDraft(){},onBegin(){},onSave:async()=>true,onAction:async()=>true,onDelete(){},onExpense(){},onShare(){},onDirty(){}};
  const day=renderToStaticMarkup(React.createElement(TripPlanner,{...props,initialMode:'day'}));assert.match(day,/aria-label="Itinerary views"/);assert.match(day,/aria-pressed="true"[^>]*>Daily itinerary/);assert.match(day,/Today walk/);assert.doesNotMatch(day,/Later hotel booking/);
- const bookings=renderToStaticMarkup(React.createElement(TripPlanner,{...props,initialMode:'bookings'}));assert.match(bookings,/<h2>Itinerary<\/h2>/);assert.match(bookings,/aria-pressed="true"[^>]*>Booking list/);assert.match(bookings,/Later hotel booking/);assert.match(bookings,/>Add booking<\/button>/);
+ const bookings=renderToStaticMarkup(React.createElement(TripPlanner,{...props,initialMode:'bookings'}));assert.match(bookings,/<h2>Itinerary<\/h2>/);assert.match(bookings,/aria-pressed="true"[^>]*>Booking list/);assert.match(bookings,/Later hotel booking/);assert.doesNotMatch(bookings,/Today walk/);assert.match(bookings,/>Add booking<\/button>/);
  const locked=renderToStaticMarkup(React.createElement(TripPlanner,{...props,initialMode:'bookings',busy:true}));assert.match(locked,/aria-pressed="false" disabled=""[^>]*>Daily itinerary/);
  assert.equal(JSON.stringify(e),before);
 });
@@ -302,4 +302,18 @@ test('Personal trip link uses stable IDs and its read-only portal shows only the
  }
  const link=memberPortalPath('trip & family','member/ET'),url=new URL(link,'https://trip.test');assert.equal(url.pathname,'/member');assert.equal(url.searchParams.get('group'),'trip & family');assert.equal(url.searchParams.get('person'),'member/ET');
  const original=memberPortalPath(snapshot.id,snapshot.personal.person);e.people.find(p=>p.id==='ET').name='Renamed ET';e.name='Updated trip';const changed=memberPortalSnapshot('trip',2,e,'ET');assert.equal(memberPortalPath(changed.id,changed.personal.person),original);assert.doesNotMatch(link,/token|email|amount/);
+});
+
+test('Remarks turn complete HTTP(S) map links into safe anchors while retaining escaped text and line breaks',async()=>{
+ const {default:PlanRemarks}=await vite.ssrLoadModule('/app/plan-remarks.tsx');
+ const text='Meet at 09:00\nMap: https://maps.app.goo.gl/amZ4H24KLbvFJmMq5.\n<script>alert(1)</script> javascript:alert(1) https:// http://user:password@example.com';
+ const html=renderToStaticMarkup(React.createElement(PlanRemarks,{text}));
+ assert.match(html,/<a href="https:\/\/maps.app.goo.gl\/amZ4H24KLbvFJmMq5" target="_blank" rel="noopener noreferrer">/);
+ assert.match(html,/Meet at 09:00\nMap:/);assert.match(html,/&lt;script&gt;/);assert.doesNotMatch(html,/<script|href="javascript:|href="http:\/\/user:/);
+ assert.equal((html.match(/<a /g)||[]).length,1);
+ const {default:SimpleItinerary}=await vite.ssrLoadModule('/app/simple-itinerary.tsx');
+ const e=normalize({name:'Trip',people:['A'],bills:[],payments:[]});e.start='2026-11-23';e.end=e.start;
+ e.activities=[{id:'walk',name:'Morning walk',type:'Activity',date:e.start,time:'09:00',people:['A'],budget:0,location:'',url:'',notes:text,category:'Activity'}];
+ const member=renderToStaticMarkup(React.createElement(SimpleItinerary,{event:e}));
+ assert.match(member,/href="https:\/\/maps.app.goo.gl\/amZ4H24KLbvFJmMq5"/);assert.doesNotMatch(member,/Details &amp; map|Today’s itinerary/);
 });

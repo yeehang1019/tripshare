@@ -58,6 +58,7 @@ export type Payment = {
 };
 export type Alternative={id:string;name:string;location:string;url:string;notes:string;budget:number;stayMinutes?:number};
 export type Activity = {
+  booking?:boolean;
   flightDetails?:{departureTerminal?:string;arrivalTerminal?:string;gate?:string;meetingPoint?:string;baggage?:string;seat?:string;checkInNotes?:string};
   alternatives?:Alternative[];
   alternativeOf?:string;
@@ -769,7 +770,7 @@ export function validateEvent(e: Event) {
     for(const [value,max] of [[a.travelMinutes,2880],[a.bufferMinutes,1440]] as const)check(value===undefined||Number.isInteger(value)&&value>=0&&value<=max,'Check travel / buffer minutes');
     check(!a.travelMode||['Drive','Walk','Transit','Other'].includes(a.travelMode),'Check travel mode');
     check(a.capacity===undefined||Number.isInteger(a.capacity)&&a.capacity>=0&&a.capacity<=50,'Capacity must be 0–50 (0 = no limit)');
-    check(!a.capacity||a.people.length<=a.capacity,'Confirmed participants exceed capacity');
+    // Capacity is retained legacy metadata; the retired waiting-list UI no longer limits joining.
     check(new Set(a.people).size===a.people.length,'Duplicate activity participants');
     check(a.waitlist===undefined||Array.isArray(a.waitlist)&&a.waitlist.length<=50&&new Set(a.waitlist).size===a.waitlist.length&&a.waitlist.every(id=>ids.includes(id)&&!a.people.includes(id)),'Check waiting list: unique group members who are not confirmed');
 
@@ -778,6 +779,7 @@ export function validateEvent(e: Event) {
     if(a.alternatives){check(Array.isArray(a.alternatives)&&a.alternatives.length<=5&&new Set(a.alternatives.map(p=>p.id)).size===a.alternatives.length,'Keep up to five different alternatives');for(const p of a.alternatives)check(typeof p.id==='string'&&!!p.id&&p.id.length<=150&&typeof p.name==='string'&&!!p.name.trim()&&p.name.length<=200&&typeof p.location==='string'&&p.location.length<=500&&typeof p.notes==='string'&&p.notes.length<=2000&&typeof p.url==='string'&&p.url.length<=1500&&(!p.url||/^https?:\/\//i.test(p.url))&&cents(p.budget,'Alternative estimate')>=0&&(p.stayMinutes===undefined||Number.isInteger(p.stayMinutes)&&p.stayMinutes>=1&&p.stayMinutes<=1440),'Check alternative details')}
     check(!a.type || ['Activity','Food','Transport','Hotel','Flight','Free time','Note','Insurance'].includes(a.type),'Invalid plan type');
     check(!a.status || ['Idea','Planning','Booked','Cancelled'].includes(a.status),'Invalid booking status');
+    check(a.booking===undefined||typeof a.booking==='boolean','Check booking intent');
     check(!a.endDate || (validDate(a.endDate) && (a.endDate>=a.date||a.type==='Flight'&&!!a.timeZone&&!!a.arrivalTimeZone&&!!a.time&&!!a.endTime)),'End date must follow start date (unless flight timezones confirm the arrival)');
     check(a.type!=='Hotel'||!a.endDate||a.endDate>a.date,'Check-out must be after check-in');
     check(!a.organizer||ids.includes(a.organizer),'Unknown booking organizer');

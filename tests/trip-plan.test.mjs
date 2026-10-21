@@ -18,6 +18,21 @@ test('Explicit day order overrides time, while legacy activities remain readable
  assert.deepEqual(plan.sortPlan([b,a]).map(x=>x.name),['Breakfast','Market']);a.order=1;b.order=0;assert.deepEqual(plan.sortPlan([a,b]).map(x=>x.name),['Market','Breakfast']);delete a.type;delete a.status;e.activities=[a];validateEvent(e);
 });
 
+
+test('Booking classification distinguishes ordinary plans, explicit reservations and legacy booked activities without Money changes',()=>{
+ const e=normalize({name:'Trip',people:['A'],bills:[],payments:[]});
+ const ordinary=plan.newPlan(e,'Activity','2026-11-23'),reservation=plan.newPlan(e,'Activity','2026-11-23',true);
+ assert.equal(plan.isBooking(ordinary),false);assert.equal(plan.isBooking({...ordinary,status:'Booked'}),false);
+ assert.equal(plan.isBooking(reservation),true);assert.equal(reservation.status,'Planning');
+ for(const type of ['Hotel','Flight','Transport','Insurance'])assert.equal(plan.isBooking(plan.newPlan(e,type,'2026-11-23')),true);
+ assert.equal(plan.isBooking({...ordinary,booking:undefined,status:'Booked'}),true);
+ assert.equal(plan.isBooking({...ordinary,booking:undefined,reference:'CONF-1'}),true);
+ assert.equal(plan.isBooking({...ordinary,booking:undefined,url:'https://maps.app.goo.gl/example'}),false);
+ assert.equal(plan.isBooking({...ordinary,type:'Note',booking:true}),false);
+ ordinary.name='Walk';reservation.name='Reserved tour';e.activities=[ordinary,reservation];validateEvent(e);
+ const loaded=normalize(JSON.parse(JSON.stringify(e)));assert.equal(plan.isBooking(loaded.activities[0]),false);assert.equal(plan.isBooking(loaded.activities[1]),true);assert.equal(ledger(loaded).total,0);
+ reservation.booking='true';assert.throws(()=>validateEvent(e),/booking intent/);
+});
 test('Schedule warnings use explicit intervals and shared travellers, excluding cancelled plans and hotel stays',()=>{
  const e=normalize({name:'Trip',people:['A','B'],bills:[],payments:[]});e.start='2026-12-20';e.end='2026-12-24';
  const a={...plan.newPlan(e,'Activity',e.start),name:'Museum',time:'09:00',endTime:'11:00',people:['A']};
