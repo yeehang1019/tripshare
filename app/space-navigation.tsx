@@ -4,7 +4,7 @@ import {MapPinned,Wallet,ArrowUpRight,ArrowLeftRight,CalendarDays,Link2} from 'l
 import {calculate,money,type Event} from '@/lib/ledger';
 import type {RecordT} from './trip-app';
 export type Space='trip'|'money';
-export const tripSections=['Simple itinerary','Trip Plan','Itinerary','Bookings','Trip costs','Checklist','Travel kit','Files & photos'];
+export const tripSections=['Simple itinerary','Trip Plan','Itinerary','Checklist'];
 export function destinationLabel(destination:string,adminTrip=false){return destination==='Trip Plan'?'Overview':destination==='Simple itinerary'&&adminTrip?'Preview member view':destination}
 export const isTripSection=(tab:string)=>tripSections.includes(tab);
 export function tripRecords(records:RecordT[]){return records.filter(r=>r.data.kind==='trip'&&(!!r.planning||!r.personal&&(r.owner||r.permissions.length>0)))}
@@ -24,7 +24,7 @@ export function SpaceSwitch({space,onChange}:{space:Space;onChange:(space:Space)
 }
 export function SpaceBridge({event,space,onOpen,personal}:{event:Event;space:Space;onOpen:()=>void;personal?:{consumed:number}}){
   const total=useMemo(()=>space==='trip'?personal?personal.consumed:event.expenses.filter(b=>!b.deleted).reduce((n,b)=>n+calculate(b,event.settlement).total,0):0,[event,space,personal]);
-  return <section className={'space-bridge '+space} aria-label={space==='trip'?'Linked Money workspace':'Linked Trip workspace'}><span className="space-bridge-icon">{space==='trip'?<Wallet size={21}/>:<MapPinned size={21}/>}</span><div><p>{space==='trip'?'CONNECTED TO MONEY':'CONNECTED TO TRIP'}</p><b>{space==='trip'?money(total,event.settlement)+(personal?' your consumption':' recorded consumption'):event.destination||event.name}</b><small>{space==='trip'?'From the same bills · repayments are not extra spending':`${[event.start,event.end].filter(Boolean).join(' → ')||'Dates not set'} · itinerary, bookings and photos`}</small></div><button className="secondary" onClick={onOpen}>{space==='trip'?'Open Money':'Open Trip'}<ArrowUpRight size={16}/></button></section>;
+  return <section className={'space-bridge '+space} aria-label={space==='trip'?'Linked Money workspace':'Linked Trip workspace'}><span className="space-bridge-icon">{space==='trip'?<Wallet size={21}/>:<MapPinned size={21}/>}</span><div><p>{space==='trip'?'CONNECTED TO MONEY':'CONNECTED TO TRIP'}</p><b>{space==='trip'?money(total,event.settlement)+(personal?' your consumption':' recorded consumption'):event.destination||event.name}</b><small>{space==='trip'?'From the same bills · repayments are not extra spending':`${[event.start,event.end].filter(Boolean).join(' → ')||'Dates not set'} · daily itinerary and booking details`}</small></div><button className="secondary" onClick={onOpen}>{space==='trip'?'Open Money':'Open Trip'}<ArrowUpRight size={16}/></button></section>;
 }
 export function TripLanding({records,onChoose}:{records:RecordT[];onChoose:(id:string)=>void}){
   const trips=tripRecords(records);

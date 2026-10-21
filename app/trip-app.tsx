@@ -72,21 +72,16 @@ import {checksum} from "@/lib/checkpoints";
 import {SaveStatus,DraftRecovery,useDraftSave} from "./save-recovery";
 import {draftScope as makeDraftScope,removeDraft,type LocalDraft} from "@/lib/local-drafts";
 import {MoneyTools} from "./money-tools";
-import {placePlanNotes} from "@/lib/planner-workflow";
 import ExpenseEditor from "./expense-editor";
 import {SupplierPayment,ExpenseConflict,PaymentConflict} from "./money-actions";
 import {repaymentReview} from "@/lib/money-operations";
 import type {SearchHit} from "@/lib/workspace-search";
 import TripPlanner from "./trip-planner";
 import {TripTools} from "./trip-tools";
-import TripCosts from "./trip-costs";
 import {DetailWorkbench,FocusSections} from "./focus-workspace";
 import {Dialog,DialogContent,DialogTitle,DialogDescription} from "@/components/ui/dialog";
 import MotionLayer from "./motion-layer";
-import TripAlbum from "./trip-album";
 import {PeopleAccess,ChangeHistory,NotificationBell,SettlementExport} from "./collaboration";
-import {TravelKit,BookingFiles} from "./travel-kit";
-import {newPlan} from "@/lib/trip-plan";
 import {SpaceSwitch,SpaceBridge,TripLanding,isTripSection,spaceDestinations,tripRecords,resolveSpaceRoute,destinationLabel,type Space} from "./space-navigation";
 import {Search,PanelRight} from "lucide-react";
 import {AppearancePanel,WorkspaceChrome,QuickNavigator,completeThemes,monthBounds} from "./workspace-design";
@@ -208,8 +203,7 @@ export default function TripApp({ shared = false, authenticatedEmail = "", authe
   useEffect(()=>{spaceIntent.current=space},[space]);
   const [plannerDirty,setPlannerDirty]=useState(false);
   const [toolsDirty,setToolsDirty]=useState(false),[toolsEpoch,setToolsEpoch]=useState(0);
-  const [plannerSelection,setPlannerSelection]=useState({day:"",type:"All"});
-  const [kitDirty,setKitDirty]=useState(false);
+  const [plannerSelection,setPlannerSelection]=useState<{day:string;type:string;mode?:'day'|'bookings'}>({day:"",type:"All"});
   const [payerFilter,setPayerFilter]=useState(""),[statusFilter,setStatusFilter]=useState("All");
   const [templateDirty,setTemplateDirty]=useState(false);
   const workspace=useWorkspace(authenticatedSession,!shared);
@@ -234,7 +228,7 @@ export default function TripApp({ shared = false, authenticatedEmail = "", authe
   const canViewTrip=!!e&&e.kind==="trip"&&(canViewGroup||!!rec?.planning);
   const editing = useRef(false),
     accessLoaded = useRef(false);
-  editing.current = !!(bill || activity || settings || payment || busy || toolsDirty || plannerDirty || kitDirty || templateDirty || supplierBill || expenseConflict || paymentConflict);
+  editing.current = !!(bill || activity || settings || payment || busy || toolsDirty || plannerDirty || templateDirty || supplierBill || expenseConflict || paymentConflict);
   const token = useRef(""),
     pinRef = useRef("");
   pinRef.current = pin;
@@ -375,7 +369,7 @@ export default function TripApp({ shared = false, authenticatedEmail = "", authe
     setTab(spaceIntent.current==="trip"&&e.kind==="trip"&&(!rec.personal||!!rec.planning)?"Trip Plan":!rec.owner && !shared && rec.permissions.length === 0 && rec.person ? "My spending" : "Dashboard");
     setBill(null);
     setActivity(null);
-setPlannerDirty(false);setKitDirty(false);setTemplateDirty(false);
+setPlannerDirty(false);setTemplateDirty(false);
     setSettings(null);
     setAccessInfo({ grants: [], shares: [] });
     accessLoaded.current = false;
@@ -525,7 +519,7 @@ setPlannerDirty(false);setKitDirty(false);setTemplateDirty(false);
     setSupplierBill(null);setExpenseConflict(null);setPaymentConflict(null);baselineBill.current=null;
     setBill(null);
     setActivity(null);
-    setPlannerDirty(false);setKitDirty(false);setTemplateDirty(false);
+    setPlannerDirty(false);setTemplateDirty(false);
     setPayment(null);
     setSettings(null);
     setCreating(false);setTemplateSource(null);
@@ -1463,12 +1457,12 @@ setPlannerDirty(false);setKitDirty(false);setTemplateDirty(false);
                   /></DialogContent></Dialog>
                 )}
                 {isTripSection(tab) && canViewTrip && e.kind === "trip" && (
-                  <>{(tab==='Simple itinerary'||!can('plan'))&&<SimpleItinerary key={rec.id} group={rec.id} event={e} initialDay={plannerSelection.day} onDayChange={day=>setPlannerSelection(s=>({...s,day}))} canCopyLink={rec.owner||can('plan')}/ >}{tab!=='Simple itinerary'&&!shared&&can('plan')&&<TripTools key={rec.id+':'+toolsEpoch} group={rec.id} event={e} revision={rec.revision} session={authenticatedSession} canPlan={can('plan')} canPreferences={rec.owner||!!rec.person} busy={busy} disabled={!!(bill||activity||plannerDirty||kitDirty)} onDirty={setToolsDirty} onBegin={()=>setError('')} saveError={error} onRefresh={()=>load(true).then(Boolean)} onBulk={(entity,revision)=>send('planBulk',{entity,revision:revision??rec.revision}).then(Boolean)} onApply={async(activities,revision)=>!!(await send('planBatch',{entity:{activities},revision}))}/ >}{['Trip Plan','Itinerary','Bookings','Checklist'].includes(tab)&&can('plan')&&<TripPlanner section={tab==='Trip Plan'?'Overview':tab} onDayChange={day=>setPlannerSelection(s=>({...s,day}))} initialDay={plannerSelection.day} initialType={plannerSelection.type} onSectionChange={(v,day,type)=>{setPlannerSelection({day:day||'',type:type||'All'});navigate(v==='Overview'?'Trip Plan':v)}} key={rec.id+tab+jumpEpoch} event={e} busy={busy} canPlan={can("plan")} canExpense={can("addExpense")} draft={activity} setDraft={value=>{if(!value&&localScope&&activity)removeDraft(localScope,"plan",activity.id);setActivity(value)}} onDirty={setPlannerDirty}
+                  <>{(tab==='Simple itinerary'||!can('plan'))&&<SimpleItinerary key={rec.id} group={rec.id} event={e} initialDay={plannerSelection.day} onDayChange={day=>setPlannerSelection(s=>({...s,day}))} canCopyLink={rec.owner||can('plan')}/ >}{tab!=='Simple itinerary'&&!shared&&can('plan')&&<TripTools key={rec.id+':'+toolsEpoch} group={rec.id} event={e} revision={rec.revision} session={authenticatedSession} canPlan={can('plan')} canPreferences={rec.owner||!!rec.person} busy={busy} disabled={!!(bill||activity||plannerDirty)} onDirty={setToolsDirty} onBegin={()=>setError('')} saveError={error} onRefresh={()=>load(true).then(Boolean)} onBulk={(entity,revision)=>send('planBulk',{entity,revision:revision??rec.revision}).then(Boolean)} onApply={async(activities,revision)=>!!(await send('planBatch',{entity:{activities},revision}))}/ >}{['Trip Plan','Itinerary','Checklist'].includes(tab)&&can('plan')&&<TripPlanner section={tab==='Trip Plan'?'Overview':tab} onDayChange={day=>setPlannerSelection(s=>({...s,day}))} initialDay={plannerSelection.day} initialType={plannerSelection.type} initialMode={plannerSelection.mode} onSectionChange={(v,day,type)=>{setPlannerSelection({day:day||'',type:type||'All',mode:v==='Bookings'?'bookings':'day'});navigate(v==='Overview'?'Trip Plan':v==='Bookings'?'Itinerary':v)}} key={rec.id+tab+jumpEpoch} event={e} busy={busy} canPlan={can("plan")} canExpense={can("addExpense")} draft={activity} setDraft={value=>{if(!value&&localScope&&activity)removeDraft(localScope,"plan",activity.id);setActivity(value)}} onDirty={setPlannerDirty}
                     saveError={error} onReviewLatest={reviewLatestPlan} showFinancial={!rec.personal} onBegin={()=>{setError("");setDraftRevision(rec.revision)}}
                     onSave={async entity=>!!(await send("activity",{entity,revision:draftRevision}))}
                     onAction={(action,entity)=>send(action,{entity})}
                     onDelete={id=>ask("Remove this plan?","Linked expenses remain in your ledger.","deleteActivity",id)}
-                    onExpense={a=>add("simple",a,true)} focusActivity={focusActivity} onOpenMoney={id=>switchSpace("money",id)} onShare={whatsapp}/ >}{tab==="Trip costs"&&(canViewGroup?<TripCosts key={rec.id} event={e} busy={busy} canAdd={can("addExpense")} canEdit={can("editAll")} onAdd={(a,status)=>add("simple",a,true,status)} onEdit={edit} onMarkPaid={openSupplierPayment} onOpenMoney={id=>switchSpace("money",id)}/>:<section className="panel"><h2>Your trip spending</h2><p className="muted">Group bills are private. Open Money to see your own spending and balances.</p><button className="primary" onClick={()=>switchSpace("money")}>Open my spending</button></section>)}{tab==="Travel kit"&&<TravelKit key={"kit-"+rec.id} event={e} canEdit={can("plan")} busy={busy} onDirty={setKitDirty} onSave={async entity=>!!(await send("travelKit",{entity}))} onAddActivity={async p=>{const entity={...newPlan(e,"Activity",e.start||today()),name:p.name,location:p.name,url:p.url,notes:placePlanNotes(p)};return !!(await send("activity",{entity}))}}/>}{tab==="Files & photos"&&!shared&&<BookingFiles key={"files-"+rec.id} group={rec.id} event={e} session={authenticatedSession} canUpload={can("plan")}/ >}{tab==="Files & photos"&&!shared&&<TripAlbum key={"album-"+rec.id} group={rec.id} session={authenticatedSession} canUpload={can("plan")}/>}</>
+                    onExpense={a=>add("simple",a,true)} focusActivity={focusActivity} onOpenMoney={id=>switchSpace("money",id)} onShare={whatsapp}/ >}</>
                 )}
                 {((tab === "Expenses" && canViewGroup) || (tab === "My spending" && hasPersonalAccess)) && (
                   <>
@@ -1837,7 +1831,7 @@ setPlannerDirty(false);setKitDirty(false);setTemplateDirty(false);
                       </div>
                       <div className="panel">
                         <h2>Event & exports</h2>
-                        {rec.owner&&<button className="secondary danger-text" disabled={busy} onClick={()=>{const eventId=rec.id,revision=rec.revision,eventName=e.name;setConfirm({title:`Delete ${eventName}?`,description:'Permanently delete this Trip / Daily Group, including all expenses, repayment history, itinerary, bookings and checklist. Sharing links and admin access will also be removed. Export a backup below first if you want to keep a copy. This cannot be undone.',run:async()=>{if(await send('deleteEvent',{id:eventId,revision,confirmName:eventName})){setId('');setTab('Dashboard');setBill(null);setActivity(null);setPayment(null);setSettings(null);setPlannerDirty(false);setKitDirty(false);setTemplateDirty(false);setCreating(false);setNotice(eventName+' deleted.')}}})}}>Delete {e.kind==='trip'?'Trip':'Daily Group'}</button>}
+                        {rec.owner&&<button className="secondary danger-text" disabled={busy} onClick={()=>{const eventId=rec.id,revision=rec.revision,eventName=e.name;setConfirm({title:`Delete ${eventName}?`,description:'Permanently delete this Trip / Daily Group, including all expenses, repayment history, itinerary, bookings and checklist. Sharing links and admin access will also be removed. Export a backup below first if you want to keep a copy. This cannot be undone.',run:async()=>{if(await send('deleteEvent',{id:eventId,revision,confirmName:eventName})){setId('');setTab('Dashboard');setBill(null);setActivity(null);setPayment(null);setSettings(null);setPlannerDirty(false);setTemplateDirty(false);setCreating(false);setNotice(eventName+' deleted.')}}})}}>Delete {e.kind==='trip'?'Trip':'Daily Group'}</button>}
                         {rec.owner && (
                           <button
                             className="secondary"

@@ -58,7 +58,7 @@ test('All six complete theme modes keep text and primary buttons readable',()=>{
 
 test('Trip and Money have distinct navigation and personal members keep personal scope',()=>{
  const e=normalize({name:'Trip',people:['A'],bills:[],payments:[]});const r={id:'trip',data:e,owner:true,permissions:[],person:'A'};
- assert.deepEqual(spaces.spaceDestinations(r,'trip'),['Simple itinerary','Trip Plan','Itinerary','Bookings','Trip costs','Checklist','Travel kit','Files & photos']);
+ assert.deepEqual(spaces.spaceDestinations(r,'trip'),['Simple itinerary','Trip Plan','Itinerary','Checklist']);
  assert.deepEqual(spaces.spaceDestinations(r,'money'),['Dashboard','Expenses','Settlement','My spending','People & Access','Settings','History']);
  assert.deepEqual(spaces.spaceDestinations({...r,owner:false,personal:{expenses:[]}},'money'),['My spending']);
  assert.doesNotMatch(spaces.spaceDestinations(r,'money').join(','),/Trip Plan/);
@@ -177,7 +177,7 @@ test('Daily hotel rows distinguish check-in, overnight stay and timed checkout w
 test('Member navigation hides booking and group Money management while delegated managers retain their scope',()=>{
  const e=normalize({name:'Trip',people:['A','B'],bills:[],payments:[]});const member={id:'trip',data:e,owner:false,permissions:[],person:'B',planning:e,personal:{}};
  assert.deepEqual(spaces.spaceDestinations(member,'trip'),['Simple itinerary']);assert.deepEqual(spaces.spaceDestinations(member,'money'),['My spending']);
- const planner={...member,permissions:['plan']};assert.ok(spaces.spaceDestinations(planner,'trip').includes('Bookings'));assert.deepEqual(spaces.spaceDestinations(planner,'money'),['My spending']);
+ const planner={...member,permissions:['plan']};assert.ok(spaces.spaceDestinations(planner,'trip').includes('Itinerary'));assert.equal(spaces.spaceDestinations(planner,'trip').includes('Bookings'),false);assert.deepEqual(spaces.spaceDestinations(planner,'money'),['My spending']);
  const moneyAdmin={...member,personal:undefined,permissions:['viewAll']};assert.deepEqual(spaces.spaceDestinations(moneyAdmin,'trip'),['Simple itinerary']);assert.ok(spaces.spaceDestinations(moneyAdmin,'money').includes('Expenses'));
 });
 
@@ -276,4 +276,14 @@ test('Responsive Trip rules use viewport width, safe areas and readable controls
   assert.equal(styles('.trip-entry-workspace .navigation .nav-label',width)['white-space'],'nowrap');
  }
  assert.match(focused,/font-size:16px!important;min-width:0/);assert.match(focused,/100dvh - 24px - env\(safe-area-inset-top\)/);
+});
+
+test('One Itinerary destination supports day and all-date booking modes without changing records',()=>{
+ const e=normalize({name:'Trip',people:['A'],bills:[],payments:[]});e.start='2026-11-23';e.end='2026-11-25';
+ e.activities=[{id:'today',name:'Today walk',type:'Activity',date:e.start,time:'09:00',status:'Planning',people:['A'],budget:0,location:'',url:'',notes:'',category:'Activity'},{id:'hotel',name:'Later hotel booking',type:'Hotel',date:e.end,time:'15:00',status:'Booked',reference:'CONFIRM-25',people:['A'],budget:23000,location:'Krabi',url:'',notes:'',category:'Accommodation'}];
+ const before=JSON.stringify(e),props={event:e,section:'Itinerary',initialDay:e.start,canPlan:true,canExpense:true,busy:false,draft:null,setDraft(){},onBegin(){},onSave:async()=>true,onAction:async()=>true,onDelete(){},onExpense(){},onShare(){},onDirty(){}};
+ const day=renderToStaticMarkup(React.createElement(TripPlanner,{...props,initialMode:'day'}));assert.match(day,/aria-label="Itinerary views"/);assert.match(day,/aria-pressed="true"[^>]*>Daily itinerary/);assert.match(day,/Today walk/);assert.doesNotMatch(day,/Later hotel booking/);
+ const bookings=renderToStaticMarkup(React.createElement(TripPlanner,{...props,initialMode:'bookings'}));assert.match(bookings,/<h2>Itinerary<\/h2>/);assert.match(bookings,/aria-pressed="true"[^>]*>Booking list/);assert.match(bookings,/Later hotel booking/);assert.match(bookings,/>Add booking<\/button>/);
+ const locked=renderToStaticMarkup(React.createElement(TripPlanner,{...props,initialMode:'bookings',busy:true}));assert.match(locked,/aria-pressed="false" disabled=""[^>]*>Daily itinerary/);
+ assert.equal(JSON.stringify(e),before);
 });

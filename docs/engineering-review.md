@@ -366,3 +366,32 @@ Trip details & days becomes Trip details. Removed its second daily itinerary lis
 - **CHANGE NOW:** the approved duplicate links, labels, overview/detail overlap and empty panels; implemented.
 - **IMPROVE LATER:** supported browser/device acceptance and the next separately reviewed small cleanup.
 - **DO NOT ADD:** another menu layer, route migration, broad redesign or new financial/state architecture for a UI duplication issue.
+
+# Approved removal of optional pages and merged Itinerary — 2026-10-21
+
+## Scope and data/control flow
+
+The user selected: files/photos will be shared in their group, Travel kit is unnecessary, Trip costs is cancelled, and Bookings should merge with Itinerary. Trip's allowed Admin destinations now comprise member preview, Overview, Itinerary and Checklist. The same destination list drives desktop sidebar, phone navigation and quick jump. Retired page components no longer mount; their unused TripApp imports and Travel kit dirty-state plumbing are removed. Archived implementation modules remain in source for compatibility/recovery, and no stored travel notes, photos, files, plans or financial records are deleted or transferred externally.
+
+Itinerary owns Daily itinerary and Booking list modes. Both render the original activity records: the day mode retains travel dates, checkout phases, ordering and detailed records; the booking mode retains the full-date list, booking type/status/traveller/search filters, detailed reservation fields and its contextual Add booking. Switching modes is disabled during a save or a local plan/details/task draft. Parent selection retains the chosen mode when Overview booking-readiness links enter Itinerary; the internal Bookings view is translated to the single Itinerary destination. Legacy component callers using section=Bookings still initialize the booking mode. A searched or linked activity retains its original date-aware daily focus behavior.
+
+Existing expense actions on a specific plan still open the original Money bill flow, scoped to the same trip/activity. Trip costs is no longer a page; Money's expense records, linked-plan filtering, supplier/prepaid/refund tools, repayments and permissions retain their existing implementations. Overview and manual calendar exports remain unchanged because they were not selected for removal/upgrade. There is no new calendar subscription, external group connection or financial synchronization.
+
+## Engineering review
+
+- **Correctness / compatibility:** menu destinations and mounted pages agree; no empty retired page remains reachable from sidebar/phone/quick jump. Overview readiness links map to the merged booking mode, and day-specific/search links stay on daily mode. Removed the stale Files & photos instruction from booking-reference help and the photos promise in the Money-to-Trip banner.
+- **Authorization / isolation:** UI removal grants no new access. Booking fields still require the existing planning/admin source projection; ordinary members retain their concise itinerary and personal Money. Server APIs, storage authorization and per-group grants are unchanged. Old upload/storage access is not made public to relocate documents.
+- **Concurrency / recovery:** mode switching respects busy/local-draft locks; existing revision capture, CAS, single-attempt save, schedule-impact review and browser draft recovery remain. Two modes share IDs and callbacks rather than copying activities. No record or bill is created by switching views.
+- **Operations:** application-only roll-forward with no schema, dependency, binding, runtime secret or audience change. Stored files/travel data remain recoverable through existing authorized storage/export paths and compatible v61 rollback. No external platform is contacted to move user files.
+- **Performance / maintainability:** removed mounted optional pages and their file/photo fetches from the main app. The full booking list keeps existing bounded workbench pagination. Whole-group JSON loading/authorization and ledger recomputation remain the first likely scale bottlenecks. Optional archived modules/tests may be removed in a later explicitly scoped cleanup once recovery requirements are settled; do not undertake a broad rewrite here.
+
+## Verification and limits
+
+162 existing/new API, ledger, Money, planner, workflow and SSR regressions passed. One new meaningful regression covers same-record daily/booking modes, all-date booking visibility, contextual add labels, save locking and unchanged input records; navigation and delegated-manager expectations were updated. TypeScript with current generated Cloudflare declarations and source whitespace checks passed. Final Sites production build is required during packaging. Tests did not mutate live trip records, billing data, roles or theme preferences.
+
+Browser-control skill remains unavailable. Actual phone/desktop appearance, touch/focus, switching within an open browser session, external group file sharing and hosted calendar/sign-in round trips remain unverified. SSR checks are not physical-device acceptance.
+
+- **KEEP:** detailed shared plan/booking records, Checklist, independent Money, current privacy/auth/CAS/recovery boundaries, Overview, themes and manual calendar export.
+- **CHANGE NOW:** retire selected optional pages, remove the separate Bookings destination and provide two modes inside Itinerary; implemented.
+- **IMPROVE LATER:** supported browser/phone acceptance, optional archived-code cleanup and separately approved calendar subscription work.
+- **DO NOT ADD:** a new group/files platform integration, file transfer/deletion, travel-data migration, another ledger, automatic accounting synchronization or incidental calendar permissions.
