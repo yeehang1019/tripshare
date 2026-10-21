@@ -287,3 +287,19 @@ test('One Itinerary destination supports day and all-date booking modes without 
  const locked=renderToStaticMarkup(React.createElement(TripPlanner,{...props,initialMode:'bookings',busy:true}));assert.match(locked,/aria-pressed="false" disabled=""[^>]*>Daily itinerary/);
  assert.equal(JSON.stringify(e),before);
 });
+
+test('Personal trip link uses stable IDs and its read-only portal shows only the selected member and group total',async()=>{
+ const {memberPortalPath,memberPortalSnapshot}=await vite.ssrLoadModule('/lib/member-portal.ts');const {MemberPortalContent}=await vite.ssrLoadModule('/app/member-portal.tsx');
+ const e=normalize({name:'Thailand',people:['A','ET','C'],bills:[],payments:[]});e.start='2026-11-23';e.end='2026-11-25';
+ const shared=blankExpense(e,'A');shared.merchant='Shared transport';shared.items[0].people=['A','ET'];shared.items[0].amount=10000;
+ const other=blankExpense(e,'C');other.merchant='PRIVATE_C_ONLY';other.items[0].people=['C'];other.items[0].amount=6000;e.expenses=[shared,other];
+ e.activities=[{id:'hotel',type:'Hotel',name:'Shared hotel',date:e.start,endDate:e.end,time:'14:00',endTime:'11:00',status:'Booked',reference:'SECRET-REFERENCE',url:'https://secret.test',budget:99999,notes:'Meet in lobby',location:'Krabi',people:['A','ET'],category:'Accommodation'}];
+ const snapshot=memberPortalSnapshot('trip',1,e,'ET');
+ for(const page of ['itinerary','money']){
+  const html=renderToStaticMarkup(React.createElement(MemberPortalContent,{snapshot,page,onPage(){}}));assert.match(html,/ET · Personal trip view/);assert.match(html,/Trip recorded spending/);assert.match(html,/RM\s*160\.00/);
+  assert.doesNotMatch(html,/PRIVATE_C_ONLY|SECRET-REFERENCE|secret\.test|Copy member link|People &amp; Access|Add plan|Edit plan/);
+  if(page==='money'){assert.match(html,/Shared transport/);assert.match(html,/I need to repay/)}else assert.match(html,/Shared hotel|Meet in lobby/);
+ }
+ const link=memberPortalPath('trip & family','member/ET'),url=new URL(link,'https://trip.test');assert.equal(url.pathname,'/member');assert.equal(url.searchParams.get('group'),'trip & family');assert.equal(url.searchParams.get('person'),'member/ET');
+ const original=memberPortalPath(snapshot.id,snapshot.personal.person);e.people.find(p=>p.id==='ET').name='Renamed ET';e.name='Updated trip';const changed=memberPortalSnapshot('trip',2,e,'ET');assert.equal(memberPortalPath(changed.id,changed.personal.person),original);assert.doesNotMatch(link,/token|email|amount/);
+});

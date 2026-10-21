@@ -1,6 +1,7 @@
 'use client';
 import {useEffect,useState} from 'react';
-import {BedDouble,MapPin,Link2} from 'lucide-react';
+import {BedDouble,MapPin} from 'lucide-react';
+import MemberLinkPicker from './member-link-picker';
 import {type Event,type Activity,today} from '@/lib/ledger';
 import {tripDays,onDay} from '@/lib/trip-plan';
 
@@ -15,7 +16,7 @@ export function itineraryPhase(a:Activity,date:string){
  return {label:a.type||'Activity',time:a.date===date?a.time||'Time to confirm':'Ongoing'};
 }
 export default function SimpleItinerary({event,initialDay='',onDayChange,canCopyLink=false,group=''}:{event:Event;initialDay?:string;onDayChange?:(day:string)=>void;canCopyLink?:boolean;group?:string}){
- const dates=tripDays(event),[chosen,setChosen]=useState(initialDay),[notice,setNotice]=useState(''),[limit,setLimit]=useState(30);
+ const dates=tripDays(event),[chosen,setChosen]=useState(initialDay),[limit,setLimit]=useState(30);
  const date=dates.includes(chosen)?chosen:dates.includes(today())?today():dates[0]||'';
  useEffect(()=>{setLimit(30)},[date]);
  const active=event.activities.filter(a=>a.status!=='Cancelled');
@@ -26,8 +27,7 @@ export default function SimpleItinerary({event,initialDay='',onDayChange,canCopy
  const stays=active.filter(a=>a.type==='Hotel'&&a.date<=date&&!!a.endDate&&a.endDate>date);
  function select(value:string){setChosen(value);onDayChange?.(value)}
  return <section className="simple-itinerary" aria-label="Simple itinerary">
-  <div className="simple-trip-heading"><div><p className="eyebrow">YOUR JOURNEY</p><h1>{event.destination||event.name}</h1><p>{itineraryDate(event.start)} – {itineraryDate(event.end)}</p></div>{canCopyLink&&<button className="secondary" onClick={async()=>{const url=new URL(window.location.origin+'/');url.searchParams.set('space','trip');url.searchParams.set('group',group);url.searchParams.set('simple','1');try{await navigator.clipboard.writeText(url.toString());setNotice('Link copied · sign-in required')}catch{setNotice(url.toString())}}}><Link2 size={17}/> Copy itinerary link</button>}</div>
-  {notice&&<p className="message simple-link-notice" role="status">{notice}</p>}
+  <div className="simple-trip-heading"><div><p className="eyebrow">YOUR JOURNEY</p><h1>{event.destination||event.name}</h1><p>{itineraryDate(event.start)} – {itineraryDate(event.end)}</p></div>{canCopyLink&&<MemberLinkPicker group={group} people={event.people}/>}</div>
   <nav className={"simple-date-strip"+(dates.length<=7?" simple-dates-fit":"")} aria-label="Choose itinerary date">{dates.map((d,index)=><button key={d} aria-pressed={date===d} onClick={()=>select(d)}><b>{d.slice(8)}</b><span>{new Date(d+'T12:00:00Z').toLocaleDateString('en-GB',{weekday:'short',timeZone:'UTC'})}</span></button>)}</nav>
   {stays.map(a=><aside key={a.id} className="simple-tonight"><BedDouble size={25}/><div><span>Tonight we stay</span><strong>{a.name}</strong>{a.status!=='Booked'&&<small>{a.status||'Planning'} · to confirm</small>}</div></aside>)}
   <div className="simple-day-title"><h2>Today’s itinerary</h2><p>{itineraryDate(date)} · Local times</p></div>

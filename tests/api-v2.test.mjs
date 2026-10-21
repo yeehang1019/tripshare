@@ -45,6 +45,7 @@ async function harness(){const sqlite=new DatabaseSync(':memory:');for(const f o
  const store=compile('../lib/workspace-store.ts');modules['@/lib/workspace-store']=store;await store.link(s=>modules[s]);await store.evaluate();
  const plan=compile('../lib/settlement-plan.ts');modules['@/lib/settlement-plan']=plan;await plan.link(s=>s==='./ledger'?modules['@/lib/ledger']:modules[s]);await plan.evaluate();
  const personal=compile('../lib/personal.ts');modules['@/lib/personal']=personal;modules['@/lib/personal']=personal;await personal.link(s=>s==='./ledger'?modules['@/lib/ledger']:modules[s]);await personal.evaluate();
+ const portalLogic=compile('../lib/member-portal.ts');modules['@/lib/member-portal']=portalLogic;await portalLogic.link(s=>s==='./ledger'?modules['@/lib/ledger']:s==='./personal'?personal:modules[s]);await portalLogic.evaluate();
  const httpBody=compile('../lib/http-body.ts');modules['@/lib/http-body']=httpBody;await httpBody.link(s=>modules[s]);await httpBody.evaluate();
  const observability=compile('../lib/request-observability.ts');modules['@/lib/request-observability']=observability;await observability.link(s=>modules[s]);await observability.evaluate();
  const checkpointsLogic=compile('../lib/checkpoints.ts');modules['@/lib/checkpoints']=checkpointsLogic;await checkpointsLogic.link(s=>s==='./ledger'?modules['@/lib/ledger']:modules[s]);await checkpointsLogic.evaluate();
@@ -52,6 +53,7 @@ async function harness(){const sqlite=new DatabaseSync(':memory:');for(const f o
  const trips=compile('../app/api/trips/route.ts');modules['../trips/route']=trips;await trips.link(s=>modules[s]);await trips.evaluate();const view=compile('../app/api/view/route.ts');await view.link(s=>modules[s]);await view.evaluate();
  const sync=compile('../app/api/integrations/v1/me/entries/route.ts');await sync.link(s=>modules[s]);await sync.evaluate();
  const apiResponse=compile('../lib/api-response.ts');modules['@/lib/api-response']=apiResponse;await apiResponse.link(s=>modules[s]);await apiResponse.evaluate();
+ const memberPortal=compile('../app/api/member-portal/route.ts');await memberPortal.link(s=>modules[s]);await memberPortal.evaluate();
 
  const templateLogic=compile('../lib/plan-templates.ts');modules['@/lib/plan-templates']=templateLogic;await templateLogic.link(s=>s==='./ledger'?modules['@/lib/ledger']:modules[s]);await templateLogic.evaluate();
  const templates=compile('../app/api/plan-templates/route.ts');await templates.link(s=>modules[s]);await templates.evaluate();
@@ -83,9 +85,37 @@ async function harness(){const sqlite=new DatabaseSync(':memory:');for(const f o
  const documentRead=async(group,email='owner@example.com',id='')=>{const r=await documents.namespace.GET(new Request('https://trip.test/api/documents?'+new URLSearchParams({group,id}),{headers:{'oai-authenticated-user-id':email,'oai-authenticated-user-email':email}}));return id?r:{status:r.status,...await r.json()}};
  const documentSave=async(group,bytes,email='owner@example.com',activity='')=>{const body=new FormData();body.append('file',new File([bytes],'booking.pdf',{type:'application/pdf'}));body.append('activity',activity);const r=await documents.namespace.POST(new Request('https://trip.test/api/documents?'+new URLSearchParams({group}),{method:'POST',headers:{'oai-authenticated-user-id':email,'oai-authenticated-user-email':email,Origin:'https://trip.test'},body}));return {status:r.status,...await r.json()}};
  const notificationRead=async(email)=>{const r=await notifications.namespace.GET(new Request('https://trip.test/api/notifications',{headers:{'oai-authenticated-user-id':email,'oai-authenticated-user-email':email}}));return {status:r.status,...await r.json()}};
+ const portalRead=async(group,person,email='owner@example.com',etag='')=>{const r=await memberPortal.namespace.GET(new Request('https://trip.test/api/member-portal?'+new URLSearchParams({group,person}),{headers:{...(email?{'oai-authenticated-user-id':email,'oai-authenticated-user-email':email}:{}),...(etag?{'If-None-Match':etag}:{})}}));return {status:r.status,etag:r.headers.get('ETag'),cache:r.headers.get('Cache-Control'),...(r.status===304?{}:await r.json())}};
  const conditionalGet=async(etag='',email='owner@example.com')=>{const r=await trips.namespace.GET(new Request('https://trip.test/api/trips',{headers:{'oai-authenticated-user-email':email,'oai-authenticated-user-id':email,...(etag?{'If-None-Match':etag}:{})}}));return {status:r.status,etag:r.headers.get('ETag'),requestId:r.headers.get('X-Request-ID'),...(r.status===304?{}:await r.json())}};
  const checkpointCall=async(method,body={},email='owner@example.com')=>{const query=method==='GET'?'?'+new URLSearchParams(body):'';const r=await checkpointApi.namespace[method](new Request('https://trip.test/api/checkpoints'+query,{method,headers:{'oai-authenticated-user-email':email,'oai-authenticated-user-id':email,'Content-Type':'application/json',Origin:'https://trip.test'},...(method==='POST'?{body:JSON.stringify(body)}:{})}));return {status:r.status,...await r.json()}};
- return {checkpointCall,conditionalGet,templateRead,templateSave,preferenceRead,preferenceSave,documentRead,documentSave,notificationRead,photosRead,photosSave,workspaceRead,workspaceSave,payoutCall,post,get,getWithCookie,postWithCookie,getWithSession,postWithSession,read,syncRead,integrationEnv,sqlite};}
+ return {portalRead,checkpointCall,conditionalGet,templateRead,templateSave,preferenceRead,preferenceSave,documentRead,documentSave,notificationRead,photosRead,photosSave,workspaceRead,workspaceSave,payoutCall,post,get,getWithCookie,postWithCookie,getWithSession,postWithSession,read,syncRead,integrationEnv,sqlite};}
+
+test('Personal portal authorizes the bound member, projects only their details and refreshes the same link after edits',async()=>{
+ const h=await harness();try{
+  const e=ledger.normalize({name:'Personal portal trip',people:['A','B','C'],bills:[],payments:[]});e.kind='trip';e.start='2026-11-23';e.end='2026-11-25';e.people[2].name='B';
+  const hotel={id:'hotel',type:'Hotel',name:'Shared itinerary hotel',date:e.start,endDate:e.end,time:'14:00',endTime:'11:00',status:'Booked',people:['A','B'],location:'Krabi',url:'https://private-booking.test',reference:'SECRET_REFERENCE',notes:'Meet at the lobby',budget:999999,category:'Accommodation'};e.activities=[hotel];
+  const shared=ledger.blankExpense(e,'A');shared.id='shared';shared.merchant='Shared meal';shared.items[0].people=['A','B'];shared.items[0].amount=10000;
+  const privateBill=ledger.blankExpense(e,'C');privateBill.id='private-c';privateBill.merchant='PRIVATE_C_BILL';privateBill.items[0].people=['C'];privateBill.items[0].amount=5000;
+  const unpaid=ledger.blankExpense(e,'A');unpaid.id='unpaid-b';unpaid.merchant='B supplier bill';unpaid.items[0].people=['B'];unpaid.items[0].amount=3000;unpaid.paymentStatus='postpaid';
+  const deposit=ledger.blankExpense(e,'C');deposit.id='deposit-c';deposit.merchant='PRIVATE_C_DEPOSIT';deposit.items[0].people=['C'];deposit.items[0].amount=2000;deposit.paymentStatus='prepaid';e.expenses=[shared,privateBill,unpaid,deposit];
+  const created=await h.post({action:'create',data:e});assert.equal(created.status,200);const id=created.id;
+  await h.post({action:'grant',id,person:'B',email:'b@example.com',permissions:[]});await h.post({action:'grant',id,person:'C',email:'c@example.com',permissions:['viewAll']});
+  assert.equal((await h.portalRead(id,'B','')).status,401);assert.equal((await h.portalRead(id,'B','stranger@example.com')).status,403);
+  assert.equal((await h.portalRead(id,'C','b@example.com')).status,403);assert.equal((await h.portalRead(id,'B','c@example.com')).status,403);
+  const first=await h.portalRead(id,'B','b@example.com');assert.equal(first.status,200);assert.match(first.cache,/no-store/);assert.equal(first.snapshot.personal.person,'B');assert.equal(first.snapshot.personal.consumed,8000);assert.equal(first.snapshot.tripSpending,18000);
+  assert.match(JSON.stringify(first.snapshot),/Shared meal|Meet at the lobby/);assert.doesNotMatch(JSON.stringify(first.snapshot),/PRIVATE_C_BILL|PRIVATE_C_DEPOSIT|SECRET_REFERENCE|private-booking\.test|owner@example/);
+  assert.equal(first.snapshot.itinerary.people.length,0);assert.equal(first.snapshot.itinerary.expenses.length,0);assert.equal(first.snapshot.itinerary.budget,0);
+  assert.equal((await h.portalRead(id,'B','b@example.com',first.etag)).status,304);assert.equal((await h.portalRead(id,'B')).status,200);
+  assert.equal((await h.post({action:'activity',id,revision:0,entity:{...hotel,name:'Updated hotel name'}})).status,200);
+  const updated=await h.portalRead(id,'B','b@example.com',first.etag);assert.equal(updated.status,200);assert.equal(updated.snapshot.itinerary.activities[0].name,'Updated hotel name');assert.notEqual(updated.etag,first.etag);
+  privateBill.items[0].amount=7000;assert.equal((await h.post({action:'expense',id,revision:1,entity:privateBill})).status,200);
+  const changed=await h.portalRead(id,'B','b@example.com');assert.equal(changed.snapshot.tripSpending,20000);assert.doesNotMatch(JSON.stringify(changed.snapshot),/PRIVATE_C_BILL/);
+  assert.equal((await h.post({action:'payment',id,revision:2,entity:{id:'repay-b',from:'B',to:'A',amount:2500,date:e.start,note:''}})).status,200);
+  const paid=await h.portalRead(id,'B','b@example.com');assert.equal(paid.snapshot.tripSpending,20000);assert.equal(paid.snapshot.personal.transfers.find(t=>t.from==='B').amount,2500);
+  const other=(await h.post({action:'create',data:{...e,name:'Other group'}})).id;assert.equal((await h.portalRead(other,'B','b@example.com')).status,403);
+  await h.post({action:'revoke',id,grant:id+':b@example.com'});assert.equal((await h.portalRead(id,'B','b@example.com',paid.etag)).status,403);
+ }finally{h.sqlite.close()}
+});
 test('API roles, old data migration, stale writes, private read links and revocation',async()=>{const h=await harness(),e=ledger.normalize({name:'Test Trip',people:['YH','ET'],bills:[],payments:[]});let result=await h.post({action:'create',data:e});assert.equal(result.status,200);const id=result.id;assert.equal((await h.post({action:'create',data:e},'')).status,401);
  const b=ledger.blankExpense(e,'YH');b.merchant='Tickets';b.items[0].amount=20000;
  assert.equal((await h.post({action:'expense',id,revision:0,entity:b},'stranger@example.com')).status,403);

@@ -822,3 +822,38 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible{
 .itinerary-modes>button{flex:1;min-width:0;min-height:46px;white-space:normal;line-height:1.4;border:0;font-size:14px;background:transparent;color:var(--muted);box-shadow:none}
 .itinerary-modes>button[aria-pressed=true]{background:var(--surface-soft);color:var(--primary);font-weight:650}
 @media(max-width:380px){.itinerary-modes>button{font-size:13px;padding:10px 8px}}
+
+/* Compact primary action and a dedicated, read-only personal trip portal. */
+:root[data-visual] .workspace-app.trip-entry-workspace .plan-hero{display:flex;flex-direction:row;align-items:center;justify-content:space-between;gap:12px;min-height:46px;padding:0;margin:0 0 16px;border:0;border-radius:0;background:transparent;box-shadow:none}
+:root[data-visual] .workspace-app.trip-entry-workspace .plan-hero h2{font-size:22px;line-height:1.3;margin:0}
+:root[data-visual] .workspace-app.trip-entry-workspace .plan-hero>.plan-actions{display:flex;flex-direction:row;align-items:center;width:auto;gap:0}
+:root[data-visual] .workspace-app.trip-entry-workspace .plan-hero .add-plan-entry{min-height:44px;flex:none;padding:10px 15px;font-size:14px}
+.member-link-sheet{width:min(520px,calc(100vw - 24px))!important;max-height:calc(100dvh - 32px);overflow-y:auto;background:var(--surface)!important;color:var(--text)!important;border-color:var(--border)!important}
+.member-link-sheet .field select{width:100%;min-height:46px;font-size:16px;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:9px;padding:10px}
+.member-link-sheet input{font-size:16px;min-width:0;background:var(--surface);color:var(--text)}
+.member-link-sheet small{color:var(--muted);font-size:12px;line-height:1.6}
+.member-portal{min-height:100dvh;background:var(--background);color:var(--text)}
+.member-portal>header{height:auto;min-height:62px;display:flex;justify-content:space-between;gap:12px;padding:12px max(16px,calc((100vw - 960px)/2));border-bottom:1px solid var(--border);background:var(--surface)}
+.member-portal .brand{color:var(--primary);font-size:24px}
+.member-portal>main{max-width:1000px;width:100%;padding:24px 20px calc(32px + env(safe-area-inset-bottom));margin:auto}
+.member-portal .primary{background:var(--primary);color:var(--primary-foreground)}
+.member-portal .text-button{color:var(--primary);min-height:44px}
+.member-portal .secondary{background:var(--surface);color:var(--text);border-color:var(--border)}
+.member-portal .panel{background:var(--surface);color:var(--text);border-color:var(--border);box-shadow:none}
+.member-portal .muted,.member-portal small{color:var(--muted)}
+.member-portal-intro{display:flex;align-items:center;flex-wrap:wrap;gap:16px;margin-bottom:20px}
+.member-portal-intro>div:first-child{flex:1 1 230px;min-width:0}.member-portal-intro h2{font-size:22px;margin:5px 0;overflow-wrap:anywhere}
+.member-trip-total,.member-own-total{min-width:0;padding:12px 16px;background:var(--surface);border:1px solid var(--border);border-radius:12px}
+.member-trip-total span,.member-own-total span{display:block;font-size:12px;color:var(--muted)}
+.member-trip-total strong,.member-own-total strong{display:block;font-size:21px;margin-top:4px;color:var(--text);overflow-wrap:anywhere}
+.member-portal-pages{display:flex;gap:8px;margin:0 0 24px}.member-portal-pages button{flex:1;min-height:48px;font-size:16px}
+.member-portal-pages button[aria-pressed=true]{background:var(--surface-soft);border-color:var(--primary);color:var(--primary)}
+.member-portal-update{display:block;text-align:center;font-size:12px;margin-top:22px}
+.member-portal .field input{background:var(--surface);color:var(--text);border-color:var(--border);font-size:16px;min-height:46px}
+@media(max-width:600px){
+ .member-portal>main{padding:18px max(12px,env(safe-area-inset-right)) calc(28px + env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left))}
+ .member-portal-intro{gap:10px}.member-portal-intro>div:first-child{flex-basis:100%}
+ .member-trip-total,.member-own-total{flex:1 1 130px;padding:12px}.member-trip-total strong,.member-own-total strong{font-size:20px}
+ .member-portal .panel{padding:16px}.member-portal-pages{margin-bottom:20px}
+ :root[data-visual] .workspace-app.trip-entry-workspace .plan-hero h2{font-size:21px}
+}
