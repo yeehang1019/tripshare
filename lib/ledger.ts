@@ -12,6 +12,7 @@ export type Item = {
   service: boolean;
 };
 export type Expense = {
+  payLater?:{provider:"spaylater"|"grabpaylater"|"other";months:number;firstDue:string;fee:number;feePeople:string[]};
   paymentStatus?: "paid" | "postpaid" | "prepaid";
   paidOn?:string;
   adjustmentLedger?:boolean;
@@ -403,7 +404,7 @@ export function calculate(b: Expense, settlement: string) {
       values,
     };
   });
-  const ids = Object.keys(shares);
+  let ids = Object.keys(shares);
   const round = allocate(
     Math.abs(b.rounding),
     ids.map((p) => shares[p]),
@@ -434,15 +435,25 @@ export function calculate(b: Expense, settlement: string) {
       shares[benefitIds[i]] -= v;
     });
   }
-  const cashTotal = before - b.voucher;
+  const finance=b.payLater;
+  if(finance){
+    check(['spaylater','grabpaylater','other'].includes(finance.provider)&&Number.isInteger(finance.months)&&finance.months>=1&&finance.months<=60&&(finance.provider!=='grabpaylater'||finance.months===1),'Check PayLater provider and instalments');
+    check(validDate(finance.firstDue)&&finance.firstDue>=b.date,'Check first PayLater due date');
+    if(validDate(finance.firstDue)&&Number.isInteger(finance.months)){const [y,m,d]=finance.firstDue.split('-').map(Number),month=m+finance.months-2,last=new Date(Date.UTC(y,month,Math.min(d,new Date(Date.UTC(y,month+1,0)).getUTCDate()))).toISOString().slice(0,10);check(last<='2100-12-31','PayLater schedule exceeds the supported dates');}
+    check(b.payers.length===1&&!b.supplierPayments&&(b.paymentStatus||'paid')==='paid','PayLater needs one payer and Consumed & paid; supplier deposits use a separate payment flow');
+    cents(finance.fee,'PayLater fee');check(Array.isArray(finance.feePeople)&&new Set(finance.feePeople).size===finance.feePeople.length&&(!finance.fee||finance.feePeople.length>0),'Choose who bears the PayLater fee');
+    if(finance.fee){const values=allocate(finance.fee,finance.feePeople.map(()=>1));finance.feePeople.forEach((id,i)=>shares[id]=(shares[id]||0)+values[i]);lines.push({name:'PayLater fee / interest',total:finance.fee,discount:0,people:finance.feePeople,values});ids=Object.keys(shares)}
+  }
+  const financeFee=finance?.fee||0;
+  const cashTotal = before - b.voucher + financeFee;
   if (b.receipt !== null) {
     cents(b.receipt);
     check(
-      b.receipt === cashTotal,
+      b.receipt === before-b.voucher,
       "Calculated total does not match receipt total",
     );
   }
-  const cost = b.voucherContribution ? before : cashTotal;
+  const cost = b.voucherContribution ? before+financeFee : cashTotal;
   if (b.voucherContribution)
     check(!!b.voucherOwner, "Select voucher contributor");
   const cashSettle =
@@ -739,6 +750,7 @@ export function validateEvent(e: Event) {
       "Unknown member",
     );
     check(b.adjustmentLedger===undefined||typeof b.adjustmentLedger==='boolean','Check adjustment history');
+    if(b.payLater)check(b.payLater.feePeople.every(p=>ids.includes(p)),"Unknown PayLater fee member");
     calculate(b, e.settlement);
   }
   for (const p of e.payments) {

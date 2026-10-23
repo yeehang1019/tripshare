@@ -535,11 +535,11 @@ async function postTrip(r: Request,context:RequestContext) {
     if (new TextEncoder().encode(JSON.stringify(data)).byteLength > 1900000)
       throw new InputError("Event is full. Export a backup and create a new event.");
     const changes: {kind:string;recordId:string;members:string}[] = [];
-    if(b.action==='expenseBatch')for(const x of after as Expense[])changes.push({kind:'expense',recordId:x.id,members:JSON.stringify([...new Set([...x.items.flatMap(i=>i.people),...x.payers.map(p=>p.person),...(x.supplierPayments||[]).map(p=>p.person),...(x.treat?[x.treat]:[]),...(x.voucherOwner?[x.voucherOwner]:[])])])});
+    if(b.action==='expenseBatch')for(const x of after as Expense[])changes.push({kind:'expense',recordId:x.id,members:JSON.stringify([...new Set([...(x.payLater?.feePeople||[]),...x.items.flatMap(i=>i.people),...x.payers.map(p=>p.person),...(x.supplierPayments||[]).map(p=>p.person),...(x.treat?[x.treat]:[]),...(x.voucherOwner?[x.voucherOwner]:[])])])});
     if (['expense','deleteExpense','restoreExpense'].includes(b.action)) {
       const current = data.expenses.find(x => x.id === entity);
       const participants = (x?: Expense) => x ? [
-        ...x.items.flatMap(item => item.people), ...x.payers.map(p => p.person), ...(x.supplierPayments||[]).map(p=>p.person),
+        ...(x.payLater?.feePeople||[]),...x.items.flatMap(item => item.people), ...x.payers.map(p => p.person), ...(x.supplierPayments||[]).map(p=>p.person),
         ...(x.treat ? [x.treat] : []), ...(x.voucherOwner ? [x.voucherOwner] : []),
       ] : [];
       changes.push({kind:'expense',recordId:entity,members:JSON.stringify([...new Set([...participants(old),...participants(current)])])});
@@ -549,7 +549,7 @@ async function postTrip(r: Request,context:RequestContext) {
       if (p) changes.push({kind:'payment',recordId:entity,members:JSON.stringify([p.from,p.to])});
     }
     if(b.action==='restoreCheckpoint'){
-      const previous:Event=JSON.parse(row.data),previousBills=new Map(previous.expenses.map(p=>[p.id,p])),participants=(x?:Expense)=>x?[...x.items.flatMap(i=>i.people),...x.payers.map(p=>p.person),...(x.supplierPayments||[]).map(p=>p.person),...(x.treat?[x.treat]:[]),...(x.voucherOwner?[x.voucherOwner]:[])]:[];
+      const previous:Event=JSON.parse(row.data),previousBills=new Map(previous.expenses.map(p=>[p.id,p])),participants=(x?:Expense)=>x?[...(x.payLater?.feePeople||[]),...x.items.flatMap(i=>i.people),...x.payers.map(p=>p.person),...(x.supplierPayments||[]).map(p=>p.person),...(x.treat?[x.treat]:[]),...(x.voucherOwner?[x.voucherOwner]:[])]:[];
       for(const x of data.expenses)changes.push({kind:'expense',recordId:x.id,members:JSON.stringify([...new Set([...participants(x),...participants(previousBills.get(x.id))])])});
       for(const x of data.payments)changes.push({kind:'payment',recordId:x.id,members:JSON.stringify([x.from,x.to])});
     }

@@ -15,6 +15,7 @@ import {
 } from "@/lib/ledger";
 import {useDraftSave} from "./save-recovery";
 import {RefundFields} from "./refund-fields";
+import {PayLaterFields} from "./paylater-fields";
 import {SupplierInstallments} from "./supplier-installments";
 import { Pick, Field, Amount, Check, People } from "./trip-controls";
 import { UsersRound, Sparkles, ArrowRight } from "lucide-react";
@@ -212,14 +213,15 @@ export default function ExpenseEditor({
         <div className="fields">
           {b.paidOn!==undefined&&<Field label="Supplier payment date"><input type="date" min={b.date} value={b.paidOn} onChange={v=>update({paidOn:v.target.value})}/><small>Expense date stays the date the cost was incurred.</small></Field>}
           <Field label="Payment status">
-            {b.cancellation?<p className="muted">Cancelled booking: the final fee is incurred; actual supplier payments determine the remaining balance and refund due.</p>:<Pick label="Payment status" value={b.paymentStatus || 'paid'} options={[
+            {b.payLater?<p className="muted">The merchant is covered by PayLater. Confirm platform repayments in Pocket Ledger; friends still repay through Settlement.</p>:b.cancellation?<p className="muted">Cancelled booking: the final fee is incurred; actual supplier payments determine the remaining balance and refund due.</p>:<Pick label="Payment status" value={b.paymentStatus || 'paid'} options={[
               {id:'paid',name:'Consumed & paid'},
               {id:'postpaid',name:'Postpaid · consumed, not paid'},
               {id:'prepaid',name:'Prepaid · paid, not consumed'},
             ]} onChange={(paymentStatus) => update({paymentStatus:paymentStatus as Expense['paymentStatus']})}/>}
             <small>{b.paymentStatus === 'postpaid' ? 'Counts as consumption and unpaid to the supplier. Change to Consumed & paid after payment.' : b.paymentStatus === 'prepaid' ? 'Counts as paid upfront only. Edit this same record to Consumed & paid when used; do not add a second expense.' : 'Counts as consumption and actual payment. Member reimbursements appear in Settlement.'}</small>
           </Field>
-          <SupplierInstallments bill={b} event={e} update={update}/><RefundFields bill={b} event={e} update={update}/>
+          <PayLaterFields bill={b} event={e} update={update}/>
+          {!b.payLater&&<SupplierInstallments bill={b} event={e} update={update}/>}<RefundFields bill={b} event={e} update={update}/>
           <Field label={b.supplierPayments?"Default payer for new supplier payments":b.paymentStatus === 'postpaid' ? "Will be paid by" : "Paid by"}>
             <Pick
               label="Paid by"

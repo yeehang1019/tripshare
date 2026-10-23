@@ -512,3 +512,14 @@ test('Ordinary members receive personal cost sources and safe itineraries, never
  const after=(await h.get('b@example.com')).trips[0];assert.equal(after.personal.claims[0].amount,6000);assert.equal(after.personal.payments[0].toName,'A');assert.equal(after.personal.payments[0].sources[0].title,'Hotel room');assert.equal(after.personal.payments[0].sources[0].amount,4000);
  await h.post({action:'revoke',id,grant:id+':b@example.com'});assert.equal((await h.read(share.token,'','b@example.com')).status,403);h.sqlite.close();
 });
+
+test('Pocket integration exports PayLater debt only for its payer and fee is attributed to the friend',async()=>{
+ const h=await harness(),data=ledger.normalize({name:'PayLater group',people:['A','B','C'],bills:[],payments:[]});data.kind='daily';
+ const {id}=await h.post({action:'create',data});
+ await h.post({action:'grant',id,email:'b@example.com',person:'B',permissions:[]});await h.post({action:'grant',id,email:'c@example.com',person:'C',permissions:[]});
+ const expense=ledger.blankExpense(data,'B');expense.merchant='Friend purchase';expense.items[0].amount=30000;expense.items[0].people=['C'];expense.items[0].weights=[1];expense.payLater={provider:'spaylater',months:3,firstDue:'2026-12-01',fee:900,feePeople:['C']};
+ assert.equal((await h.post({action:'expense',id,revision:0,entity:expense})).status,200);
+ const payer=await h.syncRead();assert.equal(payer.status,200);assert.equal(payer.entries.length,1);assert.equal(payer.entries[0].consumed_minor,0);assert.equal(payer.entries[0].paylater.total,30900);assert.equal(payer.entries[0].paylater.months,3);
+ h.integrationEnv.POCKET_SYNC_EMAIL='c@example.com';const friend=await h.syncRead();assert.equal(friend.entries[0].consumed_minor,30900);assert.equal(friend.entries[0].paylater,null);
+ h.sqlite.close();
+});
