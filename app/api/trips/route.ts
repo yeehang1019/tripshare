@@ -17,7 +17,6 @@ import {
   Expense,
   Permission,
 } from "@/lib/ledger";
-import { settlementPlan, simplifiedAllocations } from "@/lib/settlement-plan";
 import { linkedPeople } from "@/lib/workspace-store";
 export const dynamic = "force-dynamic";
 const response = (data: unknown, status = 200) =>
@@ -297,6 +296,16 @@ async function postTrip(r: Request,context:RequestContext) {
     let data = normalize(JSON.parse(row.data));
     context.group=row.id;context.action=typeof b.action==='string'&&/^[a-zA-Z]{1,40}$/.test(b.action)?b.action:'invalid';
     attachPaymentAllocations(data);
+    if(b.action==='payment'){
+      if(!a.owner&&!allowed(a.permissions,'payment',actor))return response({error:'Repayment permission required'},403);
+      const prior=data.payments.find(p=>p.id===b.entity?.id);
+      if(prior){
+        if(prior.deleted)throw new InputError('This repayment was undone. Start a new payment.');
+        if(['from','to','amount','date'].some(k=>(prior as any)[k]!==b.entity[k])||(prior.note||'')!==(b.entity.note||'')||!!prior.simplified!==!!b.entity.simplified)throw new InputError('Repayment identity is already used for different details');
+        return response({ok:true,alreadyApplied:true});
+      }
+      if(b.entity?.simplified)throw new InputError('Settlement preserves original payees. Refresh and choose a current payment.');
+    }
     if (b.action === 'deleteEvent' && !a.owner)
       return response({error:'Only the owner can delete this event'},403);
     if(b.action==='planBatch'){
@@ -446,16 +455,14 @@ async function postTrip(r: Request,context:RequestContext) {
         old.deleted = b.action === "deleteExpense";
         after = { ...old };
       } else if (b.action === "payment") {
-        if (data.payments.some((x) => x.id === entity))
-          return response({ ok: true });
         const p = { ...b.entity, createdBy: actor, deleted: false };
         const outstanding =
-          (p.simplified ? settlementPlan(data).simplified : ledger(data).transfers).find((x) => x.from === p.from && x.to === p.to)
+          ledger(data).transfers.find((x) => x.from === p.from && x.to === p.to)
             ?.amount || 0;
         if (p.amount > outstanding)
           throw new InputError("Repayment exceeds the amount owed to this person");
-        p.simplified=!!p.simplified;
-        p.allocations = p.simplified ? simplifiedAllocations(data,p.from,p.to,p.amount) : paymentAllocations(data, p.from, p.to, p.amount);
+        p.simplified=false;
+        p.allocations = validateInput(()=>paymentAllocations(data, p.from, p.to, p.amount));
         data.payments.push(p);
         after = p;
       } else if (b.action === "undoPayment") {

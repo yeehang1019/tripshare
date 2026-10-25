@@ -531,140 +531,124 @@ export function calculate(b: Expense, settlement: string) {
     contribution: effectiveContribution,
   };
 }
-type DebtClaim = {
-  expense: string;
-  from: string;
-  to: string;
-  amount: number;
+export type DebtClaim = { expense:string; from:string; to:string; amount:number };
+type PaymentTrace={id:string;date:string;expense:string;from:string;to:string;amount:number;applied:number;unapplied:number};
+export type PairCalculation={
+ from:string;to:string;fromName:string;toName:string;
+ grossForward:number;grossReverse:number;offset:number;
+ paidForward:number;paidReverse:number;unappliedForward:number;unappliedReverse:number;
+ remainingForward:number;remainingReverse:number;
+ expenses:(DebtClaim&{title:string;date:string})[];payments:PaymentTrace[];
 };
-function addClaim(
-  claims: DebtClaim[],
-  expense: string,
-  from: string,
-  to: string,
-  amount: number,
-  pairs:Map<string,{rows:DebtClaim[];head:number}>,
-) {
-  if(!amount||from===to)return;
-  // Reverse-pair queues preserve the original FIFO expense allocation order.
-  const reverse=pairs.get(to+'\0'+from);
-  while(amount&&reverse&&reverse.head<reverse.rows.length){const row=reverse.rows[reverse.head];const cancelled=Math.min(amount,row.amount);row.amount-=cancelled;amount-=cancelled;if(!row.amount)reverse.head++}
-  if(amount){const claim={expense,from,to,amount};claims.push(claim);const key=from+'\0'+to;let bucket=pairs.get(key);if(!bucket){bucket={rows:[],head:0};pairs.set(key,bucket)}bucket.rows.push(claim)}
+const pairKey=(from:string,to:string)=>JSON.stringify([from,to]);
+function safeAdd(a:number,b:number){const value=a+b;check(Number.isSafeInteger(value),'Settlement amount exceeds safe minor-unit limits');return value;}
+function addClaim(claims:DebtClaim[],expense:string,from:string,to:string,amount:number,pairs:Map<string,{rows:DebtClaim[];head:number}>){
+ if(!amount||from===to)return;
+ const reverse=pairs.get(pairKey(to,from));
+ while(amount&&reverse&&reverse.head<reverse.rows.length){const row=reverse.rows[reverse.head],offset=Math.min(amount,row.amount);row.amount-=offset;amount-=offset;if(!row.amount)reverse.head++}
+ if(amount){const claim={expense,from,to,amount};claims.push(claim);const key=pairKey(from,to);let bucket=pairs.get(key);if(!bucket){bucket={rows:[],head:0};pairs.set(key,bucket)}bucket.rows.push(claim)}
 }
-function claimsBeforePayments(e: Event) {
-  const claims: DebtClaim[] = [],pairs=new Map<string,{rows:DebtClaim[];head:number}>();
-  for (const b of e.expenses.filter((x) => !x.deleted)) {
-    const c = calculate(b, e.settlement);if(!c.settlementReady)continue;
-    const
-      owing = { ...c.responsible },
-      funding = { ...c.funding };
-    for (const p of Object.keys(owing)) {
-      const self = Math.min(owing[p] || 0, funding[p] || 0);
-      owing[p] -= self;
-      funding[p] = (funding[p] || 0) - self;
-    }
-    for (const [from, due] of Object.entries(owing)) {
-      let left = due;
-      for (const to of Object.keys(funding)) {
-        const amount = Math.min(left, funding[to]);
-        if (amount) {
-          addClaim(claims, b.id, from, to, amount,pairs);
-          left -= amount;
-          funding[to] -= amount;
-        }
-        if (!left) break;
-      }
-    }
+function netClaims(raw:DebtClaim[]){
+ const claims:DebtClaim[]=[],pairs=new Map<string,{rows:DebtClaim[];head:number}>();
+ for(const c of raw)if(c.amount>0)addClaim(claims,c.expense,c.from,c.to,c.amount,pairs);
+ return claims.filter(c=>c.amount>0);
+}
+function claimsBeforePayments(e:Event){
+ const claims:DebtClaim[]=[];
+ for(const b of e.expenses.filter(b=>!b.deleted)){
+  const c=calculate(b,e.settlement);if(!c.settlementReady)continue;
+  const owing={...c.responsible},funding={...c.funding};
+  for(const p of Object.keys(owing)){const self=Math.min(owing[p]||0,funding[p]||0);owing[p]-=self;funding[p]=(funding[p]||0)-self;}
+  for(const [from,due] of Object.entries(owing)){
+   let left=due;
+   for(const to of Object.keys(funding)){
+    const amount=Math.min(left,funding[to]);
+    if(amount){claims.push({expense:b.id,from,to,amount});left-=amount;funding[to]-=amount}
+    if(!left)break;
+   }
+   check(left===0,'Expense responsibility and funding do not reconcile');
   }
-  return claims;
+  check(Object.values(funding).every(n=>n===0),'Expense funding and responsibility do not reconcile');
+ }
+ return claims;
 }
-function allocateAgainstClaims(
-  claims: DebtClaim[],
-  from: string,
-  to: string,
-  amount: number,
-) {
-  const allocations: { expense: string; amount: number }[] = [];
-  let left = amount;
-  for (const claim of claims) {
-    if (!left) break;
-    if (claim.amount && claim.from === from && claim.to === to) {
-      const paid = Math.min(left, claim.amount);
-      claim.amount -= paid;
-      left -= paid;
-      const existing = allocations.find((x) => x.expense === claim.expense);
-      if (existing) existing.amount += paid;
-      else allocations.push({ expense: claim.expense, amount: paid });
-    }
+function allocateAgainstClaims(claims:DebtClaim[],from:string,to:string,amount:number){
+ const allocations:{expense:string;amount:number}[]=[];let left=amount;
+ for(const c of claims){
+  if(!left)break;
+  if(c.from!==from||c.to!==to||!c.amount)continue;
+  const paid=Math.min(left,c.amount);c.amount-=paid;left-=paid;
+  const existing=allocations.find(x=>x.expense===c.expense);
+  if(existing)existing.amount=safeAdd(existing.amount,paid);else allocations.push({expense:c.expense,amount:paid});
+ }
+ return allocations;
+}
+// Replay source-bound payments before pairwise netting. Never let an offset hide cash
+// that was already paid. An inactive/changed source is reviewed, never moved to a new bill.
+function replaySettlement(e:Event,freezeLegacy=false){
+ const gross=claimsBeforePayments(e),claims=gross.map(c=>({...c})),traces:PaymentTrace[]=[];
+ const creditable=new Set(e.expenses.filter(b=>!b.deleted&&(b.adjustmentLedger||b.refunds?.length||b.cancellation)).map(b=>b.id));
+ const bySource=new Map<string,{rows:DebtClaim[];head:number}>();
+ const sourceKey=(c:{expense:string;from:string;to:string})=>JSON.stringify([c.expense,c.from,c.to]);
+ function index(c:DebtClaim){const key=sourceKey(c);let bucket=bySource.get(key);if(!bucket){bucket={rows:[],head:0};bySource.set(key,bucket)}bucket.rows.push(c)}
+ claims.forEach(index);
+ const seen=new Set<string>();
+ for(const p of e.payments.filter(p=>!p.deleted)){
+  check(!seen.has(p.id),'Duplicate repayment identity');seen.add(p.id);cents(p.amount);check(p.amount>0&&p.from!==p.to,'Invalid repayment');
+  const allocations:NonNullable<Payment['allocations']>=p.allocations??allocateAgainstClaims(netClaims(claims),p.from,p.to,p.amount);
+  if(freezeLegacy&&p.allocations===undefined)p.allocations=allocations.map(a=>({...a}));
+  let allocated=0;
+  for(const a of allocations){
+   cents(a.amount);check(a.amount>0,'Invalid repayment allocation');
+   const from=a.from||p.from,to=a.to||p.to;check(from!==to,'Invalid repayment allocation');
+   allocated=safeAdd(allocated,a.amount);
+   let left=a.amount;const bucket=bySource.get(sourceKey({expense:a.expense,from,to}));
+   while(left&&bucket&&bucket.head<bucket.rows.length){
+    const c=bucket.rows[bucket.head],paid=Math.min(left,c.amount);c.amount-=paid;left-=paid;if(!c.amount)bucket.head++;
+   }
+   if(left&&creditable.has(a.expense)){
+    const credit={expense:a.expense,from:to,to:from,amount:left};claims.push(credit);index(credit);left=0;
+   }
+   traces.push({id:p.id,date:p.date,expense:a.expense,from,to,amount:a.amount,applied:a.amount-left,unapplied:left});
   }
-  return allocations;
+  if(!p.simplified)check(allocated<=p.amount,'Repayment allocations exceed recorded cash');
+  if(allocated<p.amount)traces.push({id:p.id,date:p.date,expense:'',from:p.from,to:p.to,amount:p.amount-allocated,applied:0,unapplied:p.amount-allocated});
+ }
+ return {gross,claims:netClaims(claims),traces};
 }
-function applyFixedPayment(claims: DebtClaim[], payment: Payment,creditable:Set<string>) {
-  for (const allocation of payment.allocations || []) {
-    let left = allocation.amount;
-    for (const claim of claims) {
-      if (!left) break;
-      if (
-        claim.amount &&
-        claim.expense === allocation.expense &&
-        claim.from === (allocation.from || payment.from) &&
-        claim.to === (allocation.to || payment.to)
-      ) {
-        const paid = Math.min(left, claim.amount);
-        claim.amount -= paid;
-        left -= paid;
-      }
-    }
-    // A supplier adjustment can turn an actual earlier repayment into a refund due.
-    // Preserve that cash movement, and derive the reverse claim on the same expense.
-    if(left&&creditable.has(allocation.expense)){
-      const pairs=new Map<string,{rows:DebtClaim[];head:number}>();
-      for(const row of claims){if(!row.amount)continue;const key=row.from+'\0'+row.to;let bucket=pairs.get(key);if(!bucket){bucket={rows:[],head:0};pairs.set(key,bucket)}bucket.rows.push(row)}
-      addClaim(claims,allocation.expense,allocation.to||payment.to,allocation.from||payment.from,left,pairs);
-    }
-  }
+function pairCalculations(e:Event,state:ReturnType<typeof replaySettlement>){
+ const rows=new Map<string,PairCalculation>(),bills=new Map(e.expenses.map(b=>[b.id,b])),names=new Map(e.people.map(p=>[p.id,p.name]));
+ function row(from:string,to:string){
+  const [first,last]=from<to?[from,to]:[to,from],key=pairKey(first,last);
+  let r=rows.get(key);if(!r){r={from:first,to:last,fromName:names.get(first)||'Unknown member',toName:names.get(last)||'Unknown member',grossForward:0,grossReverse:0,offset:0,paidForward:0,paidReverse:0,unappliedForward:0,unappliedReverse:0,remainingForward:0,remainingReverse:0,expenses:[],payments:[]};rows.set(key,r)}return r;
+ }
+ for(const c of state.gross){
+  const r=row(c.from,c.to),key=c.from===r.from?'grossForward':'grossReverse';
+  r[key]=safeAdd(r[key],c.amount);r.expenses.push({...c,title:bills.get(c.expense)?.merchant||'Historical expense',date:bills.get(c.expense)?.date||''});
+ }
+ for(const t of state.traces){
+  const r=row(t.from,t.to),paid=t.from===r.from?'paidForward':'paidReverse',unapplied=t.from===r.from?'unappliedForward':'unappliedReverse';
+  r[paid]=safeAdd(r[paid],t.applied);r[unapplied]=safeAdd(r[unapplied],t.unapplied);r.payments.push({...t});
+ }
+ for(const c of state.claims){const r=row(c.from,c.to),key=c.from===r.from?'remainingForward':'remainingReverse';r[key]=safeAdd(r[key],c.amount)}
+ for(const r of rows.values()){
+  r.offset=Math.min(r.grossForward,r.grossReverse);
+  check(r.remainingForward===0||r.remainingReverse===0,'Reciprocal settlement did not reconcile');
+  check(safeAdd(safeAdd(r.grossForward,-r.grossReverse),safeAdd(-r.paidForward,r.paidReverse))===r.remainingForward-r.remainingReverse,'Settlement payments and obligations do not reconcile');
+ }
+ return [...rows.values()].sort((a,b)=>a.from.localeCompare(b.from)||a.to.localeCompare(b.to));
 }
-function claimsAfterPayments(e: Event) {
-  const claims = claimsBeforePayments(e),creditable=new Set(e.expenses.filter(b=>b.adjustmentLedger||b.refunds?.length||b.cancellation).map(b=>b.id));
-  for (const payment of e.payments.filter((x) => !x.deleted)) {
-    if (payment.allocations?.length) applyFixedPayment(claims, payment,creditable);
-    else allocateAgainstClaims(
-      claims,
-      payment.from,
-      payment.to,
-      payment.amount,
-    );
-  }
-  return claims;
+export function outstandingClaims(e:Event){return replaySettlement(e).claims;}
+export function settlementDetails(e:Event,from:string,to:string){
+ return replaySettlement(e).claims.filter(c=>c.from===from&&c.to===to).map(c=>({expense:c.expense,amount:c.amount}));
 }
-export function outstandingClaims(e:Event){return claimsAfterPayments(e).filter(c=>c.amount>0).map(c=>({...c}))}
-export function settlementDetails(e: Event, from: string, to: string) {
-  return claimsAfterPayments(e)
-    .filter((claim) => claim.from === from && claim.to === to && claim.amount > 0)
-    .map((claim) => ({ expense: claim.expense, amount: claim.amount }));
+export function paymentAllocations(e:Event,from:string,to:string,amount:number){
+ cents(amount);check(amount>0&&from!==to,'Invalid repayment');
+ const claims=replaySettlement(e).claims,outstanding=claims.filter(c=>c.from===from&&c.to===to).reduce((n,c)=>safeAdd(n,c.amount),0);
+ check(amount<=outstanding,'Repayment exceeds the amount owed to this person');
+ return allocateAgainstClaims(claims,from,to,amount);
 }
-export function paymentAllocations(
-  e: Event,
-  from: string,
-  to: string,
-  amount: number,
-) {
-  return allocateAgainstClaims(claimsAfterPayments(e), from, to, amount);
-}
-export function attachPaymentAllocations(e: Event) {
-  const claims = claimsBeforePayments(e),creditable=new Set(e.expenses.filter(b=>b.adjustmentLedger||b.refunds?.length||b.cancellation).map(b=>b.id));
-  for (const payment of e.payments.filter((x) => !x.deleted)) {
-    if (payment.allocations?.length) applyFixedPayment(claims, payment,creditable);
-    else
-      payment.allocations = allocateAgainstClaims(
-        claims,
-        payment.from,
-        payment.to,
-        payment.amount,
-      );
-  }
-  return e;
-}
+export function attachPaymentAllocations(e:Event){replaySettlement(e,true);return e;}
 export function ledger(e: Event) {
   const people = Object.fromEntries(
     e.people.map((p) => [
@@ -685,13 +669,14 @@ export function ledger(e: Event) {
     if (c.contribution) people[b.voucherOwner].contribution += c.contribution;
   }
   const pair: Record<string, number> = Object.create(null);
-  for (const claim of claimsAfterPayments(e).filter((x) => x.amount > 0)) {
-    const key = claim.from + "\0" + claim.to;
-    pair[key] = (pair[key] || 0) + claim.amount;
+  const state=replaySettlement(e),calculations=pairCalculations(e,state);
+  for (const claim of state.claims) {
+    const key = pairKey(claim.from,claim.to);
+    pair[key] = safeAdd(pair[key] || 0,claim.amount);
   }
   const transfers = Object.entries(pair)
     .map(([key, amount]) => {
-      const [from, to] = key.split("\0");
+      const [from, to] = JSON.parse(key) as [string,string];
       return { from, to, amount };
     })
     .sort((a, b) => a.from.localeCompare(b.from) || a.to.localeCompare(b.to));
@@ -699,7 +684,9 @@ export function ledger(e: Event) {
     people[t.from].balance -= t.amount;
     people[t.to].balance += t.amount;
   }
-  return { people, total, transfers };
+  check(Number.isSafeInteger(total)&&Object.values(people).every(p=>Object.values(p).every(Number.isSafeInteger)),'Ledger totals exceed safe minor-unit limits');
+  check(Object.values(people).reduce((n,p)=>safeAdd(n,p.balance),0)===0,'Ledger balances do not reconcile');
+  return { people, total, transfers, calculations, claims:state.claims };
 }
 export function validateEvent(e: Event) {
   check(e.schema === 2 && ["trip", "daily"].includes(e.kind), "Invalid event");
@@ -756,13 +743,25 @@ export function validateEvent(e: Event) {
   for (const p of e.payments) {
     cents(p.amount);
     check(
-      p.amount > 0 &&
+      typeof p.id==='string'&&p.id.length>0&&p.id.length<=150&&
+        typeof p.note==='string'&&p.note.length<=2000&&p.amount > 0 &&
         ids.includes(p.from) &&
         ids.includes(p.to) &&
         p.from !== p.to &&
-        /^\d{4}-\d{2}-\d{2}$/.test(p.date),
+        validDate(p.date),
       "Invalid repayment",
     );
+    if(p.allocations!==undefined){
+      check(Array.isArray(p.allocations),'Invalid repayment allocations');
+      let total=0;const seen=new Set<string>();
+      for(const a of p.allocations){
+        cents(a.amount);const from=a.from||p.from,to=a.to||p.to,key=JSON.stringify([a.expense,from,to]);
+        check(typeof a.expense==='string'&&!!a.expense&&a.amount>0&&ids.includes(from)&&ids.includes(to)&&from!==to,'Invalid repayment allocation');
+        if(!p.simplified){check(from===p.from&&to===p.to&&!seen.has(key),'Invalid or duplicate repayment allocation');seen.add(key)}
+        total=safeAdd(total,a.amount);
+      }
+      check(p.simplified||total<=p.amount,'Repayment allocations exceed recorded cash');
+    }
   }
   check(!e.timeZone||validZone(e.timeZone),'Choose a valid trip timezone');
   check(e.activities.length<=1000,'Itinerary limit: 1000 plans');

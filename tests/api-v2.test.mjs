@@ -266,16 +266,36 @@ test('Payout details are visible only to the bound owner and selected group memb
  assert.equal((await h.payoutCall({action:'read',group:id,person:'B'},'c@example.com')).data,null);
  h.sqlite.close();
 });
-test('Simplified repayment settles original edges, preserves expense identity and undo restores debts',async()=>{
+test('New settlement payments preserve original payees and reject indirect simplified routes',async()=>{
  const h=await harness(),e=ledger.normalize({name:'Chain',people:['A','B','C'],bills:[],payments:[]}),{id}=await h.post({action:'create',data:e});
  const bill=(payer,consumer,id)=>{const b=ledger.blankExpense(e,payer);b.id=id;b.merchant='Example';b.items[0].amount=5000;b.items[0].people=[consumer];b.items[0].weights=[1];return b};
  await h.post({action:'expense',id,revision:0,entity:bill('B','A','ab')});await h.post({action:'expense',id,revision:1,entity:bill('C','B','bc')});
  const payment={id:'chain-payment',from:'A',to:'C',amount:5000,date:'2026-10-07',simplified:true,note:''};
- assert.equal((await h.post({action:'payment',id,revision:2,entity:{...payment,amount:5001}})).status,400);
- assert.equal((await h.post({action:'payment',id,revision:2,entity:payment})).status,200);
- const loaded=(await h.get('owner@example.com')).trips[0].data;assert.equal(ledger.ledger(loaded).transfers.length,0);assert.equal(loaded.payments[0].allocations.length,2);assert.equal(ledger.ledger(loaded).total,10000);
- await h.post({action:'expense',id,revision:3,entity:bill('B','A','new')});let current=(await h.get('owner@example.com')).trips[0].data;assert.equal(ledger.ledger(current).transfers[0].amount,5000);
- assert.equal((await h.post({action:'undoPayment',id,revision:4,entityId:payment.id})).status,200);current=(await h.get('owner@example.com')).trips[0].data;assert.equal(ledger.ledger(current).transfers.find(t=>t.from==='A'&&t.to==='B').amount,10000);h.sqlite.close();
+ assert.equal((await h.post({action:'payment',id,revision:2,entity:payment})).status,400);
+ assert.equal((await h.post({action:'payment',id,revision:2,entity:{...payment,simplified:false}})).status,400);
+ const direct={...payment,from:'A',to:'B',simplified:false};assert.equal((await h.post({action:'payment',id,revision:2,entity:direct})).status,200);
+ let loaded=(await h.get('owner@example.com')).trips[0].data;assert.deepEqual(ledger.ledger(loaded).transfers,[{from:'B',to:'C',amount:5000}]);assert.equal(loaded.payments[0].allocations.length,1);
+ assert.equal((await h.post({action:'undoPayment',id,revision:3,entityId:direct.id})).status,200);loaded=(await h.get('owner@example.com')).trips[0].data;assert.equal(ledger.ledger(loaded).transfers.length,2);h.sqlite.close();
+});
+
+test('Pairwise confirmation is authorized, retry-safe, revision-checked and isolated from other groups',async()=>{
+ const h=await harness(),e=ledger.normalize({name:'Pair settlement',people:['A','B','C','D','E'],bills:[],payments:[]});
+ for(const [payer,amount] of [['A',10000],['B',5000]]){const b=ledger.blankExpense(e,payer);b.merchant='Shared '+payer;b.items[0].amount=amount;e.expenses.push(b)}
+ const {id}=await h.post({action:'create',data:e}),other=(await h.post({action:'create',data:e})).id;
+ await h.post({action:'grant',id,email:'b@example.com',person:'B',permissions:[]});
+ const p={id:'pair-payment',from:'B',to:'A',amount:400,date:'2026-10-25',note:'Cash'};
+ assert.equal((await h.post({action:'payment',id,revision:0,entity:p},'b@example.com')).status,403);
+ assert.equal((await h.post({action:'payment',id,revision:0,entity:p})).status,200);
+ assert.equal((await h.post({action:'payment',id,revision:0,entity:p})).alreadyApplied,true);
+ assert.equal((await h.post({action:'payment',id,revision:0,entity:{...p,amount:401}})).status,400);
+ for(const changes of [{from:'A',to:'A'},{amount:-1},{amount:.5},{amount:601}])assert.equal((await h.post({action:'payment',id,revision:1,entity:{...p,id:crypto.randomUUID(),...changes}})).status,400);
+ const racing=await Promise.all(['one','two'].map(suffix=>h.post({action:'payment',id,revision:1,entity:{...p,id:'race-'+suffix}})));
+ assert.deepEqual(racing.map(x=>x.status).sort(),[200,409]);
+ const records=(await h.get('owner@example.com')).trips,stored=records.find(x=>x.id===id),untouched=records.find(x=>x.id===other);
+ assert.equal(stored.data.payments.length,2);assert.equal(stored.revision,2);assert.equal(ledger.ledger(stored.data).transfers.find(t=>t.from==='B'&&t.to==='A').amount,200);assert.equal(untouched.data.payments.length,0);
+ const member=(await h.get('b@example.com')).trips[0].personal;assert.ok(member.calculations.every(c=>c.from==='B'||c.to==='B'));assert.ok(!member.calculations.some(c=>c.expenses.some(x=>x.from==='C'&&x.to==='A')));
+ assert.equal((await h.post({action:'payment',id:other,revision:0,entity:p},'b@example.com')).status,403);
+ h.sqlite.close();
 });
 
 test('Trip photos use authenticated storage, reject spoofed images and isolate groups',async()=>{

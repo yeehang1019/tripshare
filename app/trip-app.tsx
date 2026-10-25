@@ -64,10 +64,10 @@ import {
   money,
   unit,
   allowed,
-  settlementDetails,
 } from "@/lib/ledger";
 import { Pick, Field, Amount, Check, People } from "./trip-controls";
 import {GroupCheckpoints} from "./group-checkpoints";
+import SettlementCalculation from "./settlement-calculation";
 import {checksum} from "@/lib/checkpoints";
 import {SaveStatus,DraftRecovery,useDraftSave} from "./save-recovery";
 import {draftScope as makeDraftScope,removeDraft,type LocalDraft} from "@/lib/local-drafts";
@@ -85,7 +85,7 @@ import {PeopleAccess,ChangeHistory,NotificationBell,SettlementExport} from "./co
 import {SpaceSwitch,SpaceBridge,TripLanding,isTripSection,spaceDestinations,tripRecords,resolveSpaceRoute,destinationLabel,type Space} from "./space-navigation";
 import {Search,PanelRight} from "lucide-react";
 import {AppearancePanel,WorkspaceChrome,QuickNavigator,completeThemes,monthBounds} from "./workspace-design";
-import {useWorkspace,TemplateShelf,PersonalHub,SettlementPreview,PayoutDetails,TravelFunding,feedback} from "./experience";
+import {useWorkspace,TemplateShelf,PersonalHub,PayoutDetails,TravelFunding,feedback} from "./experience";
 import SimpleItinerary from './simple-itinerary';
 import PersonalMoney from './personal-money';
 import type {personalView} from '@/lib/personal';
@@ -586,6 +586,7 @@ setPlannerDirty(false);setTemplateDirty(false);
       ? sum.transfers.filter((transfer) => transfer.from === me || transfer.to === me)
       : sum.transfers
     : [];
+  const settlementReviews=(sum?.calculations||[]).filter(c=>(settlementScope==='everyone'||c.from===me||c.to===me)&&(c.unappliedForward||c.unappliedReverse));
   const visiblePayments = e
     ? e.payments.filter((p) => !isMember || p.from === me || p.to === me)
     : [];
@@ -903,7 +904,7 @@ setPlannerDirty(false);setTemplateDirty(false);
         <div className="stats personal-stats"><div className="stat featured"><span>Consumed · selected dates</span><strong>{fmt(monthExpenses.reduce((n,b)=>n+b.consumed,0))}</strong></div><div className="stat"><span>Paid · selected dates</span><strong>{fmt(monthExpenses.reduce((n,b)=>n+b.paid,0))}</strong></div><div className="stat"><span>Need to pay · all time</span><strong>{fmt(owe)}</strong></div><div className="stat"><span>Need to receive · all time</span><strong>{fmt(receive)}</strong></div></div>
       </section><section className="panel"><h2>My expenses</h2><div className="checks"><Field label="From"><input type="date" value={start} onChange={x=>setStart(x.target.value)}/></Field><Field label="Until"><input type="date" value={end} onChange={x=>setEnd(x.target.value)}/></Field><Field label="Description"><input value={merchant} onChange={x=>setMerchant(x.target.value)}/></Field><Pick label="Category" value={cat} options={['All',...categories]} onChange={setCat}/><Pick label="Payment timing" value={statusFilter} options={['All','paid','prepaid','postpaid']} onChange={setStatusFilter}/><Pick label="Cash payer" value={payerFilter} options={[{id:'',name:'Any payer'},{id:rec.person||'mine',name:'I paid'}]} onChange={setPayerFilter}/>
 <button className="secondary" onClick={()=>{const [a,b]=monthBounds();setStart(a);setEnd(b)}}>This month</button><button className="secondary" onClick={()=>{setStart("");setEnd("")}}>All time</button></div><DetailWorkbench key={rec.id+jumpEpoch} revealSelected={!!focusExpense} selected={focusExpense||undefined} onSelect={id=>{if(focusExpense)setFocusExpense(id)}} label="My expenses" rows={monthExpenses.map(b=>({id:b.id,title:b.title,subtitle:b.date+' · '+b.category+' · '+(b.paymentStatus||'paid'),meta:fmt(b.consumed),icon:<Receipt size={17}/>}))} renderDetail={id=>{const b=monthExpenses.find(b=>b.id===id)!;return <><h3>{b.title}</h3><p className="muted">{b.date} · {b.category}</p><div className="plan-money"><span>My consumption <b>{fmt(b.consumed)}</b></span><span>I paid <b>{fmt(b.paid)}</b></span></div><h3>My items</h3>{b.items.map((item,i)=><p className="split-row" key={i}><span>{item.name}</span><b>{fmt(item.amount)}</b></p>)}</>}}/></section>
-      </>},{id:'settlement',label:'My settlement',render:()=> <><section className="panel"><h2>My settlement</h2>{view.transfers.map(t=><div key={t.from+':'+t.to} className="expense-row"><strong>{t.fromName} → {t.toName}: {fmt(t.amount)}</strong>{t.to!==rec.person&&<PayoutDetails group={rec.id} person={t.to} event={payoutEvent} session={authenticatedSession} editable={false}/>}</div>)}{!view.transfers.length&&<p>All settled.</p>}<PayoutDetails group={rec.id} person={rec.person} event={payoutEvent} session={authenticatedSession} editable/><h3>Repayment history</h3>{view.payments.map(p=><p key={p.id}>{p.date} · {p.fromName} → {p.toName} · {fmt(p.amount)}</p>)}</section><SettlementExport event={payoutEvent} transfers={view.transfers}/></>},...(rec.entryContext&&can('addExpense')?[{id:'quick',label:'Quick Picks',render:()=> <>{rec.entryContext&&can('addExpense')&&!bill&&<TemplateShelf key={rec.id+templateEpoch} workspace={workspace} event={{...rec.entryContext,expenses:rec.ownEntries||[]}} group={rec.id} canAdd busy={busy} onDirty={setTemplateDirty} onSaved={()=>{}} onRecord={async entity=>{if(await send('expense',{entity})){celebrateSave();return true}return false}}/>}</>}]:[]),...(rec.ownEntries?.length?[{id:'submitted',label:'My submitted bills',render:()=> <>{!!rec.ownEntries?.length&&<section className="panel"><h2>My submitted bills</h2><p>You can edit bills you created. This does not reveal other people’s full ledger.</p>{rec.ownEntries.filter(b=>!b.deleted).map(b=><div className="split-row" key={b.id}><span>{b.merchant}<small>{b.date} · {b.currency}</small></span><span className="checks">{calculate(b,rec.data.settlement).effectivePaymentStatus==='postpaid'&&<button className="primary" disabled={busy} onClick={()=>openSupplierPayment(b)}>Mark supplier paid</button>}<button className="secondary" onClick={()=>{if(editing.current)setConfirm({title:"Replace unsaved input?",description:"Your unsaved changes will be discarded.",run:()=>{clearUnsavedInput();edit(b)}});else edit(b)}}>Edit my bill</button></span></div>)}</section>}</>}]:[]),{id:'history',label:'History',render:()=> <><ChangeHistory key={rec.id} record={rec} onAction={send} user={user}/></>} ]}/><button className="mobile-quick-add primary" hidden={!can('addExpense')||!!bill} onClick={requestAdd} aria-label="Add shared expense"><Plus size={23}/></button></main></div>;
+      </>},{id:'settlement',label:'My settlement',render:()=> <><section className="panel"><h2>My settlement</h2>{view.transfers.map(t=><div key={t.from+':'+t.to} className="expense-row"><strong>{t.fromName} → {t.toName}: {fmt(t.amount)}</strong><SettlementCalculation calculation={view.calculations?.find(c=>c.from===t.from&&c.to===t.to||c.from===t.to&&c.to===t.from)} currency={e.settlement}/>{t.to!==rec.person&&<PayoutDetails group={rec.id} person={t.to} event={payoutEvent} session={authenticatedSession} editable={false}/>}</div>)}{!view.transfers.length&&<p>All settled.</p>}<PayoutDetails group={rec.id} person={rec.person} event={payoutEvent} session={authenticatedSession} editable/><h3>Repayment history</h3>{view.payments.map(p=><p key={p.id}>{p.date} · {p.fromName} → {p.toName} · {fmt(p.amount)}</p>)}</section><SettlementExport event={payoutEvent} transfers={view.transfers}/></>},...(rec.entryContext&&can('addExpense')?[{id:'quick',label:'Quick Picks',render:()=> <>{rec.entryContext&&can('addExpense')&&!bill&&<TemplateShelf key={rec.id+templateEpoch} workspace={workspace} event={{...rec.entryContext,expenses:rec.ownEntries||[]}} group={rec.id} canAdd busy={busy} onDirty={setTemplateDirty} onSaved={()=>{}} onRecord={async entity=>{if(await send('expense',{entity})){celebrateSave();return true}return false}}/>}</>}]:[]),...(rec.ownEntries?.length?[{id:'submitted',label:'My submitted bills',render:()=> <>{!!rec.ownEntries?.length&&<section className="panel"><h2>My submitted bills</h2><p>You can edit bills you created. This does not reveal other people’s full ledger.</p>{rec.ownEntries.filter(b=>!b.deleted).map(b=><div className="split-row" key={b.id}><span>{b.merchant}<small>{b.date} · {b.currency}</small></span><span className="checks">{calculate(b,rec.data.settlement).effectivePaymentStatus==='postpaid'&&<button className="primary" disabled={busy} onClick={()=>openSupplierPayment(b)}>Mark supplier paid</button>}<button className="secondary" onClick={()=>{if(editing.current)setConfirm({title:"Replace unsaved input?",description:"Your unsaved changes will be discarded.",run:()=>{clearUnsavedInput();edit(b)}});else edit(b)}}>Edit my bill</button></span></div>)}</section>}</>}]:[]),{id:'history',label:'History',render:()=> <><ChangeHistory key={rec.id} record={rec} onAction={send} user={user}/></>} ]}/><button className="mobile-quick-add primary" hidden={!can('addExpense')||!!bill} onClick={requestAdd} aria-label="Add shared expense"><Plus size={23}/></button></main></div>;
   }
   return (
     <div data-space={space} className={"app workspace-app"+(space==='trip'?' trip-entry-workspace':'')+(railOpen?" rail-open":"")}>
@@ -1567,27 +1568,26 @@ setPlannerDirty(false);setTemplateDirty(false);
                     <div className="settlement-hero">
                       <div>
                         <p className="eyebrow">{settlementScope === "mine" ? "MY SETTLEMENT" : "GROUP SETTLEMENT"}</p>
-                        <h2>{visibleTransfers.length ? `${visibleTransfers.length} payment${visibleTransfers.length > 1 ? "s" : ""} remaining` : settlementScope === "mine" ? `${name(me)} is settled` : "Everyone is settled"}</h2>
-                        <p>{visibleTransfers.length ? `${fmt(visibleTransfers.reduce((total, p) => total + p.amount, 0))} still needs to be paid.` : "New expenses will update this automatically."}</p>
+                        <h2>{visibleTransfers.length ? `${visibleTransfers.length} payment${visibleTransfers.length > 1 ? "s" : ""} remaining` : settlementReviews.length ? 'Review recorded repayments' : settlementScope === "mine" ? `${name(me)} is settled` : "Everyone is settled"}</h2>
+                        <p>{visibleTransfers.length ? `${fmt(visibleTransfers.reduce((total, p) => total + p.amount, 0))} still needs to be paid.` : settlementReviews.length ? 'Check unmatched payments below before paying.' : "New expenses will update this automatically."}</p>
                       </div>
                       <button className="secondary" onClick={() => whatsapp(shareText())}><Bell size={17}/> WhatsApp summary</button>
                     </div>
-                    {!shared && <SettlementPreview event={e} canPay={can("settle")} busy={busy} onPayment={p=>{setPayment({...p,id:crypto.randomUUID(),date:today(),note:'Simplified transfer'});setDraftRevision(rec.revision)}}/>}
-                    {payment?.simplified&&<section className="panel payment-editor"><h3>Confirm simplified payment: {name(payment.from)} → {name(payment.to)}</h3><p>Record only after the money actually moved. Original expense links are preserved.</p><div className="fields"><Field label="Amount"><Amount value={payment.amount} currency={e.settlement} onChange={amount=>setPayment({...payment,amount:amount||0})}/></Field><Field label="Date"><input type="date" value={payment.date} onChange={v=>setPayment({...payment,date:v.target.value})}/></Field></div><div className="checks"><button className="primary" disabled={busy} onClick={async()=>{if(await send('payment',{entity:payment,revision:draftRevision})){setPayment(null);setNotice('Simplified payment recorded against original expenses.');celebrateSave()}}}>Confirm actual payment</button><button className="secondary" onClick={()=>setPayment(null)}>Cancel</button></div></section>}
                     {rec.person && <PayoutDetails group={rec.id} person={rec.person} event={e} session={authenticatedSession} editable/>}
                     {(rec.owner||can('export'))&&<SettlementExport event={e} transfers={visibleTransfers}/>}
                     <div className="scope-switch" role="group" aria-label="Settlement view">
                       {hasPersonalAccess && <button className={settlementScope === "mine" ? "active" : ""} onClick={()=>setSettlementScope("mine")}><UserRound size={17}/> Mine</button>}
                       {!isMember && <button className={settlementScope === "everyone" ? "active" : ""} onClick={()=>setSettlementScope("everyone")}><UsersRound size={17}/> Everyone</button>}
                     </div>
+                    {sum!.calculations.some(c=>(settlementScope==='everyone'||c.from===me||c.to===me)&&(c.unappliedForward||c.unappliedReverse))&&<section className="panel"><h3>Repayments to review</h3><p>Some recorded money no longer matches a changed or removed bill. It has not been used to discount a newer bill. Review the original record before making another payment.</p>{sum!.calculations.filter(c=>(settlementScope==='everyone'||c.from===me||c.to===me)&&(c.unappliedForward||c.unappliedReverse)).map(c=><SettlementCalculation key={JSON.stringify([c.from,c.to])} calculation={c} currency={e.settlement}/>)}</section>}
                     <div className="settlement-layout">
                     <div className="panel settlement-current">
                       <div className="section-title">
                         <h2><HandCoins size={20}/>{settlementScope === "mine" ? `${name(me)}'s payments` : "Payments to make"}</h2>
                       </div>
                       <p className="muted">
-                        New expenses are added to the balance. Recorded repayments
-                        clear the oldest matching expenses first.
+                        Opposite debts between the same two people are offset.
+                        Recorded payments stay attached to their original bills.
                       </p>
                       {visibleTransfers.map((p, i) => (
                         <div className="transfer" key={i}>
@@ -1630,16 +1630,7 @@ setPlannerDirty(false);setTemplateDirty(false);
                             <button className="text-button" onClick={async()=>{await navigator.clipboard.writeText(`${e.name}: ${name(p.from)} → ${name(p.to)} ${fmt(p.amount)}`);setNotice("Payment details copied.")}}><Copy size={16}/> Copy</button>
                           </div>
                           {!shared&&<PayoutDetails group={rec.id} person={p.to} event={e} session={authenticatedSession} editable={p.to===rec.person}/>}
-                          <details className="settlement-breakdown">
-                            <summary><ListFilter size={16}/> View expense details</summary>
-                            {settlementDetails(e,p.from,p.to).map((detail) => {
-                              const expense = e.expenses.find((bill) => bill.id === detail.expense);
-                              return <div className="settlement-expense" key={detail.expense}>
-                                <span><b>{expense?.merchant || "Expense"}</b><small>{expense?.date} · {expense?.category}</small></span>
-                                <b>{fmt(detail.amount)}</b>
-                              </div>;
-                            })}
-                          </details>
+                          <SettlementCalculation calculation={sum!.calculations.find(c=>c.from===p.from&&c.to===p.to||c.from===p.to&&c.to===p.from)} currency={e.settlement}/>
                           {payment && !payment.simplified && payment.from === p.from && payment.to === p.to && (
                             <div className="payment-editor">
                               <div className="payment-editor-head"><div><small>RECORD PAYMENT</small><h3>{name(payment.from)} → {name(payment.to)}</h3></div><b>{fmt(payment.amount)}</b></div>

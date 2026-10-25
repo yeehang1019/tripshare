@@ -1,5 +1,7 @@
 # TripShare engineering rules
 
+- The user's 2026-10-25 settlement selection is Mode A: preserve original creditor relationships and offset only reciprocal debts within each member pair. Replay source-bound recorded payments before offsetting, not afterward. Suggestions never create payments. No new indirect/simplified route payments; retain historical simplified allocations for compatibility. Freeze legacy allocations once, including empty allocations. Changed/deleted sources produce visible unapplied-payment review items instead of silently discounting new bills; explicit recorded supplier refunds retain reverse credits. Personal calculation projections contain only pairs involving that member. Confirmation retries must match the same payment ID and details, recheck permission and preserve group revision/CAS checks. Keep original records and audit history; no live data migration or fabricated entries.
+
 - Trip planning and Money are independently navigable. Planning estimates, templates, capacity and waiting lists must never post consumption or repayments. A supplier bill marked Paid updates its original expense ID and incurred date. Money conflict recovery stays scoped to Money.
 - The user has deferred time polls and RSVP. Do not add AI, OCR, voice parsing or calendar write permissions as incidental scope.
 - Preserve the approved hybrid layout and the three complete light/dark themes. Keep secondary views focused and paged, using existing tokens. Show samples before proposing a different overall design.

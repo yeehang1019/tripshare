@@ -1,4 +1,4 @@
-import { calculate, ledger, outstandingClaims, Event } from './ledger';
+import { calculate, ledger, Event } from './ledger';
 
 export function personalView(event: Event, person: string) {
   const member = event.people.find(p => p.id === person);
@@ -6,12 +6,13 @@ export function personalView(event: Event, person: string) {
   const totals = ledger(event);
   const names=new Map(event.people.map(p=>[p.id,p.name]));
   const expenses=new Map(event.expenses.map(b=>[b.id,b]));
-  const claims=outstandingClaims(event).filter(c=>c.from===person||c.to===person).map(c=>({...c,fromName:names.get(c.from)||'Unknown member',toName:names.get(c.to)||'Unknown member',title:expenses.get(c.expense)?.merchant||'Historical expense',date:expenses.get(c.expense)?.date||''}));
+  const claims=totals.claims.filter(c=>c.from===person||c.to===person).map(c=>({...c,fromName:names.get(c.from)||'Unknown member',toName:names.get(c.to)||'Unknown member',title:expenses.get(c.expense)?.merchant||'Historical expense',date:expenses.get(c.expense)?.date||''}));
   const claimExpenses=new Set(claims.map(c=>c.expense)),activityNames=new Map(event.activities.map(a=>[a.id,a.name]));
   return {
     name: member.name,
     person,
     claims,
+    calculations:totals.calculations.filter(c=>c.from===person||c.to===person),
     consumed: totals.people[person].consumed,
     paid: totals.people[person].paid,
     unpaid: totals.people[person].unpaid,

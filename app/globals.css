@@ -852,6 +852,9 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible{
 .member-portal-update{display:block;text-align:center;font-size:12px;margin-top:22px}
 .member-portal .field input{background:var(--surface);color:var(--text);border-color:var(--border);font-size:16px;min-height:46px}
 .plan-remarks{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.6}
+.pair-calculation{min-width:0;overflow-wrap:anywhere}.pair-calculation>summary{min-height:44px;padding-block:12px;cursor:pointer}
+.pair-calculation dl>div{display:flex;justify-content:space-between;gap:16px;padding:8px 0;border-bottom:1px solid var(--border)}
+.pair-calculation dt{min-width:0}.pair-calculation dd{margin:0;white-space:nowrap;font-weight:600}.pair-calculation h4{margin:18px 0 8px}
 .plan-remarks a{color:var(--primary);text-decoration:underline;text-underline-offset:3px;overflow-wrap:anywhere}
 .simple-plan .plan-remarks a{display:inline-block;min-height:44px;padding-block:8px;max-width:100%}
 @media(max-width:600px){
