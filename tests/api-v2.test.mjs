@@ -50,6 +50,7 @@ async function harness(){const sqlite=new DatabaseSync(':memory:');for(const f o
  const observability=compile('../lib/request-observability.ts');modules['@/lib/request-observability']=observability;await observability.link(s=>modules[s]);await observability.evaluate();
  const checkpointsLogic=compile('../lib/checkpoints.ts');modules['@/lib/checkpoints']=checkpointsLogic;await checkpointsLogic.link(s=>s==='./ledger'?modules['@/lib/ledger']:modules[s]);await checkpointsLogic.evaluate();
  const alternatives=compile('../lib/plan-alternatives.ts');modules['@/lib/plan-alternatives']=alternatives;await alternatives.link(s=>modules[s]);await alternatives.evaluate();
+ const recording=compile('../lib/settlement-recording.ts');modules['@/lib/settlement-recording']=recording;await recording.link(s=>s==='./ledger'?modules['@/lib/ledger']:modules[s]);await recording.evaluate();
  const trips=compile('../app/api/trips/route.ts');modules['../trips/route']=trips;await trips.link(s=>modules[s]);await trips.evaluate();const view=compile('../app/api/view/route.ts');await view.link(s=>modules[s]);await view.evaluate();
  const sync=compile('../app/api/integrations/v1/me/entries/route.ts');await sync.link(s=>modules[s]);await sync.evaluate();
  const apiResponse=compile('../lib/api-response.ts');modules['@/lib/api-response']=apiResponse;await apiResponse.link(s=>modules[s]);await apiResponse.evaluate();
@@ -542,4 +543,31 @@ test('Pocket integration exports PayLater debt only for its payer and fee is att
  const payer=await h.syncRead();assert.equal(payer.status,200);assert.equal(payer.entries.length,1);assert.equal(payer.entries[0].consumed_minor,0);assert.equal(payer.entries[0].paylater.total,30900);assert.equal(payer.entries[0].paylater.months,3);
  h.integrationEnv.POCKET_SYNC_EMAIL='c@example.com';const friend=await h.syncRead();assert.equal(friend.entries[0].consumed_minor,30900);assert.equal(friend.entries[0].paylater,null);
  h.sqlite.close();
+});
+
+test('Selected-bill batches are atomic, source-bound, permission checked and idempotent with undo and sync',async()=>{
+ const h=await harness(),e=ledger.normalize({name:'Batch settlement',people:['A','B','C'],bills:[],payments:[]});
+ for(const [title,amount] of [['Old food',3000],['Selected drinks',1200]]){const b=ledger.blankExpense(e,'A');b.merchant=title;b.items[0].people=['B','C'];b.items[0].weights=[1,1];b.items[0].amount=amount;e.expenses.push(b)}
+ const {id}=await h.post({action:'create',data:e});const row=(id,from,amount,expenseIds)=>({id,from,to:'A',amount,expenseIds,date:'2026-10-26',note:'Cash'}),batch={id:'batch1',payments:[row('b-pay','B',400,[e.expenses[1].id]),row('c-pay','C',1500,[e.expenses[0].id])]};
+ await h.post({action:'grant',id,email:'b@example.com',person:'B',permissions:[]});
+ assert.equal((await h.post({action:'paymentBatch',id,revision:0,entity:batch},'b@example.com')).status,403);
+ const invalid={...batch,payments:[batch.payments[0],{...batch.payments[1],amount:99999}]};assert.equal((await h.post({action:'paymentBatch',id,revision:0,entity:invalid})).status,400);assert.equal((await h.get('owner@example.com')).trips[0].data.payments.length,0);
+ const saved=await h.post({action:'paymentBatch',id,revision:0,entity:batch});assert.equal(saved.status,200,JSON.stringify(saved));assert.equal(saved.revision,1);
+ let record=(await h.get('owner@example.com')).trips[0];assert.equal(record.data.payments.length,2);assert.equal(record.data.payments[0].allocations[0].expense,e.expenses[1].id);assert.equal(record.data.payments[0].amount,400);
+ assert.equal((await h.post({action:'grant',id,email:'settler@example.com',person:'C',permissions:['settle','viewAll']})).status,200);assert.equal((await h.post({action:'paymentBatch',id,revision:0,entity:batch},'settler@example.com')).alreadyApplied,true);await h.post({action:'revoke',id,grant:id+':settler@example.com'});assert.equal((await h.post({action:'paymentBatch',id,revision:0,entity:batch},'settler@example.com')).status,403);
+ const retry=await h.post({action:'paymentBatch',id,revision:0,entity:batch});assert.equal(retry.alreadyApplied,true);assert.equal((await h.get('owner@example.com')).trips[0].revision,1);
+ assert.equal((await h.post({action:'paymentBatch',id,revision:1,entity:{...batch,payments:[{...batch.payments[0],expenseIds:[e.expenses[0].id]},batch.payments[1]]}})).status,400);
+ const other=await h.post({action:'create',data:ledger.normalize({name:'Other group',people:['A','B','C'],bills:[],payments:[]})});assert.equal((await h.post({action:'paymentBatch',id:other.id,revision:0,entity:{id:'cross',payments:[row('other-pay','B',100,[e.expenses[1].id])]}})).status,400);
+ const member=(await h.get('b@example.com')).trips.find(t=>t.id===id);assert.equal(member.data.payments.length,0);assert.equal(member.personal.payments.length,1);assert.equal(member.personal.payments[0].sources[0].title,'Selected drinks');
+ const changes=h.sqlite.prepare("SELECT record_id,members FROM sync_changes WHERE trip=? AND kind='payment'").all(id);assert.equal(changes.length,2);assert.deepEqual(JSON.parse(changes[0].members),['B','A']);
+ assert.equal((await h.post({action:'undoPaymentBatch',id,revision:1,entity:{id:'undo1',batchId:batch.id}})).status,200);assert.equal((await h.post({action:'undoPaymentBatch',id,revision:1,entity:{id:'undo1',batchId:batch.id}})).alreadyApplied,true);
+ record=(await h.get('owner@example.com')).trips.find(t=>t.id===id);assert.equal(record.revision,2);assert.ok(record.data.payments.every(p=>p.deleted));assert.equal((await h.post({action:'paymentBatch',id,revision:2,entity:batch})).status,400);
+ h.sqlite.close();
+});
+test('Concurrent batch confirmations have one CAS winner; failed sync rolls back every payment',async()=>{
+ const h=await harness(),e=ledger.normalize({name:'Batch race',people:['A','B','C'],bills:[],payments:[]});const bill=ledger.blankExpense(e,'A');bill.merchant='Race dinner';bill.items[0].amount=6000;e.expenses=[bill];const created=await h.post({action:'create',data:e});assert.equal(created.status,200,JSON.stringify(created));const {id}=created;
+ const batch=key=>({id:key,payments:['B','C'].map(from=>({id:key+from,from,to:'A',amount:1000,expenseIds:[bill.id],date:'2026-10-26',note:''}))});
+ const results=await Promise.all([h.post({action:'paymentBatch',id,revision:0,entity:batch('one')}),h.post({action:'paymentBatch',id,revision:0,entity:batch('two')})]);assert.deepEqual(results.map(r=>r.status).sort(),[200,409]);
+ let record=(await h.get('owner@example.com')).trips[0];assert.equal(record.data.payments.length,2);assert.equal(record.revision,1);
+ h.sqlite.exec('DROP TABLE sync_changes');const failed=await h.post({action:'paymentBatch',id,revision:1,entity:batch('rollback')});assert.equal(failed.status,503);record=(await h.get('owner@example.com')).trips[0];assert.equal(record.data.payments.length,2);assert.equal(record.revision,1);h.sqlite.close();
 });

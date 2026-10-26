@@ -1,4 +1,5 @@
 import {alternativePlan} from '@/lib/plan-alternatives';
+import {recordedBatch,preparePaymentBatch,undoBatch} from '@/lib/settlement-recording';
 import {checksum,restoredGroup,checkpointDiff} from '@/lib/checkpoints';
 import {InputError,validateInput,trackedRequest,type RequestContext} from '@/lib/request-observability';
 import {readJSON,RequestTooLarge} from '@/lib/http-body';
@@ -296,6 +297,11 @@ async function postTrip(r: Request,context:RequestContext) {
     let data = normalize(JSON.parse(row.data));
     context.group=row.id;context.action=typeof b.action==='string'&&/^[a-zA-Z]{1,40}$/.test(b.action)?b.action:'invalid';
     attachPaymentAllocations(data);
+    if(['paymentBatch','undoPaymentBatch'].includes(b.action)){
+      if(!a.owner&&!allowed(a.permissions,'payment',actor))return response({error:'Repayment permission required'},403);
+      if(b.action==='paymentBatch'&&validateInput(()=>recordedBatch(data,b.entity)))return response({ok:true,alreadyApplied:true,revision:row.revision,count:b.entity.payments.length});
+      if(b.action==='undoPaymentBatch'&&validateInput(()=>undoBatch(data,b.entity?.batchId)).alreadyUndone)return response({ok:true,alreadyApplied:true,revision:row.revision});
+    }
     if(b.action==='payment'){
       if(!a.owner&&!allowed(a.permissions,'payment',actor))return response({error:'Repayment permission required'},403);
       const prior=data.payments.find(p=>p.id===b.entity?.id);
@@ -416,7 +422,11 @@ async function postTrip(r: Request,context:RequestContext) {
           { error: "You do not have permission for this action" },
           403,
         );
-      if(b.action==='planBulk'){
+      if(b.action==='paymentBatch'){
+        const payments=validateInput(()=>preparePaymentBatch(data,b.entity,actor));data.payments.push(...payments);after=payments;
+      }else if(b.action==='undoPaymentBatch'){
+        const batch=validateInput(()=>undoBatch(data,b.entity?.batchId));before=structuredClone(batch.payments);for(const p of batch.payments)p.deleted=true;after=structuredClone(batch.payments);
+      }else if(b.action==='planBulk'){
         if(data.kind!=='trip')throw new InputError('Choose a trip');
         const next=validateInput(()=>shiftPlans(data,b.entity?.ids,b.entity?.days,b.entity?.minutes));
         before=data.activities.filter(a=>b.entity.ids.includes(a.id));after=next;
@@ -455,6 +465,7 @@ async function postTrip(r: Request,context:RequestContext) {
         old.deleted = b.action === "deleteExpense";
         after = { ...old };
       } else if (b.action === "payment") {
+        if(b.entity?.batchId!==undefined||b.entity?.selectedExpenses!==undefined)throw new InputError('Use the selected-bill payment editor for batch repayments');
         const p = { ...b.entity, createdBy: actor, deleted: false };
         const outstanding =
           ledger(data).transfers.find((x) => x.from === p.from && x.to === p.to)
@@ -542,6 +553,7 @@ async function postTrip(r: Request,context:RequestContext) {
     if (new TextEncoder().encode(JSON.stringify(data)).byteLength > 1900000)
       throw new InputError("Event is full. Export a backup and create a new event.");
     const changes: {kind:string;recordId:string;members:string}[] = [];
+    if(['paymentBatch','undoPaymentBatch'].includes(b.action))for(const p of after as import('@/lib/ledger').Payment[])changes.push({kind:'payment',recordId:p.id,members:JSON.stringify([p.from,p.to])});
     if(b.action==='expenseBatch')for(const x of after as Expense[])changes.push({kind:'expense',recordId:x.id,members:JSON.stringify([...new Set([...(x.payLater?.feePeople||[]),...x.items.flatMap(i=>i.people),...x.payers.map(p=>p.person),...(x.supplierPayments||[]).map(p=>p.person),...(x.treat?[x.treat]:[]),...(x.voucherOwner?[x.voucherOwner]:[])])])});
     if (['expense','deleteExpense','restoreExpense'].includes(b.action)) {
       const current = data.expenses.find(x => x.id === entity);
@@ -577,7 +589,7 @@ async function postTrip(r: Request,context:RequestContext) {
         },
         409,
       );
-    return response({ ok: true });
+    return response({ ok: true,revision:b.revision+1,...(b.action==='paymentBatch'?{count:(after as unknown[]).length}:{}) });
   } catch (e) {
     if(e instanceof InputError)return response({error:e.message},400);
     if(e instanceof SyntaxError)return response({error:'Check the submitted JSON'},400);

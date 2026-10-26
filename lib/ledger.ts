@@ -46,6 +46,8 @@ export type Expense = {
   deleted: boolean;
 };
 export type Payment = {
+  batchId?: string;
+  selectedExpenses?: string[];
   id: string;
   from: string;
   to: string;
@@ -742,6 +744,8 @@ export function validateEvent(e: Event) {
   }
   for (const p of e.payments) {
     cents(p.amount);
+    check(p.batchId===undefined||typeof p.batchId==='string'&&p.batchId.length>0&&p.batchId.length<=150,'Invalid repayment batch');
+    check(p.selectedExpenses===undefined||Array.isArray(p.selectedExpenses)&&p.selectedExpenses.length>0&&p.selectedExpenses.length<=5000&&p.selectedExpenses.every(x=>typeof x==='string'&&x.length>0&&x.length<=150)&&new Set(p.selectedExpenses).size===p.selectedExpenses.length,'Invalid selected repayment sources');
     check(
       typeof p.id==='string'&&p.id.length>0&&p.id.length<=150&&
         typeof p.note==='string'&&p.note.length<=2000&&p.amount > 0 &&
@@ -875,7 +879,7 @@ export function allowed(
       perms.includes("editAll") ||
       (existing?.createdBy === actor && perms.includes("editOwn"))
     );
-  if (["payment", "undoPayment"].includes(action))
+  if (["payment", "undoPayment", "paymentBatch", "undoPaymentBatch"].includes(action))
     return perms.includes("settle");
   if(action==="expenseBatch")return perms.includes("editAll");
   if (["activity", "planAlternative", "planBulk", "deleteActivity", "planChecklist", "planBasics", "planOrder", "travelKit", "planBatch"].includes(action))

@@ -68,6 +68,7 @@ import {
 import { Pick, Field, Amount, Check, People } from "./trip-controls";
 import {GroupCheckpoints} from "./group-checkpoints";
 import SettlementCalculation from "./settlement-calculation";
+import SettlementPayments from "./settlement-payments";
 import {checksum} from "@/lib/checkpoints";
 import {SaveStatus,DraftRecovery,useDraftSave} from "./save-recovery";
 import {draftScope as makeDraftScope,removeDraft,type LocalDraft} from "@/lib/local-drafts";
@@ -1589,68 +1590,8 @@ setPlannerDirty(false);setTemplateDirty(false);
                         Opposite debts between the same two people are offset.
                         Recorded payments stay attached to their original bills.
                       </p>
-                      {visibleTransfers.map((p, i) => (
-                        <div className="transfer" key={i}>
-                          <div>
-                            <b>{name(p.from)}</b>
-                            <ArrowRight size={18} />
-                            <b>{name(p.to)}</b>
-                            <strong>{fmt(p.amount)}</strong>
-                          </div>
-                          <div className="checks">
-                            {can("settle") && (
-                              <button
-                                className="secondary"
-                                disabled={busy}
-                                onClick={() => {
-                                  setPayment({
-                                    ...p,
-                                    id: crypto.randomUUID(),
-                                    date: today(),
-                                    note: "",
-                                    createdBy: user,
-                                    deleted: false,
-                                  });
-                                  setDraftRevision(rec.revision);
-                                }}
-                              >
-                                <HandCoins size={16}/> Record full / partial payment
-                              </button>
-                            )}
-                            <button
-                              className="text-button"
-                              onClick={() =>
-                                whatsapp(
-                                  `${e.name}\n${name(p.from)} → ${name(p.to)}: ${fmt(p.amount)}\nPlease check the shared event for the current balance.`,
-                                )
-                              }
-                            >
-                              <Bell size={16}/> Remind
-                            </button>
-                            <button className="text-button" onClick={async()=>{await navigator.clipboard.writeText(`${e.name}: ${name(p.from)} → ${name(p.to)} ${fmt(p.amount)}`);setNotice("Payment details copied.")}}><Copy size={16}/> Copy</button>
-                          </div>
-                          {!shared&&<PayoutDetails group={rec.id} person={p.to} event={e} session={authenticatedSession} editable={p.to===rec.person}/>}
-                          <SettlementCalculation calculation={sum!.calculations.find(c=>c.from===p.from&&c.to===p.to||c.from===p.to&&c.to===p.from)} currency={e.settlement}/>
-                          {payment && !payment.simplified && payment.from === p.from && payment.to === p.to && (
-                            <div className="payment-editor">
-                              <div className="payment-editor-head"><div><small>RECORD PAYMENT</small><h3>{name(payment.from)} → {name(payment.to)}</h3></div><b>{fmt(payment.amount)}</b></div>
-                              <div className="payment-fields">
-                                <Field label={`Amount (${e.settlement})`}><Amount value={payment.amount} currency={e.settlement} onChange={(amount) => setPayment({ ...payment, amount: amount || 0 })}/></Field>
-                                <Field label="Date"><input type="date" value={payment.date} onChange={(v) => setPayment({ ...payment, date: v.target.value })}/></Field>
-                                <Field label="Note / method"><input value={payment.note} placeholder="Cash, DuitNow…" onChange={(v) => setPayment({ ...payment, note: v.target.value })}/></Field>
-                              </div>
-                              <p className="muted">Record only after the money has actually been paid.</p>
-                              <div className="checks"><button className="primary" disabled={busy} onClick={async()=>{if(await send("payment",{entity:payment,revision:draftRevision})){setPayment(null);setNotice("Payment recorded and balance updated.");celebrateSave();}}}>Confirm payment</button><button className="secondary" onClick={()=>setPayment(null)}>Cancel</button></div>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                      {!visibleTransfers.length && (
-                        <div className="empty">
-                          <CheckIcon />
-                          <h3>No outstanding balance</h3>
-                        </div>
-                      )}
+                      <SettlementPayments key={rec.id+settlementScope} event={e} group={rec.id} revision={rec.revision} session={authenticatedSession} transfers={visibleTransfers} claims={sum!.claims} calculations={sum!.calculations} canRecord={can('settle')} disabled={busy} onRemind={(t,b)=>whatsapp(`${e.name}${b?' · '+b.title:''}\n${name(t.from)} → ${name(t.to)}: ${fmt(t.amount)}\nPlease check the shared event for the current balance.`)} onRefresh={()=>load(true)} payout={to=>!shared?<PayoutDetails group={rec.id} person={to} event={e} session={authenticatedSession} editable={to===rec.person}/>:null}/>
+
                     </div>
                     <div className="panel settlement-side">
                       <h2 className="card-title"><Wallet size={20}/>{settlementScope === "mine" ? "My balance" : "Member balances"}</h2>
