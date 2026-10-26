@@ -1,13 +1,13 @@
 "use client";
 import {useEffect,useState} from 'react';
 import {Users,ShieldCheck,Plus,History,Bell,Download,Check,UserPlus} from 'lucide-react';
-import {permissionKeys,roles,ledger,money,unit,calculate,type Event,type Permission} from '@/lib/ledger';
-import {csvFile,downloadFile,escapeHTML} from '@/lib/exports';
+import {permissionKeys,roles,ledger,money,unit,calculate,type Event,type Permission,type PairCalculation} from '@/lib/ledger';
+import {csvFile} from '@/lib/exports';
 import {Dialog,DialogContent,DialogTitle,DialogDescription} from '@/components/ui/dialog';
 import {Field,Pick,Check as Toggle} from './trip-controls';
 import type {RecordT} from './trip-app';
 import type {useWorkspace} from './experience';
-import {settlementPrintHTML} from '@/lib/settlement-print';
+import SettlementSummary from './settlement-summary';
 import type {personalView} from '@/lib/personal';
 type Action=(action:string,body?:any,refresh?:boolean)=>Promise<any>;
 export const permissionLabels:Record<string,string>={addExpense:'Add Money bills',editOwn:'Edit own bills',editAll:'Edit all bills',settle:'Record / undo repayments',plan:'Edit itinerary & travel kit',export:'Export group reports',viewAll:'See all group bills'};
@@ -40,9 +40,8 @@ export function NotificationBell({session,workspace:w,onGroup}:{session:string;w
  const unread=items.filter(n=>n.date>(w.data.notificationReadAt||'')).length;
  return <><button className="icon-button notification-bell" aria-label={'Notifications'+(unread?', '+unread+' unread':'')} onClick={()=>setOpen(true)}><Bell size={18}/>{unread>0&&<span>{Math.min(unread,99)}</span>}</button><Dialog open={open} onOpenChange={setOpen}><DialogContent className="notifications-dialog"><DialogTitle>Updates for you</DialogTitle><DialogDescription>Only changes from groups and records you may access.</DialogDescription><button className="secondary" disabled={w.busy||!unread} onClick={()=>w.save({action:'notificationsRead',readAt:new Date().toISOString()})}><Check size={15}/> Mark all read</button><div className="notification-list">{items.map(n=><button key={n.id} className={n.date>(w.data.notificationReadAt||'')?'unread':''} onClick={()=>{setOpen(false);onGroup(n.group)}}><b>{n.groupName}</b><span>{n.title}</span><small>{new Date(n.date).toLocaleString()}</small></button>)}{!items.length&&<p>No updates from other members yet.</p>}</div>{error&&<p role="alert">{error}</p>}</DialogContent></Dialog></>;
 }
-export function SettlementExport({event:e,transfers,person,personal}:{person?:string;personal?:ReturnType<typeof personalView>;event:Event;transfers:{from:string;to:string;amount:number;fromName?:string;toName?:string}[]}){
- const [printError,setPrintError]=useState('');
- function printSummary(){try{downloadFile('tripshare-settlement.html',settlementPrintHTML(e,transfers,{person,personal}),'text/html;charset=utf-8');setPrintError('')}catch(error){setPrintError(error instanceof Error?error.message:'Could not prepare the statement. Refresh and retry.')}}
+export function SettlementExport({event:e,transfers,person,personal,reviewPairs}:{reviewPairs?:PairCalculation[];person?:string;personal?:ReturnType<typeof personalView>;event:Event;transfers:{from:string;to:string;amount:number;fromName?:string;toName?:string}[]}){
+ const [summaryOpen,setSummaryOpen]=useState(false);
  const rows=transfers.map(t=>[t.fromName||e.people.find(p=>p.id===t.from)?.name||t.from,t.toName||e.people.find(p=>p.id===t.to)?.name||t.to,e.settlement,t.amount/unit(e.settlement)]);
- return <div className="checks settlement-export"><button className="secondary" onClick={()=>csvFile('tripshare-settlement.csv',[['From','To','Currency','Remaining amount'],...rows])}><Download size={15}/> Settlement CSV</button><button className="secondary" onClick={printSummary}>Printable statement / PDF</button>{printError&&<p role="alert">{printError}</p>}</div>;
+ return <div className="checks settlement-export"><button className="secondary" onClick={()=>setSummaryOpen(true)}>View summary</button>{summaryOpen&&<SettlementSummary reviewPairs={reviewPairs} event={e} transfers={transfers} person={person} personal={personal} onClose={()=>setSummaryOpen(false)} onCSV={()=>csvFile('tripshare-settlement.csv',[['From','To','Currency','Remaining amount'],...rows])}/>}</div>;
 }

@@ -1574,7 +1574,7 @@ setPlannerDirty(false);setTemplateDirty(false);
                       <button className="secondary" onClick={() => whatsapp(shareText())}><Bell size={17}/> WhatsApp summary</button>
                     </div>
                     {rec.person && <PayoutDetails group={rec.id} person={rec.person} event={e} session={authenticatedSession} editable/>}
-                    {(rec.owner||can('export'))&&<SettlementExport event={e} transfers={visibleTransfers} person={settlementScope==="mine"?me:undefined}/>}
+                    {(rec.owner||can('export'))&&<SettlementExport event={e} transfers={visibleTransfers} reviewPairs={sum!.calculations} person={settlementScope==="mine"?me:undefined}/>}
                     <div className="scope-switch" role="group" aria-label="Settlement view">
                       {hasPersonalAccess && <button className={settlementScope === "mine" ? "active" : ""} onClick={()=>setSettlementScope("mine")}><UserRound size={17}/> Mine</button>}
                       {!isMember && <button className={settlementScope === "everyone" ? "active" : ""} onClick={()=>setSettlementScope("everyone")}><UsersRound size={17}/> Everyone</button>}

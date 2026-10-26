@@ -1,5 +1,7 @@
 # Print summary — 26 October 2026
 
+The later screenshot-specific request supersedes this entry's long report UI. See [compact popup review](settlement-popup-review.md) for the currently shipped interaction.
+
 See [print summary review](settlement-print-review.md) for this release's scope, checks, privacy and remaining verification.
 
 # Planner expansion review — 2026-10-19

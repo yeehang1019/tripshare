@@ -96,7 +96,7 @@ test('Travel kit and handbook keep planning separate from the ledger and escape 
  const handbook=exportsModule.handbookHTML(e);assert.match(handbook,/Hotel lobby/);assert.match(handbook,/Passport/);assert.match(handbook,/&lt;script&gt;/);assert.doesNotMatch(handbook,/<script>/);assert.doesNotMatch(handbook,/trips\/.*token=/);
 });
 test('Settlement exports offer current outstanding CSV and printable statements',()=>{
- const e=normalize({name:'Trip',people:['A','B'],bills:[],payments:[]});const html=renderToStaticMarkup(React.createElement(collaboration.SettlementExport,{event:e,transfers:[{from:'B',to:'A',amount:250}]}));assert.match(html,/Settlement CSV/);assert.match(html,/Printable statement/);assert.equal(e.payments.length,0);
+ const e=normalize({name:'Trip',people:['A','B'],bills:[],payments:[]});const html=renderToStaticMarkup(React.createElement(collaboration.SettlementExport,{event:e,transfers:[{from:'B',to:'A',amount:250}]}));assert.match(html,/View summary/);assert.doesNotMatch(html,/Printable statement|Settlement CSV/);assert.equal(e.payments.length,0);
 });
 
 test('Trip sidebar opens dedicated planner sections without duplicating internal navigation',()=>{
