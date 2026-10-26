@@ -1,3 +1,7 @@
+# Print summary — 26 October 2026
+
+See [print summary review](settlement-print-review.md) for this release's scope, checks, privacy and remaining verification.
+
 # Planner expansion review — 2026-10-19
 
 ## Current behavior and flow
