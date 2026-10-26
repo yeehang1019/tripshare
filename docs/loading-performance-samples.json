@@ -1,0 +1,2384 @@
+{
+  "version": 75,
+  "scope": "Same five-group dataset, first20 chronological200 perendpoint; no user names, ledger values or auth details",
+  "endpoints": {
+    "/api/trips": {
+      "n": 20,
+      "from": "2026-10-26T09:06:03.828Z",
+      "to": "2026-10-26T09:07:46.738Z",
+      "p50": 1481,
+      "p95": 1944,
+      "min": 1366,
+      "max": 2092,
+      "stages": {
+        "identity": {
+          "p50": 0,
+          "mean": 0
+        },
+        "trip_query": {
+          "p50": 96,
+          "mean": 136
+        },
+        "owner": {
+          "p50": 58,
+          "mean": 75
+        },
+        "access": {
+          "p50": 302,
+          "mean": 310
+        },
+        "links": {
+          "p50": 936,
+          "mean": 1057
+        },
+        "etag": {
+          "p50": 0,
+          "mean": 0
+        },
+        "json_parse": {
+          "p50": 0,
+          "mean": 0
+        },
+        "bills": {
+          "p50": 0,
+          "mean": 0
+        },
+        "projection": {
+          "p50": 0,
+          "mean": 0
+        },
+        "serialize": {
+          "p50": 0,
+          "mean": 0
+        }
+      },
+      "queries": {
+        "trips": {
+          "count": 1,
+          "p50": 96,
+          "mean": 136
+        },
+        "owner": {
+          "count": 1,
+          "p50": 58,
+          "mean": 75
+        },
+        "access_grant": {
+          "count": 5,
+          "p50": 302,
+          "mean": 310
+        },
+        "linked_grants": {
+          "count": 5,
+          "p50": 302,
+          "mean": 358
+        },
+        "link_insert": {
+          "count": 5,
+          "p50": 302,
+          "mean": 333
+        },
+        "link_read": {
+          "count": 5,
+          "p50": 309,
+          "mean": 366
+        }
+      },
+      "samples": [
+        {
+          "requestId": "8be961d3-f4ab-40d5-9824-441991cc4fa1",
+          "time": 1793005563828,
+          "totalMs": 1788,
+          "dbQueries": 22,
+          "dbWallMs": 1788,
+          "stages": {
+            "identity": 0,
+            "trip_query": 482,
+            "owner": 66,
+            "access": 304,
+            "links": 936,
+            "etag": 0,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 482,
+              "engineMs": 11.0134,
+              "rowsRead": 5,
+              "rowsWritten": 0
+            },
+            "owner": {
+              "count": 1,
+              "wallMs": 66,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            },
+            "access_grant": {
+              "count": 5,
+              "wallMs": 304,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            },
+            "linked_grants": {
+              "count": 5,
+              "wallMs": 304,
+              "engineMs": 1.8302000000000003,
+              "rowsRead": 9,
+              "rowsWritten": 0
+            },
+            "link_insert": {
+              "count": 5,
+              "wallMs": 330,
+              "engineMs": 1.7035000000000002,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            },
+            "link_read": {
+              "count": 5,
+              "wallMs": 302,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            }
+          },
+          "counts": {
+            "groupsRead": 5,
+            "sourceChars": 370825,
+            "billsRead": 60,
+            "plansRead": 6,
+            "historyRead": 228,
+            "groupsReturned": 5,
+            "responseChars": 372359
+          }
+        },
+        {
+          "requestId": "8136a9a9-4dcb-48ab-a3bc-4528c23e876f",
+          "time": 1793005577740,
+          "totalMs": 1638,
+          "dbQueries": 22,
+          "dbWallMs": 1638,
+          "stages": {
+            "identity": 0,
+            "trip_query": 212,
+            "owner": 60,
+            "access": 325,
+            "links": 1041,
+            "etag": 0,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 212,
+              "engineMs": 11.903,
+              "rowsRead": 5,
+              "rowsWritten": 0
+            },
+            "owner": {
+              "count": 1,
+              "wallMs": 60,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            },
+            "access_grant": {
+              "count": 5,
+              "wallMs": 325,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            },
+            "linked_grants": {
+              "count": 5,
+              "wallMs": 358,
+              "engineMs": 2.8783,
+              "rowsRead": 9,
+              "rowsWritten": 0
+            },
+            "link_insert": {
+              "count": 5,
+              "wallMs": 356,
+              "engineMs": 1.6371,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            },
+            "link_read": {
+              "count": 5,
+              "wallMs": 327,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            }
+          },
+          "counts": {
+            "groupsRead": 5,
+            "sourceChars": 370825,
+            "billsRead": 60,
+            "plansRead": 6,
+            "historyRead": 228,
+            "groupsReturned": 5,
+            "responseChars": 372359
+          }
+        },
+        {
+          "requestId": "2112f1c9-68d1-405e-83d5-693ddee46db5",
+          "time": 1793005588379,
+          "totalMs": 1481,
+          "dbQueries": 22,
+          "dbWallMs": 1481,
+          "stages": {
+            "identity": 0,
+            "trip_query": 193,
+            "owner": 56,
+            "access": 297,
+            "links": 935,
+            "etag": 0,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 193,
+              "engineMs": 8.7658,
+              "rowsRead": 5,
+              "rowsWritten": 0
+            },
+            "owner": {
+              "count": 1,
+              "wallMs": 56,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            },
+            "access_grant": {
+              "count": 5,
+              "wallMs": 297,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            },
+            "linked_grants": {
+              "count": 5,
+              "wallMs": 303,
+              "engineMs": 1.7465,
+              "rowsRead": 9,
+              "rowsWritten": 0
+            },
+            "link_insert": {
+              "count": 5,
+              "wallMs": 301,
+              "engineMs": 1.7266,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            },
+            "link_read": {
+              "count": 5,
+              "wallMs": 331,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            }
+          },
+          "counts": {
+            "groupsRead": 5,
+            "sourceChars": 370825,
+            "billsRead": 60,
+            "plansRead": 6,
+            "historyRead": 228,
+            "groupsReturned": 5,
+            "responseChars": 372359
+          }
+        },
+        {
+          "requestId": "bbfd47c1-f7d5-4689-a3b4-aa5313d9ce6f",
+          "time": 1793005590837,
+          "totalMs": 1546,
+          "dbQueries": 22,
+          "dbWallMs": 1546,
+          "stages": {
+            "identity": 0,
+            "trip_query": 195,
+            "owner": 58,
+            "access": 333,
+            "links": 960,
+            "etag": 0,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 195,
+              "engineMs": 7.6162,
+              "rowsRead": 5,
+              "rowsWritten": 0
+            },
+            "owner": {
+              "count": 1,
+              "wallMs": 58,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            },
+            "access_grant": {
+              "count": 5,
+              "wallMs": 333,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            },
+            "linked_grants": {
+              "count": 5,
+              "wallMs": 340,
+              "engineMs": 1.1852,
+              "rowsRead": 9,
+              "rowsWritten": 0
+            },
+            "link_insert": {
+              "count": 5,
+              "wallMs": 294,
+              "engineMs": 1.1828999999999998,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            },
+            "link_read": {
+              "count": 5,
+              "wallMs": 326,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            }
+          },
+          "counts": {
+            "groupsRead": 5,
+            "sourceChars": 370825,
+            "billsRead": 60,
+            "plansRead": 6,
+            "historyRead": 228,
+            "groupsReturned": 5,
+            "responseChars": 372359
+          }
+        },
+        {
+          "requestId": "47024ac9-fabb-4e55-8e47-275a97b8abd8",
+          "time": 1793005592513,
+          "totalMs": 1392,
+          "dbQueries": 22,
+          "dbWallMs": 1392,
+          "stages": {
+            "identity": 0,
+            "trip_query": 96,
+            "owner": 56,
+            "access": 363,
+            "links": 877,
+            "etag": 0,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 96,
+              "engineMs": 4.9453,
+              "rowsRead": 5,
+              "rowsWritten": 0
+            },
+            "owner": {
+              "count": 1,
+              "wallMs": 56,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            },
+            "access_grant": {
+              "count": 5,
+              "wallMs": 363,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            },
+            "linked_grants": {
+              "count": 5,
+              "wallMs": 293,
+              "engineMs": 1.5934,
+              "rowsRead": 9,
+              "rowsWritten": 0
+            },
+            "link_insert": {
+              "count": 5,
+              "wallMs": 290,
+              "engineMs": 1.1367,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            },
+            "link_read": {
+              "count": 5,
+              "wallMs": 294,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            }
+          },
+          "counts": {
+            "groupsRead": 5,
+            "sourceChars": 370825,
+            "billsRead": 60,
+            "plansRead": 6,
+            "historyRead": 228,
+            "groupsReturned": 5,
+            "responseChars": 372359
+          }
+        },
+        {
+          "requestId": "5c24a5cc-5265-443c-ae8d-bddac0a623e2",
+          "time": 1793005593121,
+          "totalMs": 1366,
+          "dbQueries": 22,
+          "dbWallMs": 1366,
+          "stages": {
+            "identity": 0,
+            "trip_query": 96,
+            "owner": 59,
+            "access": 309,
+            "links": 902,
+            "etag": 0,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 96,
+              "engineMs": 8.8117,
+              "rowsRead": 5,
+              "rowsWritten": 0
+            },
+            "owner": {
+              "count": 1,
+              "wallMs": 59,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            },
+            "access_grant": {
+              "count": 5,
+              "wallMs": 309,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            },
+            "linked_grants": {
+              "count": 5,
+              "wallMs": 293,
+              "engineMs": 1.8636,
+              "rowsRead": 9,
+              "rowsWritten": 0
+            },
+            "link_insert": {
+              "count": 5,
+              "wallMs": 320,
+              "engineMs": 1.2691000000000001,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            },
+            "link_read": {
+              "count": 5,
+              "wallMs": 289,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            }
+          },
+          "counts": {
+            "groupsRead": 5,
+            "sourceChars": 370825,
+            "billsRead": 60,
+            "plansRead": 6,
+            "historyRead": 228,
+            "groupsReturned": 5,
+            "responseChars": 372359
+          }
+        },
+        {
+          "requestId": "f8fff06b-84d0-4094-a5dc-da17fed17d49",
+          "time": 1793005595886,
+          "totalMs": 1866,
+          "dbQueries": 22,
+          "dbWallMs": 1866,
+          "stages": {
+            "identity": 0,
+            "trip_query": 196,
+            "owner": 57,
+            "access": 302,
+            "links": 1311,
+            "etag": 0,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 196,
+              "engineMs": 7.6498,
+              "rowsRead": 5,
+              "rowsWritten": 0
+            },
+            "owner": {
+              "count": 1,
+              "wallMs": 57,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            },
+            "access_grant": {
+              "count": 5,
+              "wallMs": 302,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            },
+            "linked_grants": {
+              "count": 5,
+              "wallMs": 700,
+              "engineMs": 2.3897,
+              "rowsRead": 9,
+              "rowsWritten": 0
+            },
+            "link_insert": {
+              "count": 5,
+              "wallMs": 302,
+              "engineMs": 1.8270000000000002,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            },
+            "link_read": {
+              "count": 5,
+              "wallMs": 309,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            }
+          },
+          "counts": {
+            "groupsRead": 5,
+            "sourceChars": 370825,
+            "billsRead": 60,
+            "plansRead": 6,
+            "historyRead": 228,
+            "groupsReturned": 5,
+            "responseChars": 372359
+          }
+        },
+        {
+          "requestId": "cf0ccd54-5ae0-4c0a-8b79-62f7563f58af",
+          "time": 1793005598078,
+          "totalMs": 1396,
+          "dbQueries": 22,
+          "dbWallMs": 1396,
+          "stages": {
+            "identity": 0,
+            "trip_query": 105,
+            "owner": 57,
+            "access": 296,
+            "links": 938,
+            "etag": 0,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 105,
+              "engineMs": 16.0954,
+              "rowsRead": 5,
+              "rowsWritten": 0
+            },
+            "owner": {
+              "count": 1,
+              "wallMs": 57,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            },
+            "access_grant": {
+              "count": 5,
+              "wallMs": 296,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            },
+            "linked_grants": {
+              "count": 5,
+              "wallMs": 302,
+              "engineMs": 3.8019000000000003,
+              "rowsRead": 9,
+              "rowsWritten": 0
+            },
+            "link_insert": {
+              "count": 5,
+              "wallMs": 341,
+              "engineMs": 1.6217000000000001,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            },
+            "link_read": {
+              "count": 5,
+              "wallMs": 295,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            }
+          },
+          "counts": {
+            "groupsRead": 5,
+            "sourceChars": 370825,
+            "billsRead": 60,
+            "plansRead": 6,
+            "historyRead": 228,
+            "groupsReturned": 5,
+            "responseChars": 372359
+          }
+        },
+        {
+          "requestId": "c8dde1eb-e229-476e-8764-84d35920756f",
+          "time": 1793005620106,
+          "totalMs": 1801,
+          "dbQueries": 22,
+          "dbWallMs": 1801,
+          "stages": {
+            "identity": 0,
+            "trip_query": 87,
+            "owner": 56,
+            "access": 302,
+            "links": 1356,
+            "etag": 0,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 87,
+              "engineMs": 10.2125,
+              "rowsRead": 5,
+              "rowsWritten": 0
+            },
+            "owner": {
+              "count": 1,
+              "wallMs": 56,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            },
+            "access_grant": {
+              "count": 5,
+              "wallMs": 302,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            },
+            "linked_grants": {
+              "count": 5,
+              "wallMs": 298,
+              "engineMs": 1.7483,
+              "rowsRead": 9,
+              "rowsWritten": 0
+            },
+            "link_insert": {
+              "count": 5,
+              "wallMs": 295,
+              "engineMs": 1.8143999999999998,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            },
+            "link_read": {
+              "count": 5,
+              "wallMs": 763,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            }
+          },
+          "counts": {
+            "groupsRead": 5,
+            "sourceChars": 370825,
+            "billsRead": 60,
+            "plansRead": 6,
+            "historyRead": 228,
+            "groupsReturned": 5,
+            "responseChars": 372359
+          }
+        },
+        {
+          "requestId": "f28c67e3-5242-4d2c-bbf0-4a428e35038e",
+          "time": 1793005622310,
+          "totalMs": 1421,
+          "dbQueries": 22,
+          "dbWallMs": 1421,
+          "stages": {
+            "identity": 0,
+            "trip_query": 103,
+            "owner": 57,
+            "access": 365,
+            "links": 896,
+            "etag": 0,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 103,
+              "engineMs": 13.6006,
+              "rowsRead": 5,
+              "rowsWritten": 0
+            },
+            "owner": {
+              "count": 1,
+              "wallMs": 57,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            },
+            "access_grant": {
+              "count": 5,
+              "wallMs": 365,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            },
+            "linked_grants": {
+              "count": 5,
+              "wallMs": 290,
+              "engineMs": 1.8022,
+              "rowsRead": 9,
+              "rowsWritten": 0
+            },
+            "link_insert": {
+              "count": 5,
+              "wallMs": 295,
+              "engineMs": 1.5549,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            },
+            "link_read": {
+              "count": 5,
+              "wallMs": 311,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            }
+          },
+          "counts": {
+            "groupsRead": 5,
+            "sourceChars": 370825,
+            "billsRead": 60,
+            "plansRead": 6,
+            "historyRead": 228,
+            "groupsReturned": 5,
+            "responseChars": 372359
+          }
+        },
+        {
+          "requestId": "dd3d8370-e760-44a8-ae46-ab1cd5d8fd76",
+          "time": 1793005624756,
+          "totalMs": 1406,
+          "dbQueries": 22,
+          "dbWallMs": 1406,
+          "stages": {
+            "identity": 0,
+            "trip_query": 89,
+            "owner": 62,
+            "access": 324,
+            "links": 931,
+            "etag": 0,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 89,
+              "engineMs": 15.0043,
+              "rowsRead": 5,
+              "rowsWritten": 0
+            },
+            "owner": {
+              "count": 1,
+              "wallMs": 62,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            },
+            "access_grant": {
+              "count": 5,
+              "wallMs": 324,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            },
+            "linked_grants": {
+              "count": 5,
+              "wallMs": 295,
+              "engineMs": 2.5701,
+              "rowsRead": 9,
+              "rowsWritten": 0
+            },
+            "link_insert": {
+              "count": 5,
+              "wallMs": 312,
+              "engineMs": 5.8362,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            },
+            "link_read": {
+              "count": 5,
+              "wallMs": 324,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            }
+          },
+          "counts": {
+            "groupsRead": 5,
+            "sourceChars": 370825,
+            "billsRead": 60,
+            "plansRead": 6,
+            "historyRead": 228,
+            "groupsReturned": 5,
+            "responseChars": 372359
+          }
+        },
+        {
+          "requestId": "93132623-9008-46df-8729-06b262072617",
+          "time": 1793005625220,
+          "totalMs": 1379,
+          "dbQueries": 22,
+          "dbWallMs": 1379,
+          "stages": {
+            "identity": 0,
+            "trip_query": 103,
+            "owner": 60,
+            "access": 300,
+            "links": 916,
+            "etag": 0,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 103,
+              "engineMs": 5.8699,
+              "rowsRead": 5,
+              "rowsWritten": 0
+            },
+            "owner": {
+              "count": 1,
+              "wallMs": 60,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            },
+            "access_grant": {
+              "count": 5,
+              "wallMs": 300,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            },
+            "linked_grants": {
+              "count": 5,
+              "wallMs": 307,
+              "engineMs": 3.7249,
+              "rowsRead": 9,
+              "rowsWritten": 0
+            },
+            "link_insert": {
+              "count": 5,
+              "wallMs": 308,
+              "engineMs": 2.9112,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            },
+            "link_read": {
+              "count": 5,
+              "wallMs": 301,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            }
+          },
+          "counts": {
+            "groupsRead": 5,
+            "sourceChars": 370825,
+            "billsRead": 60,
+            "plansRead": 6,
+            "historyRead": 228,
+            "groupsReturned": 5,
+            "responseChars": 372359
+          }
+        },
+        {
+          "requestId": "3e0e5719-cdce-45d7-adf5-b976e490628e",
+          "time": 1793005627700,
+          "totalMs": 1675,
+          "dbQueries": 22,
+          "dbWallMs": 1675,
+          "stages": {
+            "identity": 0,
+            "trip_query": 84,
+            "owner": 60,
+            "access": 306,
+            "links": 1225,
+            "etag": 0,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 84,
+              "engineMs": 6.5334,
+              "rowsRead": 5,
+              "rowsWritten": 0
+            },
+            "owner": {
+              "count": 1,
+              "wallMs": 60,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            },
+            "access_grant": {
+              "count": 5,
+              "wallMs": 306,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            },
+            "linked_grants": {
+              "count": 5,
+              "wallMs": 627,
+              "engineMs": 2.0793,
+              "rowsRead": 9,
+              "rowsWritten": 0
+            },
+            "link_insert": {
+              "count": 5,
+              "wallMs": 300,
+              "engineMs": 1.4905,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            },
+            "link_read": {
+              "count": 5,
+              "wallMs": 298,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            }
+          },
+          "counts": {
+            "groupsRead": 5,
+            "sourceChars": 370825,
+            "billsRead": 60,
+            "plansRead": 6,
+            "historyRead": 228,
+            "groupsReturned": 5,
+            "responseChars": 372359
+          }
+        },
+        {
+          "requestId": "00a2a479-9529-4329-926d-fe1280e9096f",
+          "time": 1793005630140,
+          "totalMs": 1562,
+          "dbQueries": 22,
+          "dbWallMs": 1562,
+          "stages": {
+            "identity": 0,
+            "trip_query": 94,
+            "owner": 286,
+            "access": 290,
+            "links": 892,
+            "etag": 0,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 94,
+              "engineMs": 7.3213,
+              "rowsRead": 5,
+              "rowsWritten": 0
+            },
+            "owner": {
+              "count": 1,
+              "wallMs": 286,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            },
+            "access_grant": {
+              "count": 5,
+              "wallMs": 290,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            },
+            "linked_grants": {
+              "count": 5,
+              "wallMs": 299,
+              "engineMs": 1.8387,
+              "rowsRead": 9,
+              "rowsWritten": 0
+            },
+            "link_insert": {
+              "count": 5,
+              "wallMs": 292,
+              "engineMs": 1.2887,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            },
+            "link_read": {
+              "count": 5,
+              "wallMs": 301,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            }
+          },
+          "counts": {
+            "groupsRead": 5,
+            "sourceChars": 370825,
+            "billsRead": 60,
+            "plansRead": 6,
+            "historyRead": 228,
+            "groupsReturned": 5,
+            "responseChars": 372359
+          }
+        },
+        {
+          "requestId": "b6a3de6b-e773-43f5-ae2a-722db3bf3305",
+          "time": 1793005653085,
+          "totalMs": 1944,
+          "dbQueries": 22,
+          "dbWallMs": 1944,
+          "stages": {
+            "identity": 0,
+            "trip_query": 92,
+            "owner": 72,
+            "access": 302,
+            "links": 1478,
+            "etag": 0,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 92,
+              "engineMs": 15.0618,
+              "rowsRead": 5,
+              "rowsWritten": 0
+            },
+            "owner": {
+              "count": 1,
+              "wallMs": 72,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            },
+            "access_grant": {
+              "count": 5,
+              "wallMs": 302,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            },
+            "linked_grants": {
+              "count": 5,
+              "wallMs": 593,
+              "engineMs": 1.8868,
+              "rowsRead": 9,
+              "rowsWritten": 0
+            },
+            "link_insert": {
+              "count": 5,
+              "wallMs": 297,
+              "engineMs": 1.4786000000000001,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            },
+            "link_read": {
+              "count": 5,
+              "wallMs": 588,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            }
+          },
+          "counts": {
+            "groupsRead": 5,
+            "sourceChars": 370825,
+            "billsRead": 60,
+            "plansRead": 6,
+            "historyRead": 228,
+            "groupsReturned": 5,
+            "responseChars": 372359
+          }
+        },
+        {
+          "requestId": "8743af88-6520-409a-8f30-60c5564ffeaf",
+          "time": 1793005655989,
+          "totalMs": 1558,
+          "dbQueries": 22,
+          "dbWallMs": 1558,
+          "stages": {
+            "identity": 0,
+            "trip_query": 84,
+            "owner": 60,
+            "access": 296,
+            "links": 1118,
+            "etag": 0,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 84,
+              "engineMs": 8.2464,
+              "rowsRead": 5,
+              "rowsWritten": 0
+            },
+            "owner": {
+              "count": 1,
+              "wallMs": 60,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            },
+            "access_grant": {
+              "count": 5,
+              "wallMs": 296,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            },
+            "linked_grants": {
+              "count": 5,
+              "wallMs": 342,
+              "engineMs": 1.7500000000000004,
+              "rowsRead": 9,
+              "rowsWritten": 0
+            },
+            "link_insert": {
+              "count": 5,
+              "wallMs": 394,
+              "engineMs": 1.8084000000000002,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            },
+            "link_read": {
+              "count": 5,
+              "wallMs": 382,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            }
+          },
+          "counts": {
+            "groupsRead": 5,
+            "sourceChars": 370825,
+            "billsRead": 60,
+            "plansRead": 6,
+            "historyRead": 228,
+            "groupsReturned": 5,
+            "responseChars": 372359
+          }
+        },
+        {
+          "requestId": "99c3874b-684b-4208-80de-cbb76b15f1b5",
+          "time": 1793005658852,
+          "totalMs": 1372,
+          "dbQueries": 22,
+          "dbWallMs": 1372,
+          "stages": {
+            "identity": 0,
+            "trip_query": 86,
+            "owner": 57,
+            "access": 300,
+            "links": 929,
+            "etag": 0,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 86,
+              "engineMs": 9.7191,
+              "rowsRead": 5,
+              "rowsWritten": 0
+            },
+            "owner": {
+              "count": 1,
+              "wallMs": 57,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            },
+            "access_grant": {
+              "count": 5,
+              "wallMs": 300,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            },
+            "linked_grants": {
+              "count": 5,
+              "wallMs": 296,
+              "engineMs": 2.0517,
+              "rowsRead": 9,
+              "rowsWritten": 0
+            },
+            "link_insert": {
+              "count": 5,
+              "wallMs": 293,
+              "engineMs": 1.6643000000000001,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            },
+            "link_read": {
+              "count": 5,
+              "wallMs": 340,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            }
+          },
+          "counts": {
+            "groupsRead": 5,
+            "sourceChars": 370825,
+            "billsRead": 60,
+            "plansRead": 6,
+            "historyRead": 228,
+            "groupsReturned": 5,
+            "responseChars": 372359
+          }
+        },
+        {
+          "requestId": "8d7aadd4-c0d2-4182-9b30-0dc9c0fc1ba1",
+          "time": 1793005661868,
+          "totalMs": 2092,
+          "dbQueries": 22,
+          "dbWallMs": 2092,
+          "stages": {
+            "identity": 0,
+            "trip_query": 94,
+            "owner": 57,
+            "access": 305,
+            "links": 1636,
+            "etag": 0,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 94,
+              "engineMs": 15.8002,
+              "rowsRead": 5,
+              "rowsWritten": 0
+            },
+            "owner": {
+              "count": 1,
+              "wallMs": 57,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            },
+            "access_grant": {
+              "count": 5,
+              "wallMs": 305,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            },
+            "linked_grants": {
+              "count": 5,
+              "wallMs": 324,
+              "engineMs": 3.0086,
+              "rowsRead": 9,
+              "rowsWritten": 0
+            },
+            "link_insert": {
+              "count": 5,
+              "wallMs": 675,
+              "engineMs": 1.9063,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            },
+            "link_read": {
+              "count": 5,
+              "wallMs": 637,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            }
+          },
+          "counts": {
+            "groupsRead": 5,
+            "sourceChars": 370825,
+            "billsRead": 60,
+            "plansRead": 6,
+            "historyRead": 228,
+            "groupsReturned": 5,
+            "responseChars": 372359
+          }
+        },
+        {
+          "requestId": "056f54b0-c85c-427a-aed7-2107441496a0",
+          "time": 1793005664165,
+          "totalMs": 1480,
+          "dbQueries": 22,
+          "dbWallMs": 1480,
+          "stages": {
+            "identity": 0,
+            "trip_query": 145,
+            "owner": 138,
+            "access": 293,
+            "links": 904,
+            "etag": 0,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 145,
+              "engineMs": 19.0438,
+              "rowsRead": 5,
+              "rowsWritten": 0
+            },
+            "owner": {
+              "count": 1,
+              "wallMs": 138,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            },
+            "access_grant": {
+              "count": 5,
+              "wallMs": 293,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            },
+            "linked_grants": {
+              "count": 5,
+              "wallMs": 295,
+              "engineMs": 1.5893,
+              "rowsRead": 9,
+              "rowsWritten": 0
+            },
+            "link_insert": {
+              "count": 5,
+              "wallMs": 311,
+              "engineMs": 2.2949,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            },
+            "link_read": {
+              "count": 5,
+              "wallMs": 298,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            }
+          },
+          "counts": {
+            "groupsRead": 5,
+            "sourceChars": 370825,
+            "billsRead": 60,
+            "plansRead": 6,
+            "historyRead": 228,
+            "groupsReturned": 5,
+            "responseChars": 372359
+          }
+        },
+        {
+          "requestId": "db289924-2055-4cae-8f63-16f6eb6c94f4",
+          "time": 1793005666738,
+          "totalMs": 1379,
+          "dbQueries": 22,
+          "dbWallMs": 1379,
+          "stages": {
+            "identity": 0,
+            "trip_query": 80,
+            "owner": 57,
+            "access": 289,
+            "links": 953,
+            "etag": 0,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 80,
+              "engineMs": 7.6543,
+              "rowsRead": 5,
+              "rowsWritten": 0
+            },
+            "owner": {
+              "count": 1,
+              "wallMs": 57,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            },
+            "access_grant": {
+              "count": 5,
+              "wallMs": 289,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            },
+            "linked_grants": {
+              "count": 5,
+              "wallMs": 299,
+              "engineMs": 1.6229,
+              "rowsRead": 9,
+              "rowsWritten": 0
+            },
+            "link_insert": {
+              "count": 5,
+              "wallMs": 354,
+              "engineMs": 1.5031999999999999,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            },
+            "link_read": {
+              "count": 5,
+              "wallMs": 300,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            }
+          },
+          "counts": {
+            "groupsRead": 5,
+            "sourceChars": 370825,
+            "billsRead": 60,
+            "plansRead": 6,
+            "historyRead": 228,
+            "groupsReturned": 5,
+            "responseChars": 372359
+          }
+        }
+      ]
+    },
+    "/api/notifications": {
+      "n": 20,
+      "from": "2026-10-26T09:06:02.774Z",
+      "to": "2026-10-26T09:08:09.048Z",
+      "p50": 459,
+      "p95": 846,
+      "min": 374,
+      "max": 1032,
+      "stages": {
+        "identity": {
+          "p50": 0,
+          "mean": 0
+        },
+        "trip_query": {
+          "p50": 112,
+          "mean": 168
+        },
+        "access": {
+          "p50": 302,
+          "mean": 348
+        },
+        "json_parse": {
+          "p50": 0,
+          "mean": 0
+        },
+        "bills": {
+          "p50": 0,
+          "mean": 0
+        },
+        "history": {
+          "p50": 0,
+          "mean": 0
+        },
+        "serialize": {
+          "p50": 0,
+          "mean": 0
+        }
+      },
+      "queries": {
+        "trips": {
+          "count": 1,
+          "p50": 112,
+          "mean": 168
+        },
+        "access_grant": {
+          "count": 5,
+          "p50": 302,
+          "mean": 348
+        }
+      },
+      "samples": [
+        {
+          "requestId": "1a3ab0e2-3dbb-4092-8589-6cce8616a526",
+          "time": 1793005562774,
+          "totalMs": 846,
+          "dbQueries": 6,
+          "dbWallMs": 846,
+          "stages": {
+            "identity": 0,
+            "trip_query": 496,
+            "access": 350,
+            "json_parse": 0,
+            "bills": 0,
+            "history": 0,
+            "serialize": 0
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 496,
+              "engineMs": 15.4889,
+              "rowsRead": 5,
+              "rowsWritten": 0
+            },
+            "access_grant": {
+              "count": 5,
+              "wallMs": 350,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            }
+          },
+          "counts": {
+            "groupsRead": 5,
+            "sourceChars": 370825,
+            "billsRead": 60,
+            "plansRead": 6,
+            "historyRead": 228,
+            "responseChars": 9967
+          }
+        },
+        {
+          "requestId": "ce9cb38b-7d85-4c65-948c-27050304bd96",
+          "time": 1793005586711,
+          "totalMs": 416,
+          "dbQueries": 6,
+          "dbWallMs": 416,
+          "stages": {
+            "identity": 0,
+            "trip_query": 103,
+            "access": 313,
+            "json_parse": 0,
+            "bills": 0,
+            "history": 0,
+            "serialize": 0
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 103,
+              "engineMs": 9.892,
+              "rowsRead": 5,
+              "rowsWritten": 0
+            },
+            "access_grant": {
+              "count": 5,
+              "wallMs": 313,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            }
+          },
+          "counts": {
+            "groupsRead": 5,
+            "sourceChars": 370825,
+            "billsRead": 60,
+            "plansRead": 6,
+            "historyRead": 228,
+            "responseChars": 9967
+          }
+        },
+        {
+          "requestId": "5d4db6b0-6c75-46fb-9946-1166eeee9d6d",
+          "time": 1793005589143,
+          "totalMs": 488,
+          "dbQueries": 6,
+          "dbWallMs": 488,
+          "stages": {
+            "identity": 0,
+            "trip_query": 198,
+            "access": 290,
+            "json_parse": 0,
+            "bills": 0,
+            "history": 0,
+            "serialize": 0
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 198,
+              "engineMs": 11.0599,
+              "rowsRead": 5,
+              "rowsWritten": 0
+            },
+            "access_grant": {
+              "count": 5,
+              "wallMs": 290,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            }
+          },
+          "counts": {
+            "groupsRead": 5,
+            "sourceChars": 370825,
+            "billsRead": 60,
+            "plansRead": 6,
+            "historyRead": 228,
+            "responseChars": 9967
+          }
+        },
+        {
+          "requestId": "1d861202-6d5e-42ca-be15-29f098b93e97",
+          "time": 1793005591633,
+          "totalMs": 574,
+          "dbQueries": 6,
+          "dbWallMs": 574,
+          "stages": {
+            "identity": 0,
+            "trip_query": 201,
+            "access": 373,
+            "json_parse": 0,
+            "bills": 0,
+            "history": 0,
+            "serialize": 0
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 201,
+              "engineMs": 10.6529,
+              "rowsRead": 5,
+              "rowsWritten": 0
+            },
+            "access_grant": {
+              "count": 5,
+              "wallMs": 373,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            }
+          },
+          "counts": {
+            "groupsRead": 5,
+            "sourceChars": 370825,
+            "billsRead": 60,
+            "plansRead": 6,
+            "historyRead": 228,
+            "responseChars": 9967
+          }
+        },
+        {
+          "requestId": "87bae44d-49b4-4562-b880-581da6b46923",
+          "time": 1793005593848,
+          "totalMs": 493,
+          "dbQueries": 6,
+          "dbWallMs": 493,
+          "stages": {
+            "identity": 0,
+            "trip_query": 204,
+            "access": 289,
+            "json_parse": 0,
+            "bills": 0,
+            "history": 0,
+            "serialize": 0
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 204,
+              "engineMs": 16.5092,
+              "rowsRead": 5,
+              "rowsWritten": 0
+            },
+            "access_grant": {
+              "count": 5,
+              "wallMs": 289,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            }
+          },
+          "counts": {
+            "groupsRead": 5,
+            "sourceChars": 370825,
+            "billsRead": 60,
+            "plansRead": 6,
+            "historyRead": 228,
+            "responseChars": 9967
+          }
+        },
+        {
+          "requestId": "4ce05d10-6aff-4e87-a691-3a016edfb73e",
+          "time": 1793005596544,
+          "totalMs": 405,
+          "dbQueries": 6,
+          "dbWallMs": 405,
+          "stages": {
+            "identity": 0,
+            "trip_query": 98,
+            "access": 307,
+            "json_parse": 0,
+            "bills": 0,
+            "history": 0,
+            "serialize": 0
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 98,
+              "engineMs": 6.881,
+              "rowsRead": 5,
+              "rowsWritten": 0
+            },
+            "access_grant": {
+              "count": 5,
+              "wallMs": 307,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            }
+          },
+          "counts": {
+            "groupsRead": 5,
+            "sourceChars": 370825,
+            "billsRead": 60,
+            "plansRead": 6,
+            "historyRead": 228,
+            "responseChars": 9967
+          }
+        },
+        {
+          "requestId": "e084744a-368b-4d0a-b59a-94177105e0ec",
+          "time": 1793005606498,
+          "totalMs": 374,
+          "dbQueries": 6,
+          "dbWallMs": 374,
+          "stages": {
+            "identity": 0,
+            "trip_query": 82,
+            "access": 292,
+            "json_parse": 0,
+            "bills": 0,
+            "history": 0,
+            "serialize": 0
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 82,
+              "engineMs": 8.5294,
+              "rowsRead": 5,
+              "rowsWritten": 0
+            },
+            "access_grant": {
+              "count": 5,
+              "wallMs": 292,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            }
+          },
+          "counts": {
+            "groupsRead": 5,
+            "sourceChars": 370825,
+            "billsRead": 60,
+            "plansRead": 6,
+            "historyRead": 228,
+            "responseChars": 9967
+          }
+        },
+        {
+          "requestId": "66d83b7f-6458-427a-8ade-7cb5ddd93b87",
+          "time": 1793005618171,
+          "totalMs": 395,
+          "dbQueries": 6,
+          "dbWallMs": 395,
+          "stages": {
+            "identity": 0,
+            "trip_query": 100,
+            "access": 295,
+            "json_parse": 0,
+            "bills": 0,
+            "history": 0,
+            "serialize": 0
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 100,
+              "engineMs": 7.7575,
+              "rowsRead": 5,
+              "rowsWritten": 0
+            },
+            "access_grant": {
+              "count": 5,
+              "wallMs": 295,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            }
+          },
+          "counts": {
+            "groupsRead": 5,
+            "sourceChars": 370825,
+            "billsRead": 60,
+            "plansRead": 6,
+            "historyRead": 228,
+            "responseChars": 9967
+          }
+        },
+        {
+          "requestId": "5ecdd00c-c4e1-429c-9e75-88b2304bc2e1",
+          "time": 1793005620730,
+          "totalMs": 411,
+          "dbQueries": 6,
+          "dbWallMs": 411,
+          "stages": {
+            "identity": 0,
+            "trip_query": 109,
+            "access": 302,
+            "json_parse": 0,
+            "bills": 0,
+            "history": 0,
+            "serialize": 0
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 109,
+              "engineMs": 9.2739,
+              "rowsRead": 5,
+              "rowsWritten": 0
+            },
+            "access_grant": {
+              "count": 5,
+              "wallMs": 302,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            }
+          },
+          "counts": {
+            "groupsRead": 5,
+            "sourceChars": 370825,
+            "billsRead": 60,
+            "plansRead": 6,
+            "historyRead": 228,
+            "responseChars": 9967
+          }
+        },
+        {
+          "requestId": "7ed3d31a-4b8c-47c7-a5a9-0bedf30cac08",
+          "time": 1793005623687,
+          "totalMs": 500,
+          "dbQueries": 6,
+          "dbWallMs": 500,
+          "stages": {
+            "identity": 0,
+            "trip_query": 203,
+            "access": 297,
+            "json_parse": 0,
+            "bills": 0,
+            "history": 0,
+            "serialize": 0
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 203,
+              "engineMs": 9.6732,
+              "rowsRead": 5,
+              "rowsWritten": 0
+            },
+            "access_grant": {
+              "count": 5,
+              "wallMs": 297,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            }
+          },
+          "counts": {
+            "groupsRead": 5,
+            "sourceChars": 370825,
+            "billsRead": 60,
+            "plansRead": 6,
+            "historyRead": 228,
+            "responseChars": 9967
+          }
+        },
+        {
+          "requestId": "84188bb4-67cd-4459-adb8-4eacbc27a4b7",
+          "time": 1793005625873,
+          "totalMs": 398,
+          "dbQueries": 6,
+          "dbWallMs": 398,
+          "stages": {
+            "identity": 0,
+            "trip_query": 91,
+            "access": 307,
+            "json_parse": 0,
+            "bills": 0,
+            "history": 0,
+            "serialize": 0
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 91,
+              "engineMs": 16.8366,
+              "rowsRead": 5,
+              "rowsWritten": 0
+            },
+            "access_grant": {
+              "count": 5,
+              "wallMs": 307,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            }
+          },
+          "counts": {
+            "groupsRead": 5,
+            "sourceChars": 370825,
+            "billsRead": 60,
+            "plansRead": 6,
+            "historyRead": 228,
+            "responseChars": 9967
+          }
+        },
+        {
+          "requestId": "147322ce-f647-405b-a541-741493835565",
+          "time": 1793005628441,
+          "totalMs": 500,
+          "dbQueries": 6,
+          "dbWallMs": 500,
+          "stages": {
+            "identity": 0,
+            "trip_query": 203,
+            "access": 297,
+            "json_parse": 0,
+            "bills": 0,
+            "history": 0,
+            "serialize": 0
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 203,
+              "engineMs": 12.2525,
+              "rowsRead": 5,
+              "rowsWritten": 0
+            },
+            "access_grant": {
+              "count": 5,
+              "wallMs": 297,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            }
+          },
+          "counts": {
+            "groupsRead": 5,
+            "sourceChars": 370825,
+            "billsRead": 60,
+            "plansRead": 6,
+            "historyRead": 228,
+            "responseChars": 9967
+          }
+        },
+        {
+          "requestId": "79d614c9-66bf-4b49-b110-188644d4c400",
+          "time": 1793005651571,
+          "totalMs": 459,
+          "dbQueries": 6,
+          "dbWallMs": 459,
+          "stages": {
+            "identity": 0,
+            "trip_query": 111,
+            "access": 348,
+            "json_parse": 0,
+            "bills": 0,
+            "history": 0,
+            "serialize": 0
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 111,
+              "engineMs": 8.601,
+              "rowsRead": 5,
+              "rowsWritten": 0
+            },
+            "access_grant": {
+              "count": 5,
+              "wallMs": 348,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            }
+          },
+          "counts": {
+            "groupsRead": 5,
+            "sourceChars": 370825,
+            "billsRead": 60,
+            "plansRead": 6,
+            "historyRead": 228,
+            "responseChars": 9967
+          }
+        },
+        {
+          "requestId": "66ee3996-12d1-4e4b-9089-ddedea3d4746",
+          "time": 1793005654273,
+          "totalMs": 401,
+          "dbQueries": 6,
+          "dbWallMs": 401,
+          "stages": {
+            "identity": 0,
+            "trip_query": 103,
+            "access": 298,
+            "json_parse": 0,
+            "bills": 0,
+            "history": 0,
+            "serialize": 0
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 103,
+              "engineMs": 9.3775,
+              "rowsRead": 5,
+              "rowsWritten": 0
+            },
+            "access_grant": {
+              "count": 5,
+              "wallMs": 298,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            }
+          },
+          "counts": {
+            "groupsRead": 5,
+            "sourceChars": 370825,
+            "billsRead": 60,
+            "plansRead": 6,
+            "historyRead": 228,
+            "responseChars": 9967
+          }
+        },
+        {
+          "requestId": "47d63fdc-6303-4603-a9fe-1cf20018914e",
+          "time": 1793005657302,
+          "totalMs": 1032,
+          "dbQueries": 6,
+          "dbWallMs": 1032,
+          "stages": {
+            "identity": 0,
+            "trip_query": 353,
+            "access": 679,
+            "json_parse": 0,
+            "bills": 0,
+            "history": 0,
+            "serialize": 0
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 353,
+              "engineMs": 12.2466,
+              "rowsRead": 5,
+              "rowsWritten": 0
+            },
+            "access_grant": {
+              "count": 5,
+              "wallMs": 679,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            }
+          },
+          "counts": {
+            "groupsRead": 5,
+            "sourceChars": 370825,
+            "billsRead": 60,
+            "plansRead": 6,
+            "historyRead": 228,
+            "responseChars": 9967
+          }
+        },
+        {
+          "requestId": "5328e3d2-44c1-49b2-aa26-c13dd06b5fe5",
+          "time": 1793005659620,
+          "totalMs": 531,
+          "dbQueries": 6,
+          "dbWallMs": 531,
+          "stages": {
+            "identity": 0,
+            "trip_query": 199,
+            "access": 332,
+            "json_parse": 0,
+            "bills": 0,
+            "history": 0,
+            "serialize": 0
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 199,
+              "engineMs": 10.2434,
+              "rowsRead": 5,
+              "rowsWritten": 0
+            },
+            "access_grant": {
+              "count": 5,
+              "wallMs": 332,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            }
+          },
+          "counts": {
+            "groupsRead": 5,
+            "sourceChars": 370825,
+            "billsRead": 60,
+            "plansRead": 6,
+            "historyRead": 228,
+            "responseChars": 9967
+          }
+        },
+        {
+          "requestId": "8f8b626e-1e9f-47fe-afc1-0e0e9b5deef9",
+          "time": 1793005662543,
+          "totalMs": 471,
+          "dbQueries": 6,
+          "dbWallMs": 471,
+          "stages": {
+            "identity": 0,
+            "trip_query": 163,
+            "access": 308,
+            "json_parse": 0,
+            "bills": 0,
+            "history": 0,
+            "serialize": 0
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 163,
+              "engineMs": 16.6933,
+              "rowsRead": 5,
+              "rowsWritten": 0
+            },
+            "access_grant": {
+              "count": 5,
+              "wallMs": 308,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            }
+          },
+          "counts": {
+            "groupsRead": 5,
+            "sourceChars": 370825,
+            "billsRead": 60,
+            "plansRead": 6,
+            "historyRead": 228,
+            "responseChars": 9967
+          }
+        },
+        {
+          "requestId": "d8c3cb11-b655-476a-93a4-ba06760397eb",
+          "time": 1793005665192,
+          "totalMs": 791,
+          "dbQueries": 6,
+          "dbWallMs": 791,
+          "stages": {
+            "identity": 0,
+            "trip_query": 104,
+            "access": 687,
+            "json_parse": 0,
+            "bills": 0,
+            "history": 0,
+            "serialize": 0
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 104,
+              "engineMs": 9.7755,
+              "rowsRead": 5,
+              "rowsWritten": 0
+            },
+            "access_grant": {
+              "count": 5,
+              "wallMs": 687,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            }
+          },
+          "counts": {
+            "groupsRead": 5,
+            "sourceChars": 370825,
+            "billsRead": 60,
+            "plansRead": 6,
+            "historyRead": 228,
+            "responseChars": 9967
+          }
+        },
+        {
+          "requestId": "22d8831d-85eb-4e8d-bdce-80f7fa3a850e",
+          "time": 1793005686687,
+          "totalMs": 406,
+          "dbQueries": 6,
+          "dbWallMs": 406,
+          "stages": {
+            "identity": 0,
+            "trip_query": 112,
+            "access": 294,
+            "json_parse": 0,
+            "bills": 0,
+            "history": 0,
+            "serialize": 0
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 112,
+              "engineMs": 12.5134,
+              "rowsRead": 5,
+              "rowsWritten": 0
+            },
+            "access_grant": {
+              "count": 5,
+              "wallMs": 294,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            }
+          },
+          "counts": {
+            "groupsRead": 5,
+            "sourceChars": 370825,
+            "billsRead": 60,
+            "plansRead": 6,
+            "historyRead": 228,
+            "responseChars": 9967
+          }
+        },
+        {
+          "requestId": "d341fc7b-84e1-40c4-b3e6-06536aa9e8e4",
+          "time": 1793005689048,
+          "totalMs": 419,
+          "dbQueries": 6,
+          "dbWallMs": 419,
+          "stages": {
+            "identity": 0,
+            "trip_query": 120,
+            "access": 299,
+            "json_parse": 0,
+            "bills": 0,
+            "history": 0,
+            "serialize": 0
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 120,
+              "engineMs": 17.531,
+              "rowsRead": 5,
+              "rowsWritten": 0
+            },
+            "access_grant": {
+              "count": 5,
+              "wallMs": 299,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            }
+          },
+          "counts": {
+            "groupsRead": 5,
+            "sourceChars": 370825,
+            "billsRead": 60,
+            "plansRead": 6,
+            "historyRead": 228,
+            "responseChars": 9967
+          }
+        }
+      ]
+    }
+  }
+}

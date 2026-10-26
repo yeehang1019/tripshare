@@ -1,5 +1,7 @@
 # Loading performance measurement — 26 October 2026
 
+v75 is published and both endpoints now have 20 deduplicated, matching five-group samples. See [measured results](loading-performance-results.md) and [numeric sample evidence](loading-performance-samples.json). This is measurement only; lower values across different network routes are not optimization gains. N+1 is the first proposed fix. Await user confirmation before optimization.
+
 The current release only instruments the two read APIs; optimization and migrations await measured findings and user confirmation. See [loading performance review](loading-performance-review.md). No frontend, data or financial changes.
 
 # Print summary — 26 October 2026
