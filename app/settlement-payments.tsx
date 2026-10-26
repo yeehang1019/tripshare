@@ -64,7 +64,7 @@ export default function SettlementPayments({event:e,group,revision,session,trans
   finally{lock.current=false;setWorking(false)}
  }
  const invalid=!!draft&&(!draft.batch.payments.length||draft.batch.payments.some(p=>{const available=(sources.get(pairKey(p))||[]).filter(b=>p.expenseIds.includes(b.id)).reduce((n,b)=>n+b.amount,0);return !p.expenseIds.length||!Number.isSafeInteger(p.amount)||p.amount<=0||p.amount>available||!p.date}));
- return <>
+ return <div className="settlement-compact-list">
   <div className="settlement-record-toolbar"><Field label="Bill"><select value={filter} onChange={v=>{setFilter(v.target.value);setSelected([])}}><option value="">All unpaid bills</option>{bills.map(b=><option key={b.id} value={b.id}>{b.title} · {b.date.split('-').reverse().join('/')}</option>)}</select></Field>
    {canRecord&&<button className="primary" disabled={disabled||!chosen.length||chosen.length>100} onClick={()=>open(chosen)}>Record selected · {chosen.length}{chosen.length?' · '+fmt(total):''}</button>}
   </div>
@@ -77,7 +77,7 @@ export default function SettlementPayments({event:e,group,revision,session,trans
    {visible.filter(t=>t.to===to).map(t=>{const key=pairKey(t),c=calculations.find(c=>c.from===t.from&&c.to===t.to||c.from===t.to&&c.to===t.from),amount=choices(t).reduce((n,b)=>n+b.amount,0),openRows=c?pendingPairSources(c):[],paid=openRows.some(p=>p.paid!==0),netPaid=openRows.reduce((n,p)=>n+p.paid,0)*(c?.from===t.from?1:-1);return <div className="transfer" key={key}>
     <div>{canRecord&&<input type="checkbox" aria-label={'Select '+name(t.from)+' to '+name(t.to)} checked={selected.includes(key)} onChange={()=>toggle(key)}/>}<b>{name(t.from)}</b><span>→</span><b>{name(t.to)}</b><strong>{fmt(filter?amount:t.amount)}</strong></div>
     <div className="checks"><span className="pill">{paid?'Partially paid':'Unpaid'}</span>{paid&&<small>Paid (net) {fmt(netPaid)} · Remaining {fmt(t.amount)}</small>}{filter&&<small>Pair balance {fmt(t.amount)}</small>}{canRecord&&<button className="secondary" disabled={disabled} onClick={()=>open([t])}>Record payment</button>}{onRemind&&<button className="text-button" onClick={()=>onRemind({...t,amount:filter?amount:t.amount},filter?bills.find(b=>b.id===filter):undefined)}>Remind</button>}</div>
-    <Calculation calculation={c} currency={e.settlement}/>
+    <Calculation calculation={c} currency={e.settlement} compact/>
    </div>})}
   </details>)}
   {!visible.length&&<p>No outstanding payments for this selection.</p>}
@@ -96,5 +96,5 @@ export default function SettlementPayments({event:e,group,revision,session,trans
    </div>
    <footer>{uncertain?<button className="primary" disabled={working} onClick={()=>submit()}>{working?'Checking…':'Retry / check same request'}</button>:draft?<><strong>{draft.batch.payments.length} payments · {fmt(draft.batch.payments.reduce((n,p)=>n+p.amount,0))}</strong><button className="primary" disabled={working||invalid||needsReview} onClick={()=>submit()}>{working?'Recording…':'Confirm payments'}</button></>:receipt&&!receipt.undone&&<button className="secondary" disabled={working||needsReview} onClick={()=>submit('undoPaymentBatch')}>{working?'Reversing…':'Undo these payments'}</button>}<button className="secondary" disabled={working||uncertain} onClick={close}>{receipt?'Done':'Cancel'}</button></footer>
   </DialogContent></Dialog>}
- </>;
+ </div>;
 }

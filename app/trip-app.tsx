@@ -1557,22 +1557,22 @@ setPlannerDirty(false);setTemplateDirty(false);
                 )}
                 {tab === "Settlement" && (
                   <section className="settlement-page">
-                    {!shared && <section className="panel cross-group-summary" aria-label="All groups settlement summary">
-                      <div className="section-title"><h2><Wallet size={20}/> Across my groups</h2><small>Outstanding balances · {crossGroupBalances.length} group{crossGroupBalances.length === 1 ? "" : "s"}</small></div>
+                    {!shared && <details className="panel cross-group-summary cross-group-compact" aria-label="All groups settlement summary">
+                      <summary><Wallet size={16}/><b>Across my groups</b><small>{crossGroupBalances.length} groups</small>{unselectedOwnerGroups>0&&<small>{unselectedOwnerGroups} not included</small>}{crossGroupTotals.map(([currency,total])=><span key={currency}>{currency} · Pay {money(total.pay,currency)} · Receive {money(total.receive,currency)}</span>)}</summary>
                       {crossGroupTotals.length ? <>
                         <div className="cross-group-totals">{crossGroupTotals.map(([currency, total]) => <div key={currency} className="cross-group-total"><span>{currency} · Total to pay</span><strong>{money(total.pay, currency)}</strong><small>To receive: {money(total.receive, currency)}</small></div>)}</div>
                         <div className="cross-group-list">{crossGroupBalances.map((group) => <button key={group.id} className="cross-group-row" onClick={() => { if (group.id !== rec.id) choose(group.id); else document.querySelector(".settlement-current")?.scrollIntoView({ behavior: "smooth" }); }}><span><b>{group.name}</b><small>{group.kind === "daily" ? "Daily group" : "Trip"} · {group.member}</small></span><span>Pay {money(group.pay, group.currency)}<small>Receive {money(group.receive, group.currency)}</small></span></button>)}</div>
                       </> : <p className="muted">Link your account to a member, or choose your member in each group to see your total.</p>}
                       {unselectedOwnerGroups > 0 && <p className="muted">{unselectedOwnerGroups} owned group{unselectedOwnerGroups === 1 ? " is" : "s are"} excluded. Open each one and choose your own name under Viewing member.</p>}
                       <small>Totals are kept separate by currency. Payments to receive do not reduce the amount to pay.</small>
-                    </section>}
+                    </details>}
                     <div className="settlement-hero">
                       <div>
                         <p className="eyebrow">{settlementScope === "mine" ? "MY SETTLEMENT" : "GROUP SETTLEMENT"}</p>
                         <h2>{visibleTransfers.length ? `${visibleTransfers.length} payment${visibleTransfers.length > 1 ? "s" : ""} remaining` : settlementReviews.length ? 'Review recorded repayments' : settlementScope === "mine" ? `${name(me)} is settled` : "Everyone is settled"}</h2>
                         <p>{visibleTransfers.length ? `${fmt(visibleTransfers.reduce((total, p) => total + p.amount, 0))} still needs to be paid.` : settlementReviews.length ? 'Check unmatched payments below before paying.' : "New expenses will update this automatically."}</p>
                       </div>
-                      <button className="secondary" onClick={() => whatsapp(shareText())}><Bell size={17}/> WhatsApp summary</button>
+                      <button className="secondary" aria-label="WhatsApp summary" onClick={() => whatsapp(shareText())}><Bell size={17}/><span className="settlement-share-desktop">WhatsApp summary</span><span className="settlement-share-mobile">Share</span></button>
                     </div>
                     {rec.person && <PayoutDetails group={rec.id} person={rec.person} event={e} session={authenticatedSession} editable/>}
                     {(rec.owner||can('export'))&&<SettlementExport event={e} transfers={visibleTransfers} reviewPairs={sum!.calculations} person={settlementScope==="mine"?me:undefined}/>}

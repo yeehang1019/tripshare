@@ -1,5 +1,7 @@
 # Print summary — 26 October 2026
 
+The latest three screenshots narrow the work to compact settlement presentation: collapsed cross-group overview, compact linked Trip/status/tools launchers and list-style payment rows with expandable Details. See [density review](settlement-density-review.md) for scope and browser/check results. Financial behavior from the recording release is unchanged.
+
 The latest selected work adds current-only Calculation and selected-bill atomic batch recording, recipient grouping/bill filtering, explicit save/Undo receipts and a bounded mobile dialog. Search, additional personal-direction filters and remembered dates/methods were explicitly excluded. See [settlement recording review](settlement-recording-review.md) for architecture, authorization, concurrency, recovery, compatibility and verification limits.
 
 The latest TRX correction removes fully repaid source cells and their matching Paid deductions from pending rows, hiding empty bill columns while preserving canonical Remaining amounts. Screen, Print and CSV share scoped values. See [cleared sources review](settlement-cleared-sources-review.md) for current checks and limits, and [bill columns review](settlement-bill-columns-review.md) for the retained signed-column behavior. The earlier [remaining settlement review](settlement-outstanding-review.md) and [combined popup review](settlement-popup-review.md) document superseded presentation stages.

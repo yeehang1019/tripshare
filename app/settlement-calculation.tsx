@@ -3,13 +3,13 @@ import {useState} from 'react';
 import {money,type PairCalculation} from '@/lib/ledger';
 import {pendingPairSources} from '@/lib/settlement-recording';
 
-export default function SettlementCalculation({calculation:c,currency}:{calculation?:PairCalculation;currency:string}){
+export default function SettlementCalculation({calculation:c,currency,compact=false}:{calculation?:PairCalculation;currency:string;compact?:boolean}){
  const [limit,setLimit]=useState(30);
  if(!c)return null;
  const rows=pendingPairSources(c),forward=rows.reduce((n,r)=>n+Math.max(0,r.remaining),0),reverse=rows.reduce((n,r)=>n+Math.max(0,-r.remaining),0);
  const fmt=(n:number)=>money(n,currency),day=(s:string)=>s?s.split('-').reverse().join('/'):'Date unavailable';
  return <details className="settlement-breakdown pair-calculation">
-  <summary>View Calculation · {c.fromName} ↔ {c.toName}</summary>
+  <summary aria-label={'View Calculation · '+c.fromName+' ↔ '+c.toName}>{compact?'Details':<>View Calculation · {c.fromName} ↔ {c.toName}</>}</summary>
   <dl>
    <div><dt>Unpaid · {c.fromName} → {c.toName}</dt><dd>{fmt(forward)}</dd></div>
    <div><dt>Unpaid · {c.toName} → {c.fromName}</dt><dd>{fmt(reverse)}</dd></div>
