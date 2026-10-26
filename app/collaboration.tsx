@@ -2,7 +2,6 @@
 import {useEffect,useState} from 'react';
 import {Users,ShieldCheck,Plus,History,Bell,Download,Check,UserPlus} from 'lucide-react';
 import {permissionKeys,roles,ledger,money,unit,calculate,type Event,type Permission,type PairCalculation} from '@/lib/ledger';
-import {csvFile} from '@/lib/exports';
 import {Dialog,DialogContent,DialogTitle,DialogDescription} from '@/components/ui/dialog';
 import {Field,Pick,Check as Toggle} from './trip-controls';
 import type {RecordT} from './trip-app';
@@ -42,6 +41,5 @@ export function NotificationBell({session,workspace:w,onGroup}:{session:string;w
 }
 export function SettlementExport({event:e,transfers,person,personal,reviewPairs}:{reviewPairs?:PairCalculation[];person?:string;personal?:ReturnType<typeof personalView>;event:Event;transfers:{from:string;to:string;amount:number;fromName?:string;toName?:string}[]}){
  const [summaryOpen,setSummaryOpen]=useState(false);
- const rows=transfers.map(t=>[t.fromName||e.people.find(p=>p.id===t.from)?.name||t.from,t.toName||e.people.find(p=>p.id===t.to)?.name||t.to,e.settlement,t.amount/unit(e.settlement)]);
- return <div className="checks settlement-export"><button className="secondary" onClick={()=>setSummaryOpen(true)}>View summary</button>{summaryOpen&&<SettlementSummary reviewPairs={reviewPairs} event={e} transfers={transfers} person={person} personal={personal} onClose={()=>setSummaryOpen(false)} onCSV={()=>csvFile('tripshare-settlement.csv',[['From','To','Currency','Remaining amount'],...rows])}/>}</div>;
+ return <div className="checks settlement-export"><button className="secondary" onClick={()=>setSummaryOpen(true)}>View summary</button>{summaryOpen&&<SettlementSummary reviewPairs={reviewPairs} event={e} transfers={transfers} person={person} personal={personal} onClose={()=>setSummaryOpen(false)}/>}</div>;
 }

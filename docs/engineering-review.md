@@ -1,6 +1,6 @@
 # Print summary — 26 October 2026
 
-The latest screenshot-specific request removes the bill selector and combines all authorized bills in one table. See [combined popup review](settlement-popup-review.md) for the currently shipped interaction and verification.
+The latest confirmed correction replaces the active consumption matrix with one From / To / Remaining table, using existing ledger transfers after recorded payments and pairwise offsets. Paid-off pairs disappear; partially paid pairs show only the balance. Screen, Print and CSV share scoped rows. See [remaining settlement review](settlement-outstanding-review.md) for current scope, checks and limits. The earlier [combined popup review](settlement-popup-review.md) is historical and superseded.
 
 See [print summary review](settlement-print-review.md) for this release's scope, checks, privacy and remaining verification.
 
