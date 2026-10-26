@@ -1,6 +1,6 @@
 # Print summary — 26 October 2026
 
-The latest approved summary adds signed bill columns and a conditional Paid deduction to pending From / To / Remaining rows. Existing ledger transfers remain authoritative; fully paid rows stay hidden. Screen, Print and CSV share scoped values. See [bill columns review](settlement-bill-columns-review.md) for current scope, checks and limits. The earlier [remaining settlement review](settlement-outstanding-review.md) and [combined popup review](settlement-popup-review.md) document superseded presentation stages.
+The latest TRX correction removes fully repaid source cells and their matching Paid deductions from pending rows, hiding empty bill columns while preserving canonical Remaining amounts. Screen, Print and CSV share scoped values. See [cleared sources review](settlement-cleared-sources-review.md) for current checks and limits, and [bill columns review](settlement-bill-columns-review.md) for the retained signed-column behavior. The earlier [remaining settlement review](settlement-outstanding-review.md) and [combined popup review](settlement-popup-review.md) document superseded presentation stages.
 
 See [print summary review](settlement-print-review.md) for this release's scope, checks, privacy and remaining verification.
 

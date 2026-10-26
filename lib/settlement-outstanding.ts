@@ -18,6 +18,16 @@ export function outstandingSummary(e:Event,transfers:SheetTransfer[],scope:Sheet
    paid=t.from===p.from?p.paidForward-p.paidReverse:p.paidReverse-p.paidForward;
    // A stale/missing drill-down must not produce invented bill attribution.
    if(Object.values(values).reduce((n,v)=>n+v,0)-paid!==t.amount)paid=null;
+   if(paid!==null){
+    const applied:Record<string,number>=Object.create(null);
+    for(const cash of p.payments)applied[cash.expense]=(applied[cash.expense]||0)+(cash.from===t.from?cash.applied:-cash.applied);
+    // Hide source amounts fully cleared by actual source-bound cash. Remove
+    // their matching Paid deduction too, preserving the row's remaining sum.
+    // Reciprocal bill offsets alone stay visible as signed bill columns.
+    for(const id of Object.keys(values))if(values[id]!==0&&values[id]===applied[id]){
+     paid-=applied[id];delete values[id];
+    }
+   }
    if(paid!==null)for(const c of p.expenses)if(values[c.expense])bills.set(c.expense,{id:c.expense,title:c.title,date:c.date});
   }
   return {...t,values:paid===null?null:values,paid};

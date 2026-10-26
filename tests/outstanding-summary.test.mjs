@@ -84,3 +84,26 @@ test('Wide print continuations keep every bill, label repeated totals, and perso
  const personal=personalView(e,'B'),m=outstandingSummary({...e,people:[],expenses:[],payments:[]},personal.transfers,{personal});
  const printed=outstandingPrintHTML(m);assert.match(printed,/Extra 8/);assert.match(printed,/do not add repeated/);assert.doesNotMatch(printed,/PRIVATE_D_E/);assert.ok(m.rows.every(r=>r.from==='B'||r.to==='B'));
 });
+
+test('Fully repaid TRX is omitted while newer song and Hotbird reciprocal columns still reconcile',()=>{
+ const e=normalize({name:'Trip',people:['ET','Reyes','Calvin'],bills:[],payments:[]});
+ function bill(payer,person,title,amount){const b=blankExpense(e,payer);b.merchant=title;b.items[0].people=[person];b.items[0].weights=[1];b.items[0].amount=amount;e.expenses.push(b);return b}
+ const trx=bill('ET','Reyes','TRX',3132);pay(e,'Reyes','ET',3132);
+ bill('ET','Reyes','song',3540);bill('Reyes','ET','Hotbird',2746);
+ const before=JSON.stringify(e),s=ledger(e),m=outstandingSummary(e,s.transfers,{},s.calculations),r=m.rows[0];
+ assert.equal(r.amount,794);assert.equal(r.paid,0);assert.equal(m.hasPaid,false);assert.equal(r.values[trx.id],undefined);assert.deepEqual(m.columns.map(c=>c.title),['song','Hotbird']);
+ assert.doesNotMatch(outstandingPrintHTML(m),/TRX|<th>Paid<\/th>/);assert.ok(!outstandingCSVRows(m)[0].some(c=>String(c).includes('TRX')));
+ const view=personalView(e,'Reyes'),own=outstandingSummary({...e,people:[],expenses:[],payments:[]},view.transfers,{personal:view});assert.deepEqual(own.columns,m.columns);assert.equal(own.rows[0].paid,0);
+ assert.equal(JSON.stringify(e),before);
+ // Same bill remains visible when another member's source obligation is still unpaid.
+ trx.items.push({...trx.items[0],id:'calvin-trx',people:['Calvin'],amount:2000,weights:[1]});
+ const group=outstandingSummary(e,ledger(e).transfers);assert.ok(group.columns.some(c=>c.id===trx.id));assert.equal(group.rows.find(t=>t.from==='Reyes').values[trx.id],undefined);assert.equal(group.rows.find(t=>t.from==='Calvin').values[trx.id],2000);
+ // Undo restores that source and removes the earlier applied deduction.
+ e.payments[0].deleted=true;const undone=outstandingSummary(e,ledger(e).transfers);assert.equal(undone.rows.find(t=>t.from==='Reyes').values[trx.id],3132);assert.equal(undone.rows.find(t=>t.from==='Reyes').amount,3926);
+});
+test('Partial old source retains its bill and only its own Paid deduction after another source is cleared',()=>{
+ const e=normalize({name:'Partial',people:['A','B'],bills:[],payments:[]});
+ for(const [title,amount] of [['TRX',1000],['New bill',2000]]){const b=blankExpense(e,'A');b.merchant=title;b.items[0].people=['B'];b.items[0].weights=[1];b.items[0].amount=amount;e.expenses.push(b)}
+ pay(e,'B','A',1500);const m=outstandingSummary(e,ledger(e).transfers),r=m.rows[0];
+ assert.deepEqual(m.columns.map(c=>c.title),['New bill']);assert.equal(r.values[e.expenses[1].id],2000);assert.equal(r.paid,500);assert.equal(r.amount,1500);assert.equal(m.hasPaid,true);
+});
