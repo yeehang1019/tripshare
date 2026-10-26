@@ -2,9 +2,8 @@
 import {useEffect,useMemo,useRef,useState} from 'react';
 import {money,type Event,type PairCalculation} from '@/lib/ledger';
 import {settlementSheet,combinedSheetValue,type SheetScope,type SheetTransfer,type CombinedSettlementSheet} from '@/lib/settlement-sheet';
-import {outstandingSummary,outstandingPrintHTML,type OutstandingSummary} from '@/lib/settlement-outstanding';
+import {outstandingSummary,outstandingPrintHTML,outstandingCSVRows,type OutstandingSummary} from '@/lib/settlement-outstanding';
 import {csvFile} from '@/lib/exports';
-import {unit} from '@/lib/ledger';
 import {Dialog,DialogContent,DialogTitle,DialogDescription} from '@/components/ui/dialog';
 
 export function SettlementSheetTable({sheet}:{sheet:NonNullable<ReturnType<typeof settlementSheet>>}){
@@ -21,23 +20,24 @@ export function CombinedSettlementTable({model}:{model:CombinedSettlementSheet})
  <tfoot><tr><th scope="row">{model.personal?'My total':'Total'}</th>{model.columns.map((c,i)=><td key={i}>{money(c.total,c.currency)}</td>)}<td className="sheet-grand-total">{money(model.total,model.currency)}</td></tr></tfoot></table>;
 }
 export function OutstandingSettlementTable({model}:{model:OutstandingSummary}){
- return <table className="settlement-sheet"><thead><tr><th scope="col">From</th><th scope="col">To</th><th scope="col">Remaining</th></tr></thead>
-  <tbody>{model.rows.map(t=><tr key={JSON.stringify([t.from,t.to])}><th scope="row">{t.fromName}</th><td>{t.toName}</td><td className="sheet-total">{money(t.amount,model.currency)}</td></tr>)}</tbody>
-  <tfoot><tr><th scope="row" colSpan={2}>Total remaining</th><td className="sheet-total">{money(model.total,model.currency)}</td></tr></tfoot></table>;
+ return <table className="settlement-sheet"><thead><tr><th scope="col">From</th><th scope="col">To</th>{model.columns.map(c=><th scope="col" key={c.id}>{c.title}<small className="sheet-bill-date">{c.date.split('-').reverse().join('/')}</small></th>)}{model.hasPaid&&<th scope="col">Paid</th>}<th scope="col">Remaining</th></tr></thead>
+  <tbody>{model.rows.map(t=><tr key={JSON.stringify([t.from,t.to])}><th scope="row">{t.fromName}</th><td>{t.toName}</td>{model.columns.map(c=><td key={c.id}>{t.values?(t.values[c.id]?money(t.values[c.id],model.currency):'—'):'Unavailable'}</td>)}{model.hasPaid&&<td>{t.paid===null?'Unavailable':money(t.paid,model.currency)}</td>}<td className="sheet-total">{money(t.amount,model.currency)}</td></tr>)}</tbody>
+  <tfoot><tr><th scope="row">Total remaining</th><td/>{model.columns.map(c=><td key={c.id}/>)}{model.hasPaid&&<td/>}<td className="sheet-total">{money(model.total,model.currency)}</td></tr></tfoot></table>;
 }
 export default function SettlementSummary({event:e,transfers,person,personal,onClose,reviewPairs}:{event:Event;transfers:SheetTransfer[];onClose:()=>void;reviewPairs?:PairCalculation[]}&SheetScope){
  const scope=useMemo(()=>({person,personal}),[person,personal]);
- const model=useMemo(()=>outstandingSummary(e,transfers,scope),[e,transfers,scope]);
+ const model=useMemo(()=>outstandingSummary(e,transfers,scope,reviewPairs),[e,transfers,scope,reviewPairs]);
  const reviewAmount=useMemo(()=>{const id=personal?.person||person;return (reviewPairs||personal?.calculations||[]).filter(p=>!id||p.from===id||p.to===id).reduce((n,p)=>n+p.unappliedForward+p.unappliedReverse,0)},[reviewPairs,personal,person]);
  const html=useMemo(()=>outstandingPrintHTML(model,reviewAmount),[model,reviewAmount]);
  const frame=useRef<HTMLIFrameElement>(null),[ready,setReady]=useState(false),[error,setError]=useState('');
  useEffect(()=>{setReady(false);setError('')},[html]);
  function print(){try{const w=frame.current?.contentWindow;if(!w)throw Error('Print preview is still loading.');w.focus();w.print()}catch{setError('Printing is unavailable in this browser. Open TripShare in your browser and try again.')}}
- function csv(){csvFile('tripshare-settlement.csv',[['From','To','Currency','Remaining amount'],...model.rows.map(t=>[t.fromName,t.toName,model.currency,t.amount/unit(model.currency)])])}
+ function csv(){csvFile('tripshare-settlement.csv',outstandingCSVRows(model))}
  return <Dialog open onOpenChange={v=>{if(!v)onClose()}}><DialogContent className="settlement-summary-dialog">
-  <header><DialogTitle>Settlement summary</DialogTitle><DialogDescription>Remaining after payments and offsets.</DialogDescription></header>
+  <header><DialogTitle>Settlement summary</DialogTitle><DialogDescription>Negative amounts offset opposite debts.{model.hasPaid?' Bills − Paid = Remaining.':''}</DialogDescription></header>
   {!!reviewAmount&&<p role="alert">Recorded repayments need review: {money(reviewAmount,e.settlement)}. Check Settlement before paying.</p>}
   {model.rows.length?<div className="settlement-sheet-scroll" role="region" aria-label="Remaining settlement table" tabIndex={0}><OutstandingSettlementTable model={model}/></div>:<p role="status">{reviewAmount?'No remaining transfers. Recorded repayments still need review.':'All settled. No payments remaining.'}</p>}
+  {model.unavailable&&<p role="alert">Some bill details are unavailable. Check View Calculation.</p>}
   <footer><button type="button" className="primary" disabled={!ready} onClick={print}>Print / Save PDF</button><button type="button" className="secondary" onClick={csv}>Settlement CSV</button><small>Remaining · {model.currency}</small></footer>
   <iframe ref={frame} title="Printable settlement summary" className="sheet-print-frame" srcDoc={html} sandbox="allow-same-origin allow-modals" aria-hidden="true" tabIndex={-1} onLoad={()=>setReady(true)}/>
   {error&&<p role="alert">{error}</p>}

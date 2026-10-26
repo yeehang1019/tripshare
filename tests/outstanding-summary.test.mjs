@@ -7,7 +7,7 @@ import {fileURLToPath} from 'node:url';
 import {normalize,blankExpense,ledger,paymentAllocations} from '../lib/ledger.ts';
 const root=fileURLToPath(new URL('..',import.meta.url)),vite=await createServer({appType:'custom',configFile:false,root,resolve:{alias:{'@':root}},server:{middlewareMode:true,hmr:false}});
 after(()=>vite.close());
-const {outstandingSummary,outstandingPrintHTML}=await vite.ssrLoadModule('/lib/settlement-outstanding.ts');
+const {outstandingSummary,outstandingPrintHTML,outstandingCSVRows}=await vite.ssrLoadModule('/lib/settlement-outstanding.ts');
 const {OutstandingSettlementTable}=await vite.ssrLoadModule('/app/settlement-summary.tsx');
 const {personalView}=await vite.ssrLoadModule('/lib/personal.ts');
 function fixture(){
@@ -26,7 +26,7 @@ test('Summary uses remaining pairwise balances, hides fully paid pairs, and neve
  assert.equal(m.rows.find(t=>t.from==='C'&&t.to==='B').amount,1000);
  assert.equal(m.total,8300);
  const html=renderToStaticMarkup(React.createElement(OutstandingSettlementTable,{model:m}));
- assert.match(html,/Remaining/);assert.match(html,/RM\s*13.00/);assert.match(html,/RM\s*83.00/);assert.doesNotMatch(html,/Bill A|Consumption|Grand total/);
+ assert.match(html,/Remaining/);assert.match(html,/RM\s*13.00/);assert.match(html,/RM\s*83.00/);assert.match(html,/Bill A/);assert.doesNotMatch(html,/Consumption|Grand total/);
  assert.equal(JSON.stringify(e),before);
 });
 test('Paying every remaining transfer yields an empty summary and print; undo restores the obligation',()=>{
@@ -45,4 +45,42 @@ test('Mine and server-redacted member summaries retain only own pending pairs, w
 test('Zero/self rows are excluded and unmatched recorded cash is flagged rather than declared settled',()=>{
  const e=fixture(),m=outstandingSummary(e,[{from:'A',to:'B',amount:0},{from:'A',to:'A',amount:100}]);
  assert.equal(m.rows.length,0);const html=outstandingPrintHTML(m,1000);assert.match(html,/repayments need review/);assert.doesNotMatch(html,/All settled/);
+});
+
+test('Signed bill columns explain Reyes → ET RM7.94, a RM5 payment, and full settlement without changing history',()=>{
+ const e=normalize({name:'Dinner',people:['ET','Reyes'],bills:[],payments:[]});
+ for(const [payer,person,title,amount] of [['ET','Reyes','Hotbird',3540],['Reyes','ET','Karaoke',2746]]){const b=blankExpense(e,payer);b.merchant=title;b.items[0].people=[person];b.items[0].weights=[1];b.items[0].amount=amount;e.expenses.push(b)}
+ let m=outstandingSummary(e,ledger(e).transfers),r=m.rows[0];
+ assert.equal(r.from,'Reyes');assert.equal(r.to,'ET');assert.equal(r.values[e.expenses[0].id],3540);assert.equal(r.values[e.expenses[1].id],-2746);assert.equal(r.amount,794);assert.equal(m.hasPaid,false);
+ pay(e,'Reyes','ET',500);const before=JSON.stringify(e);m=outstandingSummary(e,ledger(e).transfers);r=m.rows[0];
+ assert.equal(r.paid,500);assert.equal(r.amount,294);assert.equal(Object.values(r.values).reduce((a,b)=>a+b,0)-r.paid,r.amount);
+ const html=renderToStaticMarkup(React.createElement(OutstandingSettlementTable,{model:m})),printed=outstandingPrintHTML(m),csv=outstandingCSVRows(m);
+ for(const text of ['Hotbird','Karaoke','Paid','Remaining']){assert.ok(html.includes(text));assert.ok(printed.includes(text))}
+ assert.match(html,/-RM\s*27.46|RM\s*-27.46/);assert.equal(csv[1].at(-2),5);assert.equal(csv[1].at(-1),2.94);assert.equal(csv[1][3],35.4);assert.equal(csv[1][4],-27.46);assert.equal(JSON.stringify(e),before);
+ pay(e,'Reyes','ET',294);m=outstandingSummary(e,ledger(e).transfers);assert.equal(m.rows.length,0);assert.equal(m.columns.length,0);
+});
+test('Historical reverse repayments and changed sources reconcile without claiming unapplied cash as paid',()=>{
+ const e=fixture();pay(e,'B','A',1000);e.expenses[0].deleted=true;
+ let s=ledger(e),m=outstandingSummary(e,s.transfers,{},s.calculations);
+ for(const r of m.rows){assert.notEqual(r.values,null);assert.equal(Object.values(r.values).reduce((n,v)=>n+v,0)-r.paid,r.amount)}
+ assert.ok(s.calculations.some(p=>p.unappliedForward||p.unappliedReverse));
+ // A later, larger reverse bill flips the visible direction; earlier applied cash is a signed credit.
+ const f=normalize({name:'Reverse',people:['A','B'],bills:[],payments:[]});
+ for(const [payer,person,title,amount] of [['A','B','Old',1000],['B','A','Later',2000]]){const b=blankExpense(f,payer);b.merchant=title;b.items[0].people=[person];b.items[0].weights=[1];b.items[0].amount=amount;f.expenses.push(b)}
+ f.expenses[1].deleted=true;pay(f,'B','A',500);f.expenses[1].deleted=false;
+ m=outstandingSummary(f,ledger(f).transfers);assert.equal(m.rows[0].from,'A');assert.equal(m.rows[0].paid,-500);assert.equal(m.rows[0].amount,1500);
+});
+test('Duplicate bill names stay separate and stale source calculations never invent attribution',()=>{
+ const e=fixture();e.expenses.forEach(b=>b.merchant='<script>same</script>');
+ const s=ledger(e),m=outstandingSummary(e,s.transfers);assert.equal(m.columns.length,2);assert.notEqual(m.columns[0].id,m.columns[1].id);
+ assert.doesNotMatch(outstandingPrintHTML(m),/<script>/);assert.match(outstandingPrintHTML(m),/&lt;script&gt;/);
+ const stale=outstandingSummary(e,s.transfers.map(t=>({...t,amount:t.amount+1})),{},s.calculations);
+ assert.equal(stale.unavailable,true);assert.ok(stale.rows.every(r=>r.values===null));assert.match(outstandingPrintHTML(stale),/details are unavailable/);
+});
+
+test('Wide print continuations keep every bill, label repeated totals, and personal scope excludes unrelated bills',()=>{
+ const e=fixture();for(let i=0;i<9;i++){const b=blankExpense(e,'A');b.merchant='Extra '+i;b.items[0].amount=100;e.expenses.push(b)}
+ const privateBill=blankExpense(e,'D');privateBill.merchant='PRIVATE_D_E';privateBill.items[0].people=['E'];privateBill.items[0].weights=[1];privateBill.items[0].amount=100;e.expenses.push(privateBill);
+ const personal=personalView(e,'B'),m=outstandingSummary({...e,people:[],expenses:[],payments:[]},personal.transfers,{personal});
+ const printed=outstandingPrintHTML(m);assert.match(printed,/Extra 8/);assert.match(printed,/do not add repeated/);assert.doesNotMatch(printed,/PRIVATE_D_E/);assert.ok(m.rows.every(r=>r.from==='B'||r.to==='B'));
 });

@@ -1,6 +1,6 @@
 # Print summary — 26 October 2026
 
-The latest confirmed correction replaces the active consumption matrix with one From / To / Remaining table, using existing ledger transfers after recorded payments and pairwise offsets. Paid-off pairs disappear; partially paid pairs show only the balance. Screen, Print and CSV share scoped rows. See [remaining settlement review](settlement-outstanding-review.md) for current scope, checks and limits. The earlier [combined popup review](settlement-popup-review.md) is historical and superseded.
+The latest approved summary adds signed bill columns and a conditional Paid deduction to pending From / To / Remaining rows. Existing ledger transfers remain authoritative; fully paid rows stay hidden. Screen, Print and CSV share scoped values. See [bill columns review](settlement-bill-columns-review.md) for current scope, checks and limits. The earlier [remaining settlement review](settlement-outstanding-review.md) and [combined popup review](settlement-popup-review.md) document superseded presentation stages.
 
 See [print summary review](settlement-print-review.md) for this release's scope, checks, privacy and remaining verification.
 
