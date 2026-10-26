@@ -1,3 +1,7 @@
+# Loading performance measurement — 26 October 2026
+
+The current release only instruments the two read APIs; optimization and migrations await measured findings and user confirmation. See [loading performance review](loading-performance-review.md). No frontend, data or financial changes.
+
 # Print summary — 26 October 2026
 
 The latest three screenshots narrow the work to compact settlement presentation: collapsed cross-group overview, compact linked Trip/status/tools launchers and list-style payment rows with expandable Details. See [density review](settlement-density-review.md) for scope and browser/check results. Financial behavior from the recording release is unchanged.

@@ -1,7 +1,8 @@
+import {env} from 'cloudflare:workers';
 import {alternativePlan} from '@/lib/plan-alternatives';
 import {recordedBatch,preparePaymentBatch,undoBatch} from '@/lib/settlement-recording';
 import {checksum,restoredGroup,checkpointDiff} from '@/lib/checkpoints';
-import {InputError,validateInput,trackedRequest,type RequestContext} from '@/lib/request-observability';
+import {InputError,validateInput,trackedRequest,RequestTimings,timedDatabase,type RequestContext} from '@/lib/request-observability';
 import {readJSON,RequestTooLarge} from '@/lib/http-body';
 import { database } from "@/db/raw";
 import { memberRecord,collaboratorRecord,travellerContext,auditVisible,personalAuditValue } from "@/lib/personal";
@@ -34,23 +35,23 @@ const sessionToken = (r: Request) =>
     .map((part) => part.trim())
     .find((part) => part.startsWith("tripshare_session="))
     ?.slice("tripshare_session=".length) || "";
-export async function identity(r: Request): Promise<Identity | null> {
+export async function identity(r: Request, db=database()): Promise<Identity | null> {
   const headerUser = r.headers.get("oai-authenticated-user-id") || "";
   const headerEmail = email(r);
   if (headerUser && headerEmail) return { user: headerUser, email: headerEmail };
   const token = r.headers.get("x-tripshare-session") || sessionToken(r);
   if (!token) return headerEmail ? { user: headerEmail, email: headerEmail } : null;
-  const row: any = await database()
+  const row: any = await db
     .prepare("SELECT user,email FROM sessions WHERE token=? AND expires_at>?")
     .bind(token, Date.now())
     .first();
   return row ? { user: row.user, email: row.email } : null;
 }
-export async function access(row: any, who: Identity) {
+export async function access(row: any, who: Identity, db=database()) {
   const owner =
     row.owner === who.user ||
     (!!row.owner_email && row.owner_email === who.email);
-  const grant: any = await database()
+  const grant: any = await db
         .prepare("SELECT * FROM grants WHERE trip=? AND email=?")
         .bind(row.id, who.email)
         .first();
@@ -66,32 +67,38 @@ export async function access(row: any, who: Identity) {
     person: grant?.person || "",
   };
 }
-async function appOwner(who: Identity) {
-  const row: any = await database()
+async function appOwner(who: Identity, db=database()) {
+  const row: any = await db
     .prepare("SELECT 1 AS allowed FROM app_owner WHERE id='primary' AND (user=? OR email=?)")
     .bind(who.user, who.email)
     .first();
   return !!row;
 }
-export async function GET(r:Request){return trackedRequest(r,()=>getTrips(r))}
-async function getTrips(r: Request) {
-  const who = await identity(r);
+export async function GET(r:Request){const timing=new RequestTimings((env as any).TRIPSHARE_PERFORMANCE_TIMING!=='0' && new URL(r.url).searchParams.get('timing')!=='off');return timing.finish(await trackedRequest(r,()=>getTrips(r,timing)))}
+async function getTrips(r: Request,timing:RequestTimings) {
+  const db=timedDatabase(database(),timing);
+  const who = await timing.stage("identity",()=>identity(r,db));
   if (!who) return response({ error: "Sign in to manage your events" }, 401);
   try {
 
-    const rows = await database()
+    const rows:any = await timing.stage<any>("trip_query",()=>db
       .prepare(
         "SELECT DISTINCT t.* FROM trips t WHERE t.owner=? OR t.owner_email=? OR EXISTS(SELECT 1 FROM grants g WHERE g.trip=t.id AND g.email=?) OR EXISTS(SELECT 1 FROM members m WHERE m.trip=t.id AND m.user=?)",
       )
       .bind(who.user, who.email, who.email, who.user)
-      .all();
-    const canCreate=await appOwner(who),contexts=[];
-    for(const row of rows.results as any[]){const a=await access(row,who);if(a.blocked||!a.owner&&!a.permissions.length&&(!a.person||!JSON.parse(row.data).people.some((p:any)=>p.id===a.person)))continue;const memberKeys=await linkedPeople(database(),row.id);contexts.push({row,a,memberKeys})}
-    const etag='"'+await checksum(JSON.stringify(['member-view-v1',who.user,who.email,canCreate,contexts.map(({row,a,memberKeys})=>[row.id,row.revision,a,memberKeys])]))+'"';
+      .all());
+    timing.count("groupsRead",rows.results.length);
+    if(timing.enabled)timing.count("sourceChars",rows.results.reduce((n:number,row:any)=>n+row.data.length,0));
+    const canCreate=await timing.stage("owner",()=>appOwner(who,db));
+    const contexts:{row:any;a:Awaited<ReturnType<typeof access>>;memberKeys:Record<string,string>}[]=[];
+    for(const row of rows.results as any[]){const a=await timing.stage("access",()=>access(row,who,db));if(a.blocked||!a.owner&&!a.permissions.length&&(!a.person||!JSON.parse(row.data).people.some((p:any)=>p.id===a.person)))continue;const memberKeys=await timing.stage("links",()=>linkedPeople(db,row.id));contexts.push({row,a,memberKeys})}
+    const etag='"'+await timing.stage('etag',()=>checksum(JSON.stringify(['member-view-v1',who.user,who.email,canCreate,contexts.map(({row,a,memberKeys})=>[row.id,row.revision,a,memberKeys])])))+'"';
     if(r.headers.get('If-None-Match')===etag)return new Response(null,{status:304,headers:{ETag:etag}});
-    const trips = [];
+    const trips = timing.sync("projection",()=>{const trips = [];
     for (const {row,a,memberKeys} of contexts) {
-      const data = normalize(JSON.parse(row.data));
+      const raw=timing.sync("json_parse",()=>JSON.parse(row.data));
+      const data = timing.sync("bills",()=>normalize(raw));
+      if(timing.enabled){timing.add("billsRead",(data.expenses||[]).length);timing.add("plansRead",(data.activities||[]).length);timing.add("historyRead",(data.audit||[]).length)}
       if(a.blocked)continue;
       if (!a.owner && !a.permissions.includes('viewAll')&&!a.permissions.includes('editAll')) {
         if(a.person&&data.people.some(p=>p.id===a.person)||a.permissions.length){
@@ -112,10 +119,14 @@ async function getTrips(r: Request) {
           createdBy: payment.createdBy === who.email ? who.email : "",
         }));
       }
-      if(!a.owner&&!a.permissions.includes('plan')){const travel=travellerContext(data);data.activities=travel.activities;data.travel=undefined;data.checklist=undefined;}
+      if(!a.owner&&!a.permissions.includes('plan')){const travel=timing.sync("itinerary",()=>travellerContext(data));data.activities=travel.activities;data.travel=undefined;data.checklist=undefined;}
       trips.push({ id: row.id, revision: row.revision, data, memberKeys, ...a });
     }
-    return Response.json({trips,user:who.email,canCreate},{headers:{ETag:etag}});
+    return trips;});
+    timing.count("groupsReturned",trips.length);
+    const body=timing.sync("serialize",()=>JSON.stringify({trips,user:who.email,canCreate}));
+    timing.count("responseChars",body.length);
+    return new Response(body,{headers:{ETag:etag,"Content-Type":"application/json"}});
   } catch (e) {
     throw e;
   }
