@@ -7,7 +7,7 @@ import {fileURLToPath} from 'node:url';
 import {normalize,blankExpense,ledger,paymentAllocations} from '../lib/ledger.ts';
 const root=fileURLToPath(new URL('..',import.meta.url)),vite=await createServer({appType:'custom',configFile:false,root,resolve:{alias:{'@':root}},server:{middlewareMode:true,hmr:false}});
 after(()=>vite.close());
-const {outstandingSummary,outstandingPrintHTML,outstandingCSVRows}=await vite.ssrLoadModule('/lib/settlement-outstanding.ts');
+const {outstandingSummary,outstandingPrintHTML,outstandingCSVRows,outstandingText}=await vite.ssrLoadModule('/lib/settlement-outstanding.ts');
 const {OutstandingSettlementTable}=await vite.ssrLoadModule('/app/settlement-summary.tsx');
 const {personalView}=await vite.ssrLoadModule('/lib/personal.ts');
 function fixture(){
@@ -56,7 +56,7 @@ test('Duplicate bill names stay separate and stale source calculations never inv
 });
 
 test('Wide print continuations keep every bill, label repeated totals, and personal scope excludes unrelated bills',()=>{
- const e=fixture();for(let i=0;i<9;i++){const b=blankExpense(e,'A');b.merchant='Extra '+i;b.items[0].amount=100;e.expenses.push(b)}
+ const e=fixture();for(let i=0;i<9;i++){const b=blankExpense(e,'A');b.merchant='Extra '+i;b.date='2026-11-01';b.items[0].amount=100;e.expenses.push(b)}
  const privateBill=blankExpense(e,'D');privateBill.merchant='PRIVATE_D_E';privateBill.items[0].people=['E'];privateBill.items[0].weights=[1];privateBill.items[0].amount=100;e.expenses.push(privateBill);
  const personal=personalView(e,'B'),m=outstandingSummary({...e,people:[],expenses:[],payments:[]},personal.transfers,{personal});
  const printed=outstandingPrintHTML(m);assert.match(printed,/Extra 8/);assert.match(printed,/do not add repeated/);assert.doesNotMatch(printed,/PRIVATE_D_E/);assert.ok(m.rows.every(r=>r.from==='B'||r.to==='B'));
@@ -68,7 +68,11 @@ test('KL House summary/export only includes food final due and disappears after 
  assert.deepEqual(m.columns.map(c=>c.title),['food']);assert.equal(m.total,1640);assert.deepEqual(Object.values(m.rows[0].values),[1640]);
  assert.equal(m.offsets[0].count,14);assert.equal(m.offsets[0].amount,32974);
  const html=renderToStaticMarkup(React.createElement(OutstandingSettlementTable,{model:m}));
- const print=outstandingPrintHTML(m),csv=outstandingCSVRows(m);
+ const print=outstandingPrintHTML(m),csv=outstandingCSVRows(m),shared=outstandingText(m);
+ assert.match(print,/Total still to pay<\/th><td>RM 16.40/);
+ assert.deepEqual(csv.at(-1),['Total still to pay','','MYR','',16.4]);
+ assert.equal(shared,'ET → YH\n- food · 20/10/2026  RM 16.40\nTotal still to pay: RM 16.40');
+ assert.doesNotMatch(shared,/toll|fee|RM -/);
  for(const text of [html,print,JSON.stringify(csv)]){assert.doesNotMatch(text,/Repayment adjustment|fee|toll|RM -/);assert.match(text,/food/)}
  assert.equal(JSON.stringify(e),before);pay(e,'ET','YH',1640);
  const after=outstandingSummary(e,ledger(e).transfers);assert.equal(after.total,0);assert.equal(after.columns.length,0);assert.equal(after.rows.length,0);

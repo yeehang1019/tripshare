@@ -28,7 +28,9 @@ export function outstandingSummary(e:Event,transfers:SheetTransfer[],scope:Sheet
  return {title:e.name,currency:e.settlement,rows,columns,hasPaid:false,unavailable:rows.some(r=>r.values===null),offsets,total:rows.reduce((n,t)=>n+t.amount,0),personal:!!(scope.person||scope.personal)};
 }
 export function outstandingText(model:OutstandingSummary){
- return model.rows.map(t=>`${t.fromName} → ${t.toName}: ${money(t.amount,model.currency)}\n`+model.columns.filter(c=>(t.values?.[c.id]||0)>0).map(c=>`  ${c.title} · ${c.date.split('-').reverse().join('/')}: ${money(t.values![c.id],model.currency)}`).join('\n')).join('\n');
+ if(!model.rows.length)return '';
+ const lines=model.rows.map(t=>`${t.fromName} → ${t.toName}\n`+(t.values?model.columns.filter(c=>(t.values?.[c.id]||0)>0).map(c=>`- ${c.title} · ${c.date.split('-').reverse().join('/')}  ${money(t.values![c.id],model.currency)}`).join('\n'):'Bill details unavailable'));
+ return [...lines,`Total still to pay: ${money(model.total,model.currency)}`].join('\n');
 }
 
 export type OutstandingSummary=ReturnType<typeof outstandingSummary>;
