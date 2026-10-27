@@ -20,9 +20,9 @@ export function CombinedSettlementTable({model}:{model:CombinedSettlementSheet})
  <tfoot><tr><th scope="row">{model.personal?'My total':'Total'}</th>{model.columns.map((c,i)=><td key={i}>{money(c.total,c.currency)}</td>)}<td className="sheet-grand-total">{money(model.total,model.currency)}</td></tr></tfoot></table>;
 }
 export function OutstandingSettlementTable({model}:{model:OutstandingSummary}){
- return <table className="settlement-sheet"><thead><tr><th scope="col">From</th><th scope="col">To</th>{model.columns.map(c=><th scope="col" key={c.id}>{c.title}<small className="sheet-bill-date">{c.date.split('-').reverse().join('/')}</small></th>)}{model.hasPaid&&<th scope="col">Repayment adjustment</th>}<th scope="col">Final due</th></tr></thead>
+ return <table className="settlement-sheet"><thead><tr><th scope="col">From</th><th scope="col">To</th>{model.columns.map(c=><th scope="col" key={c.id}>{c.title}<small className="sheet-bill-date">{c.date.split('-').reverse().join('/')}</small></th>)}{model.hasPaid&&<th scope="col">Repayment adjustment</th>}<th scope="col">Still to pay</th></tr></thead>
   <tbody>{model.rows.map(t=><tr key={JSON.stringify([t.from,t.to])}><th scope="row">{t.fromName}</th><td>{t.toName}</td>{model.columns.map(c=><td key={c.id}>{t.values?(t.values[c.id]?money(t.values[c.id],model.currency):'—'):'Unavailable'}</td>)}{model.hasPaid&&<td>{t.paid===null?'Unavailable':money(-t.paid,model.currency)}</td>}<td className="sheet-total">{money(t.amount,model.currency)}</td></tr>)}</tbody>
-  <tfoot><tr><th scope="row">Total final due</th><td/>{model.columns.map(c=><td key={c.id}/>)}{model.hasPaid&&<td/>}<td className="sheet-total">{money(model.total,model.currency)}</td></tr></tfoot></table>;
+  <tfoot><tr><th scope="row">Total still to pay</th><td/>{model.columns.map(c=><td key={c.id}/>)}{model.hasPaid&&<td/>}<td className="sheet-total">{money(model.total,model.currency)}</td></tr></tfoot></table>;
 }
 export default function SettlementSummary({event:e,transfers,person,personal,onClose,reviewPairs}:{event:Event;transfers:SheetTransfer[];onClose:()=>void;reviewPairs?:PairCalculation[]}&SheetScope){
  const scope=useMemo(()=>({person,personal}),[person,personal]);
@@ -34,11 +34,11 @@ export default function SettlementSummary({event:e,transfers,person,personal,onC
  function print(){try{const w=frame.current?.contentWindow;if(!w)throw Error('Print preview is still loading.');w.focus();w.print()}catch{setError('Printing is unavailable in this browser. Open TripShare in your browser and try again.')}}
  function csv(){csvFile('tripshare-settlement.csv',outstandingCSVRows(model))}
  return <Dialog open onOpenChange={v=>{if(!v)onClose()}}><DialogContent className="settlement-summary-dialog">
-  <header><DialogTitle>Settlement summary</DialogTitle><DialogDescription>Bill columns include opposite debts.{model.hasPaid?' Bill columns + repayment adjustment = Final due.':''} Open Details for Applied and Offset by bill.</DialogDescription></header>
+  <header><DialogTitle>Settlement summary</DialogTitle><DialogDescription>Bill columns include opposite debts.{model.hasPaid?' Bill columns + repayment adjustment = Still to pay.':''} Open Details for Applied and Offset by bill.</DialogDescription></header>
   {!!reviewAmount&&<p role="alert">Recorded repayments need review: {money(reviewAmount,e.settlement)}. Check Settlement before paying.</p>}
   {model.rows.length?<div className="settlement-sheet-scroll" role="region" aria-label="Remaining settlement table" tabIndex={0}><OutstandingSettlementTable model={model}/></div>:<p role="status">{reviewAmount?'No remaining transfers. Recorded repayments still need review.':'All settled. No payments remaining.'}</p>}
   {model.unavailable&&<p role="alert">Some bill details are unavailable. Check View Calculation.</p>}
-  <footer><button type="button" className="primary" disabled={!ready} onClick={print}>Print / Save PDF</button><button type="button" className="secondary" onClick={csv}>Settlement CSV</button><small>Final due · {model.currency}</small></footer>
+  <footer><button type="button" className="primary" disabled={!ready} onClick={print}>Print / Save PDF</button><button type="button" className="secondary" onClick={csv}>Settlement CSV</button><small>Still to pay · {model.currency}</small></footer>
   <iframe ref={frame} title="Printable settlement summary" className="sheet-print-frame" srcDoc={html} sandbox="allow-same-origin allow-modals" aria-hidden="true" tabIndex={-1} onLoad={()=>setReady(true)}/>
   {error&&<p role="alert">{error}</p>}
  </DialogContent></Dialog>;

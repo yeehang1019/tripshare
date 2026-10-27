@@ -1,5 +1,7 @@
 # TripShare engineering rules
 
+- Latest approved v77 scope: English settlement labels and offset explanation, offset-cleared bills collapsed by default with aggregate Offset amount, payable bills above, mobile bottom clearance >= add button + bottom navigation. Keep v76 rollback. No ledger/data/query changes; stop after release verification before N+1.
+
 - Latest approval: ship cash/offset settlement explanations separately, then stop for review before N+1. Preserve original data and pair balances. Offset post-cash amounts independently by date ascending then bill ID; display nonnegative Applied / post-payment remaining / Offset / Final due. Status Partially offset for partial offset, Settled by offset for full offset; explain that new/edited/undone bills or payments may reallocate it. Remind, WhatsApp, Copy, Who pays whom totals and selected-source recording must use final due; server recomputes date-derived source availability. No schema or live-data migration. N+1 approval is retained but implementation/measurement is the next independent release.
 
 - Latest explicit authorization is measurement-only publication: instrument trips/notifications with a disable switch, validate <20ms observed added overhead, collect >=20 samples per endpoint and report before optimizing. Preserve v74 as rollback. No financial display changes, schema migrations, query batching, caching or loading UX edits in this release. Report shared JSON storage honestly; do not invent per-feature DB timings.

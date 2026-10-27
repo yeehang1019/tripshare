@@ -1,3 +1,13 @@
+# Settlement display polish (v77)
+
+English labels now match across calculation, recording, summary, print and CSV. Offset-cleared bills remain a native closed disclosure with their combined Offset amount; payable bills remain above it. Mobile settlement pages reserve 180px plus safe-area bottom clearance (53px add button sits 94px above viewport bottom). No ledger, API, storage or user data changes. v76 remains the saved rollback version.
+
+KEEP: canonical balances, permissions, payment history, all functions and themes. CHANGE NOW: language, disclosure total and mobile clearance. IMPROVE LATER: N+1 in its independent approved phase, only after this review. DO NOT ADD: migrations or query changes in this patch.
+
+Validation: focused settlement/UI tests, TypeScript, production build. Production viewport screenshots are limited by the current browser API, which has no resize capability; do not label cropped desktop captures as mobile screenshots.
+
+---
+
 # Settlement cash/offset display — 27 October 2026
 
 The current release separates cash Applied, post-payment remaining, chronological dynamic Offset and Final due, with one pair net and consistent selection/reminders. See [offset review](settlement-offset-review.md) for arithmetic, test cases, changed files, preview screenshots and limits. N+1 remains a separate next phase.
