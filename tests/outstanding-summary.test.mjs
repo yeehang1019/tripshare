@@ -26,7 +26,7 @@ test('Summary uses remaining pairwise balances, hides fully paid pairs, and neve
  assert.equal(m.rows.find(t=>t.from==='C'&&t.to==='B').amount,1000);
  assert.equal(m.total,8300);
  const html=renderToStaticMarkup(React.createElement(OutstandingSettlementTable,{model:m}));
- assert.match(html,/Remaining/);assert.match(html,/RM\s*13.00/);assert.match(html,/RM\s*83.00/);assert.match(html,/Bill A/);assert.doesNotMatch(html,/Consumption|Grand total/);
+ assert.match(html,/Final due/);assert.match(html,/RM\s*13.00/);assert.match(html,/RM\s*83.00/);assert.match(html,/Bill A/);assert.doesNotMatch(html,/Consumption|Grand total/);
  assert.equal(JSON.stringify(e),before);
 });
 test('Paying every remaining transfer yields an empty summary and print; undo restores the obligation',()=>{
@@ -55,8 +55,8 @@ test('Signed bill columns explain Reyes → ET RM7.94, a RM5 payment, and full s
  pay(e,'Reyes','ET',500);const before=JSON.stringify(e);m=outstandingSummary(e,ledger(e).transfers);r=m.rows[0];
  assert.equal(r.paid,500);assert.equal(r.amount,294);assert.equal(Object.values(r.values).reduce((a,b)=>a+b,0)-r.paid,r.amount);
  const html=renderToStaticMarkup(React.createElement(OutstandingSettlementTable,{model:m})),printed=outstandingPrintHTML(m),csv=outstandingCSVRows(m);
- for(const text of ['Hotbird','Karaoke','Paid','Remaining']){assert.ok(html.includes(text));assert.ok(printed.includes(text))}
- assert.match(html,/-RM\s*27.46|RM\s*-27.46/);assert.equal(csv[1].at(-2),5);assert.equal(csv[1].at(-1),2.94);assert.equal(csv[1][3],35.4);assert.equal(csv[1][4],-27.46);assert.equal(JSON.stringify(e),before);
+ for(const text of ['Hotbird','Karaoke','Repayment adjustment','Final due']){assert.ok(html.includes(text));assert.ok(printed.includes(text))}
+ assert.match(html,/-RM\s*27.46|RM\s*-27.46/);assert.equal(csv[1].at(-2),-5);assert.equal(csv[1].at(-1),2.94);assert.equal(csv[1][3],35.4);assert.equal(csv[1][4],-27.46);assert.equal(JSON.stringify(e),before);
  pay(e,'Reyes','ET',294);m=outstandingSummary(e,ledger(e).transfers);assert.equal(m.rows.length,0);assert.equal(m.columns.length,0);
 });
 test('Historical reverse repayments and changed sources reconcile without claiming unapplied cash as paid',()=>{

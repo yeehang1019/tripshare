@@ -1,4 +1,5 @@
 "use client";
+import {finalDueLines} from '@/lib/settlement-display';
 import { useEffect, useState, useRef, useMemo } from "react";
 import {
   Wallet,
@@ -568,7 +569,7 @@ setPlannerDirty(false);setTemplateDirty(false);
     const heading = isMember
       ? `${name(me)}'s settlement`
       : `Total spending: ${fmt(s.total)}\n\nSettlement`;
-    return `${e.name}\n${heading}\n${transfers.map((p) => `${name(p.from)} → ${name(p.to)}: ${fmt(p.amount)}`).join("\n") || "No outstanding balance"}${!isMember && accessInfo.shares[0] ? "\n\nView details: " + viewLink(accessInfo.shares[0].token) : shared ? "\n\nView details: " + window.location.href : ""}`;
+    return `${e.name}\n${heading}\n${finalDueLines(transfers,name,fmt) || "No outstanding balance"}${!isMember && accessInfo.shares[0] ? "\n\nView details: " + viewLink(accessInfo.shares[0].token) : shared ? "\n\nView details: " + window.location.href : ""}`;
   }
   function download(text: string, type: string, filename: string) {
     const url = URL.createObjectURL(new Blob([text], { type })),
@@ -1590,7 +1591,7 @@ setPlannerDirty(false);setTemplateDirty(false);
                         Opposite debts between the same two people are offset.
                         Recorded payments stay attached to their original bills.
                       </p>
-                      <SettlementPayments key={rec.id+settlementScope} event={e} group={rec.id} revision={rec.revision} session={authenticatedSession} transfers={visibleTransfers} claims={sum!.claims} calculations={sum!.calculations} canRecord={can('settle')} disabled={busy} onRemind={(t,b)=>whatsapp(`${e.name}${b?' · '+b.title:''}\n${name(t.from)} → ${name(t.to)}: ${fmt(t.amount)}\nPlease check the shared event for the current balance.`)} onRefresh={()=>load(true)} payout={to=>!shared?<PayoutDetails group={rec.id} person={to} event={e} session={authenticatedSession} editable={to===rec.person}/>:null}/>
+                      <SettlementPayments key={rec.id+settlementScope} event={e} group={rec.id} revision={rec.revision} session={authenticatedSession} transfers={visibleTransfers} claims={sum!.claims} calculations={sum!.calculations} canRecord={can('settle')} disabled={busy} onRemind={(t,b)=>whatsapp(`${e.name}${b?' · '+b.title:''}\n${finalDueLines([t],name,fmt)}\nPlease check the shared event for the current balance.`)} onRefresh={()=>load(true)} payout={to=>!shared?<PayoutDetails group={rec.id} person={to} event={e} session={authenticatedSession} editable={to===rec.person}/>:null}/>
 
                     </div>
                     <div className="panel settlement-side">

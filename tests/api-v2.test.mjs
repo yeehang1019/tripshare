@@ -50,6 +50,7 @@ async function harness(){const sqlite=new DatabaseSync(':memory:');for(const f o
  const observability=compile('../lib/request-observability.ts');modules['@/lib/request-observability']=observability;await observability.link(s=>modules[s]);await observability.evaluate();
  const checkpointsLogic=compile('../lib/checkpoints.ts');modules['@/lib/checkpoints']=checkpointsLogic;await checkpointsLogic.link(s=>s==='./ledger'?modules['@/lib/ledger']:modules[s]);await checkpointsLogic.evaluate();
  const alternatives=compile('../lib/plan-alternatives.ts');modules['@/lib/plan-alternatives']=alternatives;await alternatives.link(s=>modules[s]);await alternatives.evaluate();
+ const display=compile('../lib/settlement-display.ts');modules['./settlement-display']=display;modules['@/lib/settlement-display']=display;await display.link(s=>s==='./ledger'?modules['@/lib/ledger']:modules[s]);await display.evaluate();
  const recording=compile('../lib/settlement-recording.ts');modules['@/lib/settlement-recording']=recording;await recording.link(s=>s==='./ledger'?modules['@/lib/ledger']:modules[s]);await recording.evaluate();
  const trips=compile('../app/api/trips/route.ts');modules['../trips/route']=trips;await trips.link(s=>modules[s]);await trips.evaluate();const view=compile('../app/api/view/route.ts');await view.link(s=>modules[s]);await view.evaluate();
  const sync=compile('../app/api/integrations/v1/me/entries/route.ts');await sync.link(s=>modules[s]);await sync.evaluate();

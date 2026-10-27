@@ -1,7 +1,8 @@
 'use client';
+import {selectedFinalDue,finalDueLines} from '@/lib/settlement-display';
 import {useEffect,useMemo,useRef,useState,type ReactNode} from 'react';
 import {money,type Event,type DebtClaim,type PairCalculation} from '@/lib/ledger';
-import {payableSourceIndex,pendingPairSources,type PaymentBatch} from '@/lib/settlement-recording';
+import {payableSourceIndex,type PaymentBatch} from '@/lib/settlement-recording';
 import {Dialog,DialogContent,DialogTitle,DialogDescription} from '@/components/ui/dialog';
 import {Amount,Field} from './trip-controls';
 import Calculation from './settlement-calculation';
@@ -16,7 +17,7 @@ export default function SettlementPayments({event:e,group,revision,session,trans
  const [filter,setFilter]=useState(''),[selected,setSelected]=useState<string[]>([]),[draft,setDraft]=useState<Draft|null>(null),[receipt,setReceipt]=useState<Receipt|null>(null),[error,setError]=useState(''),[working,setWorking]=useState(false),[uncertain,setUncertain]=useState(false),[needsReview,setNeedsReview]=useState(false),[copyText,setCopyText]=useState('');
  const lock=useRef(false),frozen=useRef<{action:string;entity:any;revision:number}|null>(null),scroll=useRef(0);
  const fmt=(n:number)=>money(n,e.settlement),name=(id:string)=>e.people.find(p=>p.id===id)?.name||id;
- const sources=useMemo(()=>payableSourceIndex(e,claims),[e,claims]);
+ const sources=useMemo(()=>payableSourceIndex(e,claims,calculations),[e,claims,calculations]);
  const bills=useMemo(()=>[...new Map(transfers.flatMap(t=>sources.get(pairKey(t))||[]).map(b=>[b.id,b])).values()],[sources,transfers]);
  const visible=transfers.filter(t=>!filter||sources.get(pairKey(t))?.some(b=>b.id===filter));
  const recipients=[...new Set(visible.map(t=>t.to))];
@@ -38,7 +39,7 @@ export default function SettlementPayments({event:e,group,revision,session,trans
   setDraft({revision,batch:{...draft.batch,payments:draft.batch.payments.map(p=>{const options=sources.get(pairKey(p))||[],ids=p.expenseIds.filter(id=>options.some(b=>b.id===id)),available=options.filter(b=>ids.includes(b.id)).reduce((n,b)=>n+b.amount,0);return {...p,expenseIds:ids,amount:Math.min(p.amount,available)}})}});
   setNeedsReview(false);setError('Latest balances loaded. Check selected bills and amounts before confirming.');
  }
- async function copy(to:string){const text=[e.name+(filter?' · '+(bills.find(b=>b.id===filter)?.title||'Selected bill'):'')+' · Payments to '+name(to),...visible.filter(t=>t.to===to).map(t=>name(t.from)+' → '+name(t.to)+': '+fmt(choices(t).reduce((n,b)=>n+b.amount,0)))].join('\n');try{await navigator.clipboard.writeText(text);setCopyText('Copied.')}catch{setCopyText(text)}}
+ async function copy(to:string){const text=[e.name+(filter?' · '+(bills.find(b=>b.id===filter)?.title||'Selected bill'):'')+' · Payments to '+name(to),finalDueLines(visible.filter(t=>t.to===to).map(t=>({...t,amount:selectedFinalDue(t,choices(t))})),name,fmt)].join('\n');try{await navigator.clipboard.writeText(text);setCopyText('Copied.')}catch{setCopyText(text)}}
  async function submit(action='paymentBatch'){
   if(lock.current)return;
   let request=frozen.current;
@@ -74,10 +75,10 @@ export default function SettlementPayments({event:e,group,revision,session,trans
   {recipients.map(to=><details open className="settlement-recipient" key={to}>
    <summary>Pay to {name(to)} · {visible.filter(t=>t.to===to).length} payments</summary><div className="checks settlement-recipient-actions">{canRecord&&<button className="text-button" onClick={()=>{const keys=visible.filter(t=>t.to===to).map(pairKey);setSelected(v=>keys.every(k=>v.includes(k))?v.filter(k=>!keys.includes(k)):[...new Set([...v,...keys])])}}>Select / clear group</button>}<button className="text-button" onClick={()=>copy(to)}>Copy list</button></div>
    {payout(to)}
-   {visible.filter(t=>t.to===to).map(t=>{const key=pairKey(t),c=calculations.find(c=>c.from===t.from&&c.to===t.to||c.from===t.to&&c.to===t.from),amount=choices(t).reduce((n,b)=>n+b.amount,0),openRows=c?pendingPairSources(c):[],paid=openRows.some(p=>p.paid!==0),netPaid=openRows.reduce((n,p)=>n+p.paid,0)*(c?.from===t.from?1:-1);return <div className="transfer" key={key}>
-    <div>{canRecord&&<input type="checkbox" aria-label={'Select '+name(t.from)+' to '+name(t.to)} checked={selected.includes(key)} onChange={()=>toggle(key)}/>}<b>{name(t.from)}</b><span>→</span><b>{name(t.to)}</b><strong>{fmt(filter?amount:t.amount)}</strong></div>
-    <div className="checks"><span className="pill">{paid?'Partially paid':'Unpaid'}</span>{paid&&<small>Paid (net) {fmt(netPaid)} · Remaining {fmt(t.amount)}</small>}{filter&&<small>Pair balance {fmt(t.amount)}</small>}{canRecord&&<button className="secondary" disabled={disabled} onClick={()=>open([t])}>Record payment</button>}{onRemind&&<button className="text-button" onClick={()=>onRemind({...t,amount:filter?amount:t.amount},filter?bills.find(b=>b.id===filter):undefined)}>Remind</button>}</div>
-    <Calculation calculation={c} currency={e.settlement} compact/>
+   {visible.filter(t=>t.to===to).map(t=>{const key=pairKey(t),c=calculations.find(c=>c.from===t.from&&c.to===t.to||c.from===t.to&&c.to===t.from),amount=selectedFinalDue(t,choices(t));return <div className="transfer" key={key}>
+    <div>{canRecord&&<input type="checkbox" aria-label={'Select '+name(t.from)+' to '+name(t.to)} checked={selected.includes(key)} onChange={()=>toggle(key)}/>}<span className="pair-net-label">两人净额</span><b>{name(t.from)}</b><span>→</span><b>{name(t.to)}</b><strong>{fmt(t.amount)}</strong></div>
+    <div className="checks">{filter&&<small>Selected bill · Final due {fmt(amount)}</small>}{canRecord&&<button className="secondary" disabled={disabled} onClick={()=>open([t])}>Record payment</button>}{onRemind&&<button className="text-button" onClick={()=>onRemind({...t,amount:filter?amount:t.amount},filter?bills.find(b=>b.id===filter):undefined)}>Remind</button>}</div>
+    <Calculation calculation={c} currency={e.settlement} compact showNet={false}/>
    </div>})}
   </details>)}
   {!visible.length&&<p>No outstanding payments for this selection.</p>}
@@ -86,8 +87,8 @@ export default function SettlementPayments({event:e,group,revision,session,trans
    {error&&<p role="alert" className="message error">{error}</p>}
    {needsReview&&!uncertain&&<p role="alert">The group changed. <button className="secondary" disabled={working} onClick={review}>Review latest amounts</button></p>}
    <div className="settlement-record-body">
-   {draft&&draft.batch.payments.map(p=>{const options=sources.get(pairKey(p))||[],available=options.filter(b=>p.expenseIds.includes(b.id)).reduce((n,b)=>n+b.amount,0),calculation=calculations.find(c=>c.from===p.from&&c.to===p.to||c.from===p.to&&c.to===p.from);return <fieldset key={p.id} disabled={working||uncertain||needsReview}><legend>{name(p.from)} → {name(p.to)}</legend>
-    <div className="settlement-source-list">{options.map(b=>{const gross=calculation?.expenses.filter(x=>x.expense===b.id&&x.from===p.from).reduce((n,x)=>n+x.amount,0)||0,paid=calculation?.payments.filter(x=>x.expense===b.id&&x.from===p.from).reduce((n,x)=>n+x.applied,0)||0;return <label key={b.id}><input type="checkbox" checked={p.expenseIds.includes(b.id)} onChange={()=>{const ids=p.expenseIds.includes(b.id)?p.expenseIds.filter(id=>id!==b.id):[...p.expenseIds,b.id];update(p.id,{expenseIds:ids,amount:options.filter(x=>ids.includes(x.id)).reduce((n,x)=>n+x.amount,0)})}}/><span><b>{b.title}</b><small>{b.date.split('-').reverse().join('/')} · {paid?'Partially paid':'Unpaid'}{gross?' · Original '+fmt(gross):''}{paid?' · Paid '+fmt(paid):''}</small><small>Available after payments / offsets</small></span><b>{fmt(b.amount)}</b></label>})}</div>
+   {draft&&draft.batch.payments.map(p=>{const options=sources.get(pairKey(p))||[],available=options.filter(b=>p.expenseIds.includes(b.id)).reduce((n,b)=>n+b.amount,0);return <fieldset key={p.id} disabled={working||uncertain||needsReview}><legend>{name(p.from)} → {name(p.to)}</legend>
+    <div className="settlement-source-list">{options.map(b=>{return <label key={b.id}><input type="checkbox" checked={p.expenseIds.includes(b.id)} onChange={()=>{const ids=p.expenseIds.includes(b.id)?p.expenseIds.filter(id=>id!==b.id):[...p.expenseIds,b.id];update(p.id,{expenseIds:ids,amount:options.filter(x=>ids.includes(x.id)).reduce((n,x)=>n+x.amount,0)})}}/><span><b>{b.title}</b><small>{b.date.split('-').reverse().join('/')} · {b.status} · Applied {fmt(b.applied)} · Offset {fmt(b.offset)}</small><small>Final due</small></span><b>{fmt(b.amount)}</b></label>})}</div>
     <div className="payment-fields"><Field label={'Amount · selected max '+fmt(available)}><Amount value={p.amount} currency={e.settlement} onChange={amount=>update(p.id,{amount:amount||0})}/></Field><Field label="Date"><input type="date" value={p.date} onChange={v=>update(p.id,{date:v.target.value})}/></Field><Field label="Note / method"><input maxLength={1000} value={p.note} onChange={v=>update(p.id,{note:v.target.value})} placeholder="Cash, DuitNow…"/></Field></div><button type="button" className="text-button" onClick={()=>setDraft(d=>d?{...d,batch:{...d.batch,payments:d.batch.payments.filter(x=>x.id!==p.id)}}:d)}>Remove from this batch</button>
     {p.amount>0&&p.amount<available&&<small>Partial amounts apply to selected bills in the order shown.</small>}
     {(!p.expenseIds.length||p.amount<=0||p.amount>available||!p.date)&&<p role="alert">{!options.length?'No unpaid bills remain for this pair. Remove it from this batch.':!p.expenseIds.length?'Select at least one unpaid bill.':!p.date?'Choose the payment date.':'Enter a positive amount up to '+fmt(available)+'.'}</p>}

@@ -1,11 +1,12 @@
+import {finalDueSources} from './settlement-display';
 import {ledger,cents,type Event,type Payment,type PairCalculation,type DebtClaim} from './ledger';
 
 export type PaymentBatch={id:string;payments:{id:string;from:string;to:string;amount:number;date:string;note:string;expenseIds:string[]}[]};
 function check(ok:unknown,message:string):asserts ok{if(!ok)throw Error(message)}
-export function payableSourceIndex(e:Event,claims:DebtClaim[]){
- const bills=new Map(e.expenses.map(b=>[b.id,b])),pairs=new Map<string,Map<string,{id:string;title:string;date:string;amount:number}>>();
- for(const c of claims)if(c.amount>0){const key=JSON.stringify([c.from,c.to]);let rows=pairs.get(key);if(!rows){rows=new Map();pairs.set(key,rows)}const old=rows.get(c.expense);if(old)old.amount+=c.amount;else rows.set(c.expense,{id:c.expense,title:bills.get(c.expense)?.merchant||'Historical expense',date:bills.get(c.expense)?.date||'',amount:c.amount})}
- return new Map([...pairs].map(([key,rows])=>[key,[...rows.values()]]));
+export function payableSourceIndex(e:Event,_claims:DebtClaim[],calculations=ledger(e).calculations){
+ const pairs=new Map<string,ReturnType<typeof finalDueSources>>();
+ for(const c of calculations){if(c.remainingForward)pairs.set(JSON.stringify([c.from,c.to]),finalDueSources(c,c.from,c.to));if(c.remainingReverse)pairs.set(JSON.stringify([c.to,c.from]),finalDueSources(c,c.to,c.from))}
+ return pairs;
 }
 export function payableSources(e:Event,claims:DebtClaim[],from:string,to:string){
  return payableSourceIndex(e,claims).get(JSON.stringify([from,to]))||[];
@@ -42,7 +43,7 @@ export function recordedBatch(e:Event,batch:PaymentBatch){
 }
 export function preparePaymentBatch(e:Event,batch:PaymentBatch,actor:string):Payment[]{
  check(!recordedBatch(e,batch),'Batch is already recorded');
- const choicesByPair=payableSourceIndex(e,ledger(e).claims);
+ const state=ledger(e),choicesByPair=payableSourceIndex(e,state.claims,state.calculations);
  return batch.payments.map(p=>{
   check(e.people.some(x=>x.id===p.from)&&e.people.some(x=>x.id===p.to),'Member not found');
   const choices=choicesByPair.get(JSON.stringify([p.from,p.to]))||[],selected=new Set(p.expenseIds);

@@ -1,3 +1,7 @@
+# Settlement cash/offset display — 27 October 2026
+
+The current release separates cash Applied, post-payment remaining, chronological dynamic Offset and Final due, with one pair net and consistent selection/reminders. See [offset review](settlement-offset-review.md) for arithmetic, test cases, changed files, preview screenshots and limits. N+1 remains a separate next phase.
+
 # Loading performance measurement — 26 October 2026
 
 v75 is published and both endpoints now have 20 deduplicated, matching five-group samples. See [measured results](loading-performance-results.md) and [numeric sample evidence](loading-performance-samples.json). This is measurement only; lower values across different network routes are not optimization gains. N+1 is the first proposed fix. Await user confirmation before optimization.

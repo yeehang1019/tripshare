@@ -31,3 +31,9 @@ test('Reciprocal offsets cap selectable sources at the actual net and cleared hi
  assert.throws(()=>preparePaymentBatch(e,{id:'excess',payments:[row('p','B','A',3540,[e.expenses[1].id])]},'admin'),/exceeds/);
  const pending=pendingPairSources(s.calculations[0]);assert.ok(!pending.some(b=>b.title==='Old paid'));assert.equal(pending.reduce((n,b)=>n+b.remaining,0),-794);
 });
+test('Date-based source choices and server allocations agree even when insertion order differs',()=>{
+ const e=normalize({name:'Dates',people:['A','B'],bills:[],payments:[]});
+ for(const [id,payer,person,date,amount] of [['new','A','B','2026-10-22',1000],['old','A','B','2026-10-20',1000],['reverse','B','A','2026-10-21',1500]]){const b=blankExpense(e,payer);b.id=id;b.merchant=id;b.date=date;b.items[0].people=[person];b.items[0].weights=[1];b.items[0].amount=amount;e.expenses.push(b)}
+ const before=JSON.stringify(e),s=ledger(e),choices=payableSources(e,s.claims,'B','A');assert.deepEqual(choices.map(c=>[c.id,c.amount]),[['new',500]]);
+ const payments=preparePaymentBatch(e,{id:'date-batch',payments:[row('date-payment','B','A',500,['new'])]},'admin');assert.deepEqual(payments[0].allocations,[{expense:'new',amount:500}]);assert.equal(JSON.stringify(e),before);e.payments.push(...payments);assert.deepEqual(ledger(e).transfers,[]);
+});
