@@ -1,3 +1,10 @@
+# v78 pending-bill summary
+
+KEEP: canonical pairwise balances, payment allocations/history, permission scope and v77 rollback. CHANGE NOW: summary uses reconciled pairSettlement finalDue only; nonpositive bills and adjustment columns excluded from UI/print/CSV/share/copy. Offset disclosure uses one-direction amount with each-way label; summary links to pair Details. IMPROVE LATER: N+1 remains separate pending review. DO NOT ADD: migrations or data edits.
+
+Tests cover audited KL food-only RM16.40, offset14/329.74 each way, confirmed payment removal, personal isolation, stale attribution, source edits and nonnegative reconciliation. Browser exact viewport resizing remains unavailable; real production screenshots must report actual dimensions.
+
+---
 # Settlement display polish (v77)
 
 English labels now match across calculation, recording, summary, print and CSV. Offset-cleared bills remain a native closed disclosure with their combined Offset amount; payable bills remain above it. Mobile settlement pages reserve 180px plus safe-area bottom clearance (53px add button sits 94px above viewport bottom). No ledger, API, storage or user data changes. v76 remains the saved rollback version.

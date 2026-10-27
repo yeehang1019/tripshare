@@ -47,29 +47,6 @@ test('Zero/self rows are excluded and unmatched recorded cash is flagged rather 
  assert.equal(m.rows.length,0);const html=outstandingPrintHTML(m,1000);assert.match(html,/repayments need review/);assert.doesNotMatch(html,/All settled/);
 });
 
-test('Signed bill columns explain Reyes → ET RM7.94, a RM5 payment, and full settlement without changing history',()=>{
- const e=normalize({name:'Dinner',people:['ET','Reyes'],bills:[],payments:[]});
- for(const [payer,person,title,amount] of [['ET','Reyes','Hotbird',3540],['Reyes','ET','Karaoke',2746]]){const b=blankExpense(e,payer);b.merchant=title;b.items[0].people=[person];b.items[0].weights=[1];b.items[0].amount=amount;e.expenses.push(b)}
- let m=outstandingSummary(e,ledger(e).transfers),r=m.rows[0];
- assert.equal(r.from,'Reyes');assert.equal(r.to,'ET');assert.equal(r.values[e.expenses[0].id],3540);assert.equal(r.values[e.expenses[1].id],-2746);assert.equal(r.amount,794);assert.equal(m.hasPaid,false);
- pay(e,'Reyes','ET',500);const before=JSON.stringify(e);m=outstandingSummary(e,ledger(e).transfers);r=m.rows[0];
- assert.equal(r.paid,500);assert.equal(r.amount,294);assert.equal(Object.values(r.values).reduce((a,b)=>a+b,0)-r.paid,r.amount);
- const html=renderToStaticMarkup(React.createElement(OutstandingSettlementTable,{model:m})),printed=outstandingPrintHTML(m),csv=outstandingCSVRows(m);
- for(const text of ['Hotbird','Karaoke','Repayment adjustment','Still to pay']){assert.ok(html.includes(text));assert.ok(printed.includes(text))}
- assert.match(html,/-RM\s*27.46|RM\s*-27.46/);assert.equal(csv[1].at(-2),-5);assert.equal(csv[1].at(-1),2.94);assert.equal(csv[1][3],35.4);assert.equal(csv[1][4],-27.46);assert.equal(JSON.stringify(e),before);
- pay(e,'Reyes','ET',294);m=outstandingSummary(e,ledger(e).transfers);assert.equal(m.rows.length,0);assert.equal(m.columns.length,0);
-});
-test('Historical reverse repayments and changed sources reconcile without claiming unapplied cash as paid',()=>{
- const e=fixture();pay(e,'B','A',1000);e.expenses[0].deleted=true;
- let s=ledger(e),m=outstandingSummary(e,s.transfers,{},s.calculations);
- for(const r of m.rows){assert.notEqual(r.values,null);assert.equal(Object.values(r.values).reduce((n,v)=>n+v,0)-r.paid,r.amount)}
- assert.ok(s.calculations.some(p=>p.unappliedForward||p.unappliedReverse));
- // A later, larger reverse bill flips the visible direction; earlier applied cash is a signed credit.
- const f=normalize({name:'Reverse',people:['A','B'],bills:[],payments:[]});
- for(const [payer,person,title,amount] of [['A','B','Old',1000],['B','A','Later',2000]]){const b=blankExpense(f,payer);b.merchant=title;b.items[0].people=[person];b.items[0].weights=[1];b.items[0].amount=amount;f.expenses.push(b)}
- f.expenses[1].deleted=true;pay(f,'B','A',500);f.expenses[1].deleted=false;
- m=outstandingSummary(f,ledger(f).transfers);assert.equal(m.rows[0].from,'A');assert.equal(m.rows[0].paid,-500);assert.equal(m.rows[0].amount,1500);
-});
 test('Duplicate bill names stay separate and stale source calculations never invent attribution',()=>{
  const e=fixture();e.expenses.forEach(b=>b.merchant='<script>same</script>');
  const s=ledger(e),m=outstandingSummary(e,s.transfers);assert.equal(m.columns.length,2);assert.notEqual(m.columns[0].id,m.columns[1].id);
@@ -85,25 +62,18 @@ test('Wide print continuations keep every bill, label repeated totals, and perso
  const printed=outstandingPrintHTML(m);assert.match(printed,/Extra 8/);assert.match(printed,/do not add repeated/);assert.doesNotMatch(printed,/PRIVATE_D_E/);assert.ok(m.rows.every(r=>r.from==='B'||r.to==='B'));
 });
 
-test('Fully repaid TRX is omitted while newer song and Hotbird reciprocal columns still reconcile',()=>{
- const e=normalize({name:'Trip',people:['ET','Reyes','Calvin'],bills:[],payments:[]});
- function bill(payer,person,title,amount){const b=blankExpense(e,payer);b.merchant=title;b.items[0].people=[person];b.items[0].weights=[1];b.items[0].amount=amount;e.expenses.push(b);return b}
- const trx=bill('ET','Reyes','TRX',3132);pay(e,'Reyes','ET',3132);
- bill('ET','Reyes','song',3540);bill('Reyes','ET','Hotbird',2746);
- const before=JSON.stringify(e),s=ledger(e),m=outstandingSummary(e,s.transfers,{},s.calculations),r=m.rows[0];
- assert.equal(r.amount,794);assert.equal(r.paid,0);assert.equal(m.hasPaid,false);assert.equal(r.values[trx.id],undefined);assert.deepEqual(m.columns.map(c=>c.title),['song','Hotbird']);
- assert.doesNotMatch(outstandingPrintHTML(m),/TRX|<th>Paid<\/th>/);assert.ok(!outstandingCSVRows(m)[0].some(c=>String(c).includes('TRX')));
- const view=personalView(e,'Reyes'),own=outstandingSummary({...e,people:[],expenses:[],payments:[]},view.transfers,{personal:view});assert.deepEqual(own.columns,m.columns);assert.equal(own.rows[0].paid,0);
- assert.equal(JSON.stringify(e),before);
- // Same bill remains visible when another member's source obligation is still unpaid.
- trx.items.push({...trx.items[0],id:'calvin-trx',people:['Calvin'],amount:2000,weights:[1]});
- const group=outstandingSummary(e,ledger(e).transfers);assert.ok(group.columns.some(c=>c.id===trx.id));assert.equal(group.rows.find(t=>t.from==='Reyes').values[trx.id],undefined);assert.equal(group.rows.find(t=>t.from==='Calvin').values[trx.id],2000);
- // Undo restores that source and removes the earlier applied deduction.
- e.payments[0].deleted=true;const undone=outstandingSummary(e,ledger(e).transfers);assert.equal(undone.rows.find(t=>t.from==='Reyes').values[trx.id],3132);assert.equal(undone.rows.find(t=>t.from==='Reyes').amount,3926);
+test('KL House summary/export only includes food final due and disappears after confirmation',async()=>{
+ const {klHousePair}=await import('./fixtures/kl-house-pair.mjs');const e=klHousePair();
+ const before=JSON.stringify(e),m=outstandingSummary(e,ledger(e).transfers);
+ assert.deepEqual(m.columns.map(c=>c.title),['food']);assert.equal(m.total,1640);assert.deepEqual(Object.values(m.rows[0].values),[1640]);
+ assert.equal(m.offsets[0].count,14);assert.equal(m.offsets[0].amount,32974);
+ const html=renderToStaticMarkup(React.createElement(OutstandingSettlementTable,{model:m}));
+ const print=outstandingPrintHTML(m),csv=outstandingCSVRows(m);
+ for(const text of [html,print,JSON.stringify(csv)]){assert.doesNotMatch(text,/Repayment adjustment|fee|toll|RM -/);assert.match(text,/food/)}
+ assert.equal(JSON.stringify(e),before);pay(e,'ET','YH',1640);
+ const after=outstandingSummary(e,ledger(e).transfers);assert.equal(after.total,0);assert.equal(after.columns.length,0);assert.equal(after.rows.length,0);
 });
-test('Partial old source retains its bill and only its own Paid deduction after another source is cleared',()=>{
- const e=normalize({name:'Partial',people:['A','B'],bills:[],payments:[]});
- for(const [title,amount] of [['TRX',1000],['New bill',2000]]){const b=blankExpense(e,'A');b.merchant=title;b.items[0].people=['B'];b.items[0].weights=[1];b.items[0].amount=amount;e.expenses.push(b)}
- pay(e,'B','A',1500);const m=outstandingSummary(e,ledger(e).transfers),r=m.rows[0];
- assert.deepEqual(m.columns.map(c=>c.title),['New bill']);assert.equal(r.values[e.expenses[1].id],2000);assert.equal(r.paid,500);assert.equal(r.amount,1500);assert.equal(m.hasPaid,true);
+test('Reciprocal and reverse obligations remain nonnegative and reconcile after cash and source edits',()=>{
+ const e=fixture();pay(e,'B','A',500);
+ for(const action of [()=>{},()=>{e.expenses[0].deleted=true}]){action();const m=outstandingSummary(e,ledger(e).transfers);for(const row of m.rows){assert.ok(Object.values(row.values).every(n=>n>=0));assert.equal(Object.values(row.values).reduce((n,v)=>n+v,0),row.amount)}}
 });

@@ -1,5 +1,7 @@
 # TripShare engineering rules
 
+- v78 approved: summary/print/CSV/WhatsApp/Copy use only reconciled per-bill finalDue >0; no signed gross columns or repayment adjustment. Settled-offset disclosure uses one-way amount labelled each way and links to Details. Preserve v77 rollback. No N+1 until review.
+
 - Latest approved v77 scope: English settlement labels and offset explanation, offset-cleared bills collapsed by default with aggregate Offset amount, payable bills above, mobile bottom clearance >= add button + bottom navigation. Keep v76 rollback. No ledger/data/query changes; stop after release verification before N+1.
 
 - Latest approval: ship cash/offset settlement explanations separately, then stop for review before N+1. Preserve original data and pair balances. Offset post-cash amounts independently by date ascending then bill ID; display nonnegative Applied / post-payment remaining / Offset / Final due. Status Partially offset for partial offset, Settled by offset for full offset; explain that new/edited/undone bills or payments may reallocate it. Remind, WhatsApp, Copy, Who pays whom totals and selected-source recording must use final due; server recomputes date-derived source availability. No schema or live-data migration. N+1 approval is retained but implementation/measurement is the next independent release.

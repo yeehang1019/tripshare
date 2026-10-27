@@ -1,4 +1,5 @@
 "use client";
+import {outstandingSummary,outstandingText} from '@/lib/settlement-outstanding';
 import {finalDueLines} from '@/lib/settlement-display';
 import { useEffect, useState, useRef, useMemo } from "react";
 import {
@@ -568,8 +569,8 @@ setPlannerDirty(false);setTemplateDirty(false);
       : s.transfers;
     const heading = isMember
       ? `${name(me)}'s settlement`
-      : `Total spending: ${fmt(s.total)}\n\nSettlement`;
-    return `${e.name}\n${heading}\n${finalDueLines(transfers,name,fmt) || "No outstanding balance"}${!isMember && accessInfo.shares[0] ? "\n\nView details: " + viewLink(accessInfo.shares[0].token) : shared ? "\n\nView details: " + window.location.href : ""}`;
+      : `Settlement`;
+    return `${e.name}\n${heading}\n${outstandingText(outstandingSummary(e,transfers.map(t=>({...t,fromName:name(t.from),toName:name(t.to)})),{},s.calculations)) || "No outstanding balance"}${!isMember && accessInfo.shares[0] ? "\n\nView details: " + viewLink(accessInfo.shares[0].token) : shared ? "\n\nView details: " + window.location.href : ""}`;
   }
   function download(text: string, type: string, filename: string) {
     const url = URL.createObjectURL(new Blob([text], { type })),

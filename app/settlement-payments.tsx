@@ -1,4 +1,5 @@
 'use client';
+import {outstandingSummary,outstandingText} from '@/lib/settlement-outstanding';
 import {selectedFinalDue,finalDueLines} from '@/lib/settlement-display';
 import {useEffect,useMemo,useRef,useState,type ReactNode} from 'react';
 import {money,type Event,type DebtClaim,type PairCalculation} from '@/lib/ledger';
@@ -39,7 +40,7 @@ export default function SettlementPayments({event:e,group,revision,session,trans
   setDraft({revision,batch:{...draft.batch,payments:draft.batch.payments.map(p=>{const options=sources.get(pairKey(p))||[],ids=p.expenseIds.filter(id=>options.some(b=>b.id===id)),available=options.filter(b=>ids.includes(b.id)).reduce((n,b)=>n+b.amount,0);return {...p,expenseIds:ids,amount:Math.min(p.amount,available)}})}});
   setNeedsReview(false);setError('Latest balances loaded. Check selected bills and amounts before confirming.');
  }
- async function copy(to:string){const text=[e.name+(filter?' · '+(bills.find(b=>b.id===filter)?.title||'Selected bill'):'')+' · Payments to '+name(to),finalDueLines(visible.filter(t=>t.to===to).map(t=>({...t,amount:selectedFinalDue(t,choices(t))})),name,fmt)].join('\n');try{await navigator.clipboard.writeText(text);setCopyText('Copied.')}catch{setCopyText(text)}}
+ async function copy(to:string){const text=[e.name+(filter?' · '+(bills.find(b=>b.id===filter)?.title||'Selected bill'):'')+' · Payments to '+name(to),outstandingText(outstandingSummary(e,visible.filter(t=>t.to===to).map(t=>({...t,fromName:name(t.from),toName:name(t.to)})),{},calculations))].join('\n');try{await navigator.clipboard.writeText(text);setCopyText('Copied.')}catch{setCopyText(text)}}
  async function submit(action='paymentBatch'){
   if(lock.current)return;
   let request=frozen.current;

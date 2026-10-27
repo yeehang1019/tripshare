@@ -1,4 +1,5 @@
 import {ledger,money,unit,type Event,type PairCalculation} from './ledger';
+import {pairSettlement} from './settlement-display';
 import {escapeHTML as esc} from './exports';
 import {sheetTransfers,type SheetScope,type SheetTransfer} from './settlement-sheet';
 
@@ -10,37 +11,31 @@ export function outstandingSummary(e:Event,transfers:SheetTransfer[],scope:Sheet
  // Personal projections must never fall back to the group's expense records.
  const pairs=new Map((scope.personal?(scope.personal.calculations||[]):(calculations||(pending.length?ledger(e).calculations:[]))).map(p=>[key(p.from,p.to),p]));
  const bills=new Map<string,{id:string;title:string;date:string}>();
+ const offsets:{from:string;to:string;count:number;amount:number}[]=[];
  const rows=pending.map(t=>{
   const p=pairs.get(key(t.from,t.to)),values:Record<string,number>=Object.create(null);
-  let paid:number|null=null;
-  if(p){
-   for(const c of p.expenses)values[c.expense]=(values[c.expense]||0)+(c.from===t.from?c.amount:-c.amount);
-   paid=t.from===p.from?p.paidForward-p.paidReverse:p.paidReverse-p.paidForward;
-   // A stale/missing drill-down must not produce invented bill attribution.
-   if(Object.values(values).reduce((n,v)=>n+v,0)-paid!==t.amount)paid=null;
-   if(paid!==null){
-    const applied:Record<string,number>=Object.create(null);
-    for(const cash of p.payments)applied[cash.expense]=(applied[cash.expense]||0)+(cash.from===t.from?cash.applied:-cash.applied);
-    // Hide source amounts fully cleared by actual source-bound cash. Remove
-    // their matching Paid deduction too, preserving the row's remaining sum.
-    // Reciprocal bill offsets alone stay visible as signed bill columns.
-    for(const id of Object.keys(values))if(values[id]!==0&&values[id]===applied[id]){
-     paid-=applied[id];delete values[id];
-    }
-   }
-   if(paid!==null)for(const c of p.expenses)if(values[c.expense])bills.set(c.expense,{id:c.expense,title:c.title,date:c.date});
+  const model=p?pairSettlement(p):null;
+  if(!model?.reconciled||(t.from===p!.from?p!.remainingForward:p!.remainingReverse)!==t.amount)return {...t,values:null,paid:null};
+  for(const r of model.rows)if(r.from===t.from&&r.to===t.to&&r.finalDue>0){
+   values[r.id]=(values[r.id]||0)+r.finalDue;
+   bills.set(r.id,{id:r.id,title:r.title,date:r.date});
   }
-  return {...t,values:paid===null?null:values,paid};
+  const cleared=model.rows.filter(r=>r.offset>0&&r.finalDue===0);
+  if(cleared.length)offsets.push({from:t.from,to:t.to,count:cleared.length,amount:model.offset});
+  return {...t,values,paid:0};
  });
  const columns=[...bills.values()].sort((a,b)=>a.date.localeCompare(b.date));
- const hasPaid=rows.some(r=>r.paid!==null&&r.paid!==0),unavailable=rows.some(r=>r.values===null);
- return {title:e.name,currency:e.settlement,rows,columns,hasPaid,unavailable,total:rows.reduce((n,t)=>n+t.amount,0),personal:!!(scope.person||scope.personal)};
+ return {title:e.name,currency:e.settlement,rows,columns,hasPaid:false,unavailable:rows.some(r=>r.values===null),offsets,total:rows.reduce((n,t)=>n+t.amount,0),personal:!!(scope.person||scope.personal)};
 }
+export function outstandingText(model:OutstandingSummary){
+ return model.rows.map(t=>`${t.fromName} → ${t.toName}: ${money(t.amount,model.currency)}\n`+model.columns.filter(c=>(t.values?.[c.id]||0)>0).map(c=>`  ${c.title} · ${c.date.split('-').reverse().join('/')}: ${money(t.values![c.id],model.currency)}`).join('\n')).join('\n');
+}
+
 export type OutstandingSummary=ReturnType<typeof outstandingSummary>;
 export function outstandingCSVRows(model:OutstandingSummary):(string|number)[][]{
  const value=(n:number|null)=>n===null?'Unavailable':n/unit(model.currency);
  return [['From','To','Currency',...model.columns.map(c=>c.title+' · '+c.date.split('-').reverse().join('/')),...(model.hasPaid?['Repayment adjustment (add to bill columns)']:[]),'Still to pay'],
-  ...model.rows.map(t=>[t.fromName,t.toName,model.currency,...model.columns.map(c=>value(t.values?t.values[c.id]||0:null)),...(model.hasPaid?[value(t.paid===null?null:-t.paid)]:[]),value(t.amount)])];
+  ...model.rows.map(t=>[t.fromName,t.toName,model.currency,...model.columns.map(c=>value(t.values?t.values[c.id]||0:null)),...(model.hasPaid?[value(t.paid===null?null:-t.paid)]:[]),value(t.amount)]),['Total still to pay','',model.currency,...model.columns.map(()=>''),value(model.total)]];
 }
 export function outstandingPrintHTML(model:OutstandingSummary,reviewAmount=0){
  const fmt=(n:number|null)=>n===null?'Unavailable':esc(money(n,model.currency));
@@ -53,6 +48,7 @@ export function outstandingPrintHTML(model:OutstandingSummary,reviewAmount=0){
   (reviewAmount?'<p><b>Recorded repayments need review: '+fmt(reviewAmount)+'. Check Settlement before paying.</b></p>':'')+
   (model.rows.length?tables:'<p>'+(reviewAmount?'No remaining transfers. Recorded repayments still need review.':'All settled. No payments remaining.')+'</p>')+
   (model.unavailable?'<p>Some bill details are unavailable. Remaining amounts are unchanged; check View Calculation.</p>':'')+
-  '<p><small>Negative bill amounts offset opposite debts. '+(model.hasPaid?'Bill columns + repayment adjustment = Still to pay. ':'')+'All amounts in '+esc(model.currency)+'.'+(model.columns.length>7?' Continued bill columns: Adjustment and Still to pay repeat; do not add repeated amounts.':'')+'</small></p>'+
+  '<p><small>Only bills with Still to pay greater than zero are included. '+(model.hasPaid?'Bill columns + repayment adjustment = Still to pay. ':'')+'All amounts in '+esc(model.currency)+'.'+(model.columns.length>7?' Continued bill columns: Adjustment and Still to pay repeat; do not add repeated amounts.':'')+'</small></p>'+
+  model.offsets.map(o=>'<p>'+o.count+' bills settled by offset · '+fmt(o.amount)+' each way</p>').join('')+
   '<p><small>Snapshot · '+esc(new Date().toLocaleString('en-GB',{timeZone:'Asia/Kuala_Lumpur'}))+' MYT. Printing does not record a payment.</small></p></body></html>';
 }

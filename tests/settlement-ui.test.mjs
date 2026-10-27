@@ -44,7 +44,7 @@ test('KL House UI separates net/cash/offset, explains dynamic ordering, and pers
  const html=renderToStaticMarkup(React.createElement(Payments,{event:e,group:'g',revision:1,session:'',transfers:s.transfers,claims:s.claims,calculations:s.calculations,canRecord:true,onRefresh:async()=>true,payout:()=>null}));
  assert.match(html,/Net between you two/);assert.match(html,/Left after payments/);assert.match(html,/Still to pay/);assert.match(html,/Settled by offset/);assert.match(html,/New bills, payments/);assert.doesNotMatch(html,/Paid \(net\)|Applied[^<]*-RM|Applied[^<]*RM -/);
  assert.doesNotMatch(html.replaceAll("电费去",""),/[\p{Script=Han}]/u);
- assert.match(html,/<details class="offset-settled-bills"><summary><span>Settled by offset · 14 bills<\/span><b>RM\s*659.48<\/b><\/summary>/);
+ assert.match(html,/<details class="offset-settled-bills"><summary><span>Settled by offset · 14 bills<\/span><b>RM\s*329.74 each way<\/b><\/summary>/);
  assert.ok(html.indexOf('20/10/2026')<html.indexOf('class="offset-settled-bills"'));
  const rows=html.match(/<tr class="settlement-bill-row"[^]*?<\/tr>/g),food=rows.find(r=>r.includes('20/10/2026')),toll=rows.find(r=>r.includes('25/09/2026'));
  assert.match(food,/Unpaid/);assert.match(food,/RM\s*0.00/);assert.match(food,/RM\s*16.40/);assert.match(toll,/Payment: Partially paid/);assert.match(toll,/RM\s*15.58/);assert.match(toll,/RM\s*0.92/);assert.match(toll,/Settled by offset/);
