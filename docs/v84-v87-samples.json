@@ -1,0 +1,1888 @@
+{
+  "date": "2026-10-28",
+  "method": "Production cloud browser, authenticated same account. Twenty samples per set; nearest-rank percentiles. v87_304 uses first 20 eligible post-deployment requests; v87_200 last 20 scoped successful responses matching unchanged KL snapshot. Universal and route records correlated by exact timestamp. No browser TTFB claim.",
+  "sets": {
+    "v84": {
+      "samples": [
+        {
+          "time": 1793173840412,
+          "requestId": "61976878-d9cb-4de0-96d8-783e33aff557",
+          "status": 200,
+          "totalMs": 120,
+          "dbMs": 120,
+          "sessionMs": 38,
+          "serializeMs": 0,
+          "dbCalls": 4,
+          "stages": {
+            "identity": 38,
+            "owner": 49,
+            "trip_query": 49,
+            "access": 33,
+            "links": 0,
+            "etag": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "routeDbQueries": 4
+        },
+        {
+          "time": 1793173847071,
+          "requestId": "c00236e4-1416-4f48-b6e0-d904f1a60d32",
+          "status": 200,
+          "totalMs": 147,
+          "dbMs": 147,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 4,
+          "stages": {
+            "identity": 0,
+            "owner": 35,
+            "trip_query": 90,
+            "access": 28,
+            "links": 29,
+            "etag": 0,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "routeDbQueries": 4
+        },
+        {
+          "time": 1793173849294,
+          "requestId": "07f0b1d6-7400-4174-a2ae-d094db64e4c7",
+          "status": 200,
+          "totalMs": 148,
+          "dbMs": 148,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 4,
+          "stages": {
+            "identity": 0,
+            "owner": 25,
+            "trip_query": 86,
+            "access": 36,
+            "links": 26,
+            "etag": 0,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "routeDbQueries": 4
+        },
+        {
+          "time": 1793173849848,
+          "requestId": "343aa22a-4c98-4420-b505-ec948bbbda84",
+          "status": 200,
+          "totalMs": 144,
+          "dbMs": 144,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 4,
+          "stages": {
+            "identity": 0,
+            "owner": 34,
+            "trip_query": 88,
+            "access": 29,
+            "links": 27,
+            "etag": 0,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "routeDbQueries": 4
+        },
+        {
+          "time": 1793173850386,
+          "requestId": "1c2eadc2-47e1-4e76-844e-79b78e011422",
+          "status": 200,
+          "totalMs": 142,
+          "dbMs": 142,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 4,
+          "stages": {
+            "identity": 0,
+            "owner": 33,
+            "trip_query": 90,
+            "access": 26,
+            "links": 26,
+            "etag": 0,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "routeDbQueries": 4
+        },
+        {
+          "time": 1793173850936,
+          "requestId": "62ebc67c-4c56-4f5a-b7e4-b8c12d4cc255",
+          "status": 200,
+          "totalMs": 121,
+          "dbMs": 121,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 4,
+          "stages": {
+            "identity": 0,
+            "owner": 32,
+            "trip_query": 69,
+            "access": 27,
+            "links": 25,
+            "etag": 0,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "routeDbQueries": 4
+        },
+        {
+          "time": 1793173851402,
+          "requestId": "56571e8a-b370-40d7-889a-1209716906c5",
+          "status": 200,
+          "totalMs": 140,
+          "dbMs": 140,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 4,
+          "stages": {
+            "identity": 0,
+            "owner": 38,
+            "trip_query": 87,
+            "access": 27,
+            "links": 26,
+            "etag": 0,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "routeDbQueries": 4
+        },
+        {
+          "time": 1793173929686,
+          "requestId": "19f8bcd3-1906-4be4-976b-d0b85b0b478b",
+          "status": 200,
+          "totalMs": 155,
+          "dbMs": 155,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 4,
+          "stages": {
+            "identity": 0,
+            "owner": 94,
+            "trip_query": 98,
+            "access": 30,
+            "links": 27,
+            "etag": 0,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "routeDbQueries": 4
+        },
+        {
+          "time": 1793173930438,
+          "requestId": "d911e681-6b56-4f61-989d-71fdf8c930f7",
+          "status": 200,
+          "totalMs": 383,
+          "dbMs": 383,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 4,
+          "stages": {
+            "identity": 0,
+            "owner": 48,
+            "trip_query": 318,
+            "access": 35,
+            "links": 30,
+            "etag": 0,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "routeDbQueries": 4
+        },
+        {
+          "time": 1793173930886,
+          "requestId": "34d371f7-954a-4e20-9a0d-8af2187ef3f1",
+          "status": 200,
+          "totalMs": 103,
+          "dbMs": 103,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 4,
+          "stages": {
+            "identity": 0,
+            "owner": 37,
+            "trip_query": 37,
+            "access": 33,
+            "links": 33,
+            "etag": 0,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "routeDbQueries": 4
+        },
+        {
+          "time": 1793173931404,
+          "requestId": "133cbe87-3b4c-4529-88eb-e2145769ab68",
+          "status": 200,
+          "totalMs": 132,
+          "dbMs": 132,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 4,
+          "stages": {
+            "identity": 0,
+            "owner": 35,
+            "trip_query": 76,
+            "access": 28,
+            "links": 28,
+            "etag": 0,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "routeDbQueries": 4
+        },
+        {
+          "time": 1793173931932,
+          "requestId": "7f92467c-0485-41bb-bd36-b09ec9fdfed4",
+          "status": 200,
+          "totalMs": 145,
+          "dbMs": 145,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 4,
+          "stages": {
+            "identity": 0,
+            "owner": 29,
+            "trip_query": 82,
+            "access": 30,
+            "links": 33,
+            "etag": 0,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "routeDbQueries": 4
+        },
+        {
+          "time": 1793173932352,
+          "requestId": "b4a5ae47-b614-4da9-8282-a03bd5d3b52f",
+          "status": 200,
+          "totalMs": 98,
+          "dbMs": 98,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 4,
+          "stages": {
+            "identity": 0,
+            "owner": 36,
+            "trip_query": 42,
+            "access": 27,
+            "links": 29,
+            "etag": 0,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "routeDbQueries": 4
+        },
+        {
+          "time": 1793173933078,
+          "requestId": "e842b0cc-41ab-4524-88eb-5d0d7ab9a9b0",
+          "status": 200,
+          "totalMs": 93,
+          "dbMs": 93,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 4,
+          "stages": {
+            "identity": 0,
+            "owner": 27,
+            "trip_query": 36,
+            "access": 28,
+            "links": 29,
+            "etag": 0,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "routeDbQueries": 4
+        },
+        {
+          "time": 1793173987654,
+          "requestId": "29fd2a51-6533-4d37-b7b0-5ccf1d52d211",
+          "status": 200,
+          "totalMs": 111,
+          "dbMs": 111,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 4,
+          "stages": {
+            "identity": 0,
+            "owner": 39,
+            "trip_query": 46,
+            "access": 34,
+            "links": 31,
+            "etag": 0,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "routeDbQueries": 4
+        },
+        {
+          "time": 1793173988141,
+          "requestId": "0850bbb6-a3b3-4e68-999c-b9f627e8ce6f",
+          "status": 200,
+          "totalMs": 164,
+          "dbMs": 164,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 4,
+          "stages": {
+            "identity": 0,
+            "owner": 29,
+            "trip_query": 92,
+            "access": 39,
+            "links": 33,
+            "etag": 0,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "routeDbQueries": 4
+        },
+        {
+          "time": 1793173988542,
+          "requestId": "2738501f-54f0-4a78-837a-61c4b2f9738d",
+          "status": 200,
+          "totalMs": 119,
+          "dbMs": 119,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 4,
+          "stages": {
+            "identity": 0,
+            "owner": 35,
+            "trip_query": 56,
+            "access": 30,
+            "links": 33,
+            "etag": 0,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "routeDbQueries": 4
+        },
+        {
+          "time": 1793173989102,
+          "requestId": "ca1f1d7d-1ccf-42eb-bd38-9623939565a6",
+          "status": 200,
+          "totalMs": 171,
+          "dbMs": 171,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 4,
+          "stages": {
+            "identity": 0,
+            "owner": 36,
+            "trip_query": 42,
+            "access": 28,
+            "links": 101,
+            "etag": 0,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "routeDbQueries": 4
+        },
+        {
+          "time": 1793173990519,
+          "requestId": "2a70a4fc-7c3f-49a8-a93c-bcb2ffd180ed",
+          "status": 200,
+          "totalMs": 437,
+          "dbMs": 437,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 4,
+          "stages": {
+            "identity": 0,
+            "owner": 28,
+            "trip_query": 316,
+            "access": 90,
+            "links": 31,
+            "etag": 0,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "routeDbQueries": 4
+        },
+        {
+          "time": 1793173991032,
+          "requestId": "5807683d-9cb5-4684-b40f-3d0346e30f0d",
+          "status": 200,
+          "totalMs": 149,
+          "dbMs": 149,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 4,
+          "stages": {
+            "identity": 0,
+            "owner": 28,
+            "trip_query": 89,
+            "access": 29,
+            "links": 31,
+            "etag": 0,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "routeDbQueries": 4
+        }
+      ],
+      "metrics": {
+        "totalMs": {
+          "p50": 142,
+          "p95": 383,
+          "min": 93,
+          "max": 437
+        },
+        "dbMs": {
+          "p50": 142,
+          "p95": 383,
+          "min": 93,
+          "max": 437
+        },
+        "sessionMs": {
+          "p50": 0,
+          "p95": 0,
+          "min": 0,
+          "max": 38
+        },
+        "serializeMs": {
+          "p50": 0,
+          "p95": 0,
+          "min": 0,
+          "max": 0
+        },
+        "dbCalls": {
+          "p50": 4,
+          "p95": 4,
+          "min": 4,
+          "max": 4
+        },
+        "app_identity": {
+          "n": 20,
+          "p50": 0,
+          "p95": 0
+        },
+        "app_owner": {
+          "n": 20,
+          "p50": 35,
+          "p95": 49
+        },
+        "app_trip_query": {
+          "n": 20,
+          "p50": 82,
+          "p95": 316
+        },
+        "app_access": {
+          "n": 20,
+          "p50": 29,
+          "p95": 39
+        },
+        "app_links": {
+          "n": 20,
+          "p50": 29,
+          "p95": 33
+        },
+        "app_etag": {
+          "n": 20,
+          "p50": 0,
+          "p95": 0
+        },
+        "app_projection": {
+          "n": 20,
+          "p50": 0,
+          "p95": 0
+        },
+        "app_serialize": {
+          "n": 20,
+          "p50": 0,
+          "p95": 0
+        },
+        "app_json_parse": {
+          "n": 19,
+          "p50": 0,
+          "p95": 0
+        },
+        "app_bills": {
+          "n": 19,
+          "p50": 0,
+          "p95": 0
+        }
+      }
+    },
+    "v85": {
+      "samples": [
+        {
+          "time": 1793174625700,
+          "requestId": "cef844e8-2b2b-402f-ab50-3591e0f5f1f8",
+          "status": 200,
+          "totalMs": 100,
+          "dbMs": 100,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 4,
+          "stages": {
+            "identity": 0,
+            "owner": 27,
+            "trip_query": 48,
+            "access": 26,
+            "links": 26,
+            "etag": 0,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "routeDbQueries": 4
+        },
+        {
+          "time": 1793174626173,
+          "requestId": "cf32adbf-827e-455c-8ebc-fb6ea0198559",
+          "status": 200,
+          "totalMs": 110,
+          "dbMs": 110,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 4,
+          "stages": {
+            "identity": 0,
+            "owner": 27,
+            "trip_query": 56,
+            "access": 29,
+            "links": 25,
+            "etag": 0,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "routeDbQueries": 4
+        },
+        {
+          "time": 1793174626579,
+          "requestId": "e9d18c54-003f-4633-ad9c-313753ba85a4",
+          "status": 200,
+          "totalMs": 219,
+          "dbMs": 219,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 4,
+          "stages": {
+            "identity": 0,
+            "owner": 29,
+            "trip_query": 50,
+            "access": 37,
+            "links": 132,
+            "etag": 0,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "routeDbQueries": 4
+        },
+        {
+          "time": 1793174627058,
+          "requestId": "7919ce8b-748b-4e10-a38a-0b00da4f8a22",
+          "status": 200,
+          "totalMs": 119,
+          "dbMs": 119,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 4,
+          "stages": {
+            "identity": 0,
+            "owner": 29,
+            "trip_query": 64,
+            "access": 29,
+            "links": 26,
+            "etag": 0,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "routeDbQueries": 4
+        },
+        {
+          "time": 1793174627738,
+          "requestId": "123d22a7-575a-4a24-b874-c207b1ea8397",
+          "status": 200,
+          "totalMs": 104,
+          "dbMs": 104,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 4,
+          "stages": {
+            "identity": 0,
+            "owner": 32,
+            "trip_query": 52,
+            "access": 26,
+            "links": 26,
+            "etag": 0,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "routeDbQueries": 4
+        },
+        {
+          "time": 1793174628072,
+          "requestId": "9ac13611-1dfc-4d80-adb3-3adedd37c2d8",
+          "status": 200,
+          "totalMs": 107,
+          "dbMs": 107,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 4,
+          "stages": {
+            "identity": 0,
+            "owner": 27,
+            "trip_query": 50,
+            "access": 26,
+            "links": 31,
+            "etag": 0,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "routeDbQueries": 4
+        },
+        {
+          "time": 1793174628603,
+          "requestId": "9bffb421-49f4-4b79-bf11-a355fc3c0eb6",
+          "status": 200,
+          "totalMs": 337,
+          "dbMs": 337,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 4,
+          "stages": {
+            "identity": 0,
+            "owner": 30,
+            "trip_query": 272,
+            "access": 25,
+            "links": 40,
+            "etag": 0,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "routeDbQueries": 4
+        },
+        {
+          "time": 1793174629219,
+          "requestId": "cc2691ce-d727-4516-b878-4354bf7f7ebe",
+          "status": 200,
+          "totalMs": 334,
+          "dbMs": 334,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 4,
+          "stages": {
+            "identity": 0,
+            "owner": 25,
+            "trip_query": 272,
+            "access": 29,
+            "links": 33,
+            "etag": 0,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "routeDbQueries": 4
+        },
+        {
+          "time": 1793174704445,
+          "requestId": "c6db2080-83ef-42fa-be22-541d718f25d2",
+          "status": 200,
+          "totalMs": 197,
+          "dbMs": 197,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 4,
+          "stages": {
+            "identity": 0,
+            "owner": 91,
+            "trip_query": 140,
+            "access": 28,
+            "links": 29,
+            "etag": 0,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "routeDbQueries": 4
+        },
+        {
+          "time": 1793174704826,
+          "requestId": "932094a6-178e-4f4c-bff9-c0c0d13f4e5f",
+          "status": 200,
+          "totalMs": 193,
+          "dbMs": 193,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 4,
+          "stages": {
+            "identity": 0,
+            "owner": 24,
+            "trip_query": 125,
+            "access": 25,
+            "links": 43,
+            "etag": 0,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "routeDbQueries": 4
+        },
+        {
+          "time": 1793174705397,
+          "requestId": "ca1dd9a3-85c2-464b-98cc-8ed58aebab6a",
+          "status": 200,
+          "totalMs": 381,
+          "dbMs": 381,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 4,
+          "stages": {
+            "identity": 0,
+            "owner": 39,
+            "trip_query": 312,
+            "access": 28,
+            "links": 41,
+            "etag": 0,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "routeDbQueries": 4
+        },
+        {
+          "time": 1793174705712,
+          "requestId": "31205f09-5ff9-47d9-9fae-b1e3eba4c22d",
+          "status": 200,
+          "totalMs": 119,
+          "dbMs": 119,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 4,
+          "stages": {
+            "identity": 0,
+            "owner": 26,
+            "trip_query": 65,
+            "access": 26,
+            "links": 28,
+            "etag": 0,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "routeDbQueries": 4
+        },
+        {
+          "time": 1793174706046,
+          "requestId": "94becb0c-677c-485a-b481-e02493d99a23",
+          "status": 200,
+          "totalMs": 122,
+          "dbMs": 122,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 4,
+          "stages": {
+            "identity": 0,
+            "owner": 29,
+            "trip_query": 61,
+            "access": 27,
+            "links": 34,
+            "etag": 0,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "routeDbQueries": 4
+        },
+        {
+          "time": 1793174706382,
+          "requestId": "0f31c6e2-faf4-4cc9-aaf0-c0eeba09e915",
+          "status": 200,
+          "totalMs": 132,
+          "dbMs": 132,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 4,
+          "stages": {
+            "identity": 0,
+            "owner": 30,
+            "trip_query": 60,
+            "access": 35,
+            "links": 37,
+            "etag": 0,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "routeDbQueries": 4
+        },
+        {
+          "time": 1793174706739,
+          "requestId": "d69fae2f-a2df-4a6f-acd4-0b0657c8617c",
+          "status": 200,
+          "totalMs": 137,
+          "dbMs": 137,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 4,
+          "stages": {
+            "identity": 0,
+            "owner": 26,
+            "trip_query": 83,
+            "access": 26,
+            "links": 28,
+            "etag": 0,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "routeDbQueries": 4
+        },
+        {
+          "time": 1793174707042,
+          "requestId": "108a3036-16d8-47e2-b3eb-6bc689f29f93",
+          "status": 200,
+          "totalMs": 90,
+          "dbMs": 90,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 4,
+          "stages": {
+            "identity": 0,
+            "owner": 25,
+            "trip_query": 38,
+            "access": 26,
+            "links": 26,
+            "etag": 0,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "routeDbQueries": 4
+        },
+        {
+          "time": 1793174791502,
+          "requestId": "71c79b2b-ab27-45be-b679-b58e636f8a9b",
+          "status": 200,
+          "totalMs": 402,
+          "dbMs": 402,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 4,
+          "stages": {
+            "identity": 0,
+            "owner": 299,
+            "trip_query": 340,
+            "access": 27,
+            "links": 35,
+            "etag": 0,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "routeDbQueries": 4
+        },
+        {
+          "time": 1793174791865,
+          "requestId": "5d0ddc5a-4fdd-4b54-a0b0-6ef689ba83ec",
+          "status": 200,
+          "totalMs": 113,
+          "dbMs": 113,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 4,
+          "stages": {
+            "identity": 0,
+            "owner": 25,
+            "trip_query": 40,
+            "access": 36,
+            "links": 37,
+            "etag": 0,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "routeDbQueries": 4
+        },
+        {
+          "time": 1793174792173,
+          "requestId": "f9cd4aa7-8fcb-4e37-86cb-a5bc7b019e77",
+          "status": 200,
+          "totalMs": 113,
+          "dbMs": 113,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 4,
+          "stages": {
+            "identity": 0,
+            "owner": 29,
+            "trip_query": 62,
+            "access": 26,
+            "links": 25,
+            "etag": 0,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "routeDbQueries": 4
+        },
+        {
+          "time": 1793174792504,
+          "requestId": "b963c4ff-817a-459b-92c9-d9735fd59cc5",
+          "status": 200,
+          "totalMs": 103,
+          "dbMs": 103,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 4,
+          "stages": {
+            "identity": 0,
+            "owner": 28,
+            "trip_query": 32,
+            "access": 35,
+            "links": 36,
+            "etag": 0,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "routeDbQueries": 4
+        }
+      ],
+      "metrics": {
+        "totalMs": {
+          "p50": 119,
+          "p95": 381,
+          "min": 90,
+          "max": 402
+        },
+        "dbMs": {
+          "p50": 119,
+          "p95": 381,
+          "min": 90,
+          "max": 402
+        },
+        "sessionMs": {
+          "p50": 0,
+          "p95": 0,
+          "min": 0,
+          "max": 0
+        },
+        "serializeMs": {
+          "p50": 0,
+          "p95": 0,
+          "min": 0,
+          "max": 0
+        },
+        "dbCalls": {
+          "p50": 4,
+          "p95": 4,
+          "min": 4,
+          "max": 4
+        },
+        "app_identity": {
+          "n": 20,
+          "p50": 0,
+          "p95": 0
+        },
+        "app_owner": {
+          "n": 20,
+          "p50": 28,
+          "p95": 91
+        },
+        "app_trip_query": {
+          "n": 20,
+          "p50": 61,
+          "p95": 312
+        },
+        "app_access": {
+          "n": 20,
+          "p50": 27,
+          "p95": 36
+        },
+        "app_links": {
+          "n": 20,
+          "p50": 31,
+          "p95": 43
+        },
+        "app_etag": {
+          "n": 20,
+          "p50": 0,
+          "p95": 0
+        },
+        "app_json_parse": {
+          "n": 20,
+          "p50": 0,
+          "p95": 0
+        },
+        "app_bills": {
+          "n": 20,
+          "p50": 0,
+          "p95": 0
+        },
+        "app_projection": {
+          "n": 20,
+          "p50": 0,
+          "p95": 0
+        },
+        "app_serialize": {
+          "n": 20,
+          "p50": 0,
+          "p95": 0
+        }
+      }
+    },
+    "v87_200": {
+      "samples": [
+        {
+          "time": 1793175633212,
+          "requestId": "406c8b17-18fc-403c-a77b-9cb8264c38ee",
+          "status": 200,
+          "totalMs": 110,
+          "dbMs": 110,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 1,
+          "stages": {
+            "identity": 0,
+            "trip_query": 110,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "routeDbQueries": 1
+        },
+        {
+          "time": 1793175633621,
+          "requestId": "7125f432-4efb-4b30-99b9-0aef4bfc1e8d",
+          "status": 200,
+          "totalMs": 59,
+          "dbMs": 59,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 1,
+          "stages": {
+            "identity": 0,
+            "trip_query": 59,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "routeDbQueries": 1
+        },
+        {
+          "time": 1793175633964,
+          "requestId": "762eedef-3c97-412e-8415-8ffb1329d617",
+          "status": 200,
+          "totalMs": 71,
+          "dbMs": 71,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 1,
+          "stages": {
+            "identity": 0,
+            "trip_query": 71,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "routeDbQueries": 1
+        },
+        {
+          "time": 1793175634330,
+          "requestId": "a31070d4-9d4c-46ab-8b0e-e2eb965da647",
+          "status": 200,
+          "totalMs": 69,
+          "dbMs": 69,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 1,
+          "stages": {
+            "identity": 0,
+            "trip_query": 69,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "routeDbQueries": 1
+        },
+        {
+          "time": 1793175634856,
+          "requestId": "575ff976-ae15-474f-957b-030607c69820",
+          "status": 200,
+          "totalMs": 283,
+          "dbMs": 283,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 1,
+          "stages": {
+            "identity": 0,
+            "trip_query": 283,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "routeDbQueries": 1
+        },
+        {
+          "time": 1793175635144,
+          "requestId": "407594f3-8ec9-455f-8bbd-27c34c12de05",
+          "status": 200,
+          "totalMs": 45,
+          "dbMs": 45,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 1,
+          "stages": {
+            "identity": 0,
+            "trip_query": 45,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "routeDbQueries": 1
+        },
+        {
+          "time": 1793175635445,
+          "requestId": "dc31d515-4019-4647-a4b8-60065be61b94",
+          "status": 200,
+          "totalMs": 71,
+          "dbMs": 71,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 1,
+          "stages": {
+            "identity": 0,
+            "trip_query": 71,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "routeDbQueries": 1
+        },
+        {
+          "time": 1793175635989,
+          "requestId": "fd708b71-fa76-4a5b-bd58-ab386ccdb4b1",
+          "status": 200,
+          "totalMs": 320,
+          "dbMs": 320,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 1,
+          "stages": {
+            "identity": 0,
+            "trip_query": 320,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "routeDbQueries": 1
+        },
+        {
+          "time": 1793175685989,
+          "requestId": "eecd58c3-774b-4e4f-92c2-fa594f7fbf4a",
+          "status": 200,
+          "totalMs": 288,
+          "dbMs": 288,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 1,
+          "stages": {
+            "identity": 0,
+            "trip_query": 288,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "routeDbQueries": 1
+        },
+        {
+          "time": 1793175686509,
+          "requestId": "90a08404-b92f-47d3-ab8e-f4e7a2f6a628",
+          "status": 200,
+          "totalMs": 276,
+          "dbMs": 276,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 1,
+          "stages": {
+            "identity": 0,
+            "trip_query": 276,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "routeDbQueries": 1
+        },
+        {
+          "time": 1793175687012,
+          "requestId": "9be86b65-2ec1-4143-874d-9c53f4b869ee",
+          "status": 200,
+          "totalMs": 286,
+          "dbMs": 286,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 1,
+          "stages": {
+            "identity": 0,
+            "trip_query": 286,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "routeDbQueries": 1
+        },
+        {
+          "time": 1793175687411,
+          "requestId": "4381680b-0f63-4f9a-b6ba-b88b1e41dc6a",
+          "status": 200,
+          "totalMs": 41,
+          "dbMs": 41,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 1,
+          "stages": {
+            "identity": 0,
+            "trip_query": 41,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "routeDbQueries": 1
+        },
+        {
+          "time": 1793175688192,
+          "requestId": "7a263a5b-7515-4179-937c-380c68ff56af",
+          "status": 200,
+          "totalMs": 272,
+          "dbMs": 272,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 1,
+          "stages": {
+            "identity": 0,
+            "trip_query": 272,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "routeDbQueries": 1
+        },
+        {
+          "time": 1793175688698,
+          "requestId": "96326f2b-0da4-4997-9ee2-ae400e039166",
+          "status": 200,
+          "totalMs": 57,
+          "dbMs": 57,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 1,
+          "stages": {
+            "identity": 0,
+            "trip_query": 57,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "routeDbQueries": 1
+        },
+        {
+          "time": 1793175734460,
+          "requestId": "d1985e43-f534-4657-b40a-22b7a9c1db11",
+          "status": 200,
+          "totalMs": 53,
+          "dbMs": 53,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 1,
+          "stages": {
+            "identity": 0,
+            "trip_query": 53,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "routeDbQueries": 1
+        },
+        {
+          "time": 1793175734699,
+          "requestId": "748aadea-e06d-469f-9374-f8353a6b7773",
+          "status": 200,
+          "totalMs": 38,
+          "dbMs": 38,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 1,
+          "stages": {
+            "identity": 0,
+            "trip_query": 38,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "routeDbQueries": 1
+        },
+        {
+          "time": 1793175734944,
+          "requestId": "c0de30da-31f3-4fe1-92b0-42eab2fb1626",
+          "status": 200,
+          "totalMs": 66,
+          "dbMs": 66,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 1,
+          "stages": {
+            "identity": 0,
+            "trip_query": 66,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "routeDbQueries": 1
+        },
+        {
+          "time": 1793175735449,
+          "requestId": "7c6fcd63-7338-4c4c-905c-31e10641e105",
+          "status": 200,
+          "totalMs": 279,
+          "dbMs": 279,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 1,
+          "stages": {
+            "identity": 0,
+            "trip_query": 279,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "routeDbQueries": 1
+        },
+        {
+          "time": 1793175735942,
+          "requestId": "f4e7aaeb-f5c6-458a-b4a6-a7ae7193f6c2",
+          "status": 200,
+          "totalMs": 284,
+          "dbMs": 284,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 1,
+          "stages": {
+            "identity": 0,
+            "trip_query": 284,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "routeDbQueries": 1
+        },
+        {
+          "time": 1793175736519,
+          "requestId": "207acfc5-f141-4b55-a8df-af136e829338",
+          "status": 200,
+          "totalMs": 320,
+          "dbMs": 320,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 1,
+          "stages": {
+            "identity": 0,
+            "trip_query": 320,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "routeDbQueries": 1
+        }
+      ],
+      "metrics": {
+        "totalMs": {
+          "p50": 71,
+          "p95": 320,
+          "min": 38,
+          "max": 320
+        },
+        "dbMs": {
+          "p50": 71,
+          "p95": 320,
+          "min": 38,
+          "max": 320
+        },
+        "sessionMs": {
+          "p50": 0,
+          "p95": 0,
+          "min": 0,
+          "max": 0
+        },
+        "serializeMs": {
+          "p50": 0,
+          "p95": 0,
+          "min": 0,
+          "max": 0
+        },
+        "dbCalls": {
+          "p50": 1,
+          "p95": 1,
+          "min": 1,
+          "max": 1
+        },
+        "app_identity": {
+          "n": 20,
+          "p50": 0,
+          "p95": 0
+        },
+        "app_trip_query": {
+          "n": 20,
+          "p50": 71,
+          "p95": 320
+        },
+        "app_json_parse": {
+          "n": 20,
+          "p50": 0,
+          "p95": 0
+        },
+        "app_bills": {
+          "n": 20,
+          "p50": 0,
+          "p95": 0
+        },
+        "app_projection": {
+          "n": 20,
+          "p50": 0,
+          "p95": 0
+        },
+        "app_serialize": {
+          "n": 20,
+          "p50": 0,
+          "p95": 0
+        }
+      }
+    },
+    "v87_304": {
+      "samples": [
+        {
+          "time": 1793175569458,
+          "requestId": "d7c1e273-840a-4966-a04d-4e6668c7502c",
+          "status": 304,
+          "totalMs": 31,
+          "dbMs": 31,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 1,
+          "stages": {
+            "identity": 0,
+            "version_query": 31
+          },
+          "routeDbQueries": 1
+        },
+        {
+          "time": 1793175570682,
+          "requestId": "fc04dcf6-4adf-49f9-9d15-3acaa4308b5c",
+          "status": 304,
+          "totalMs": 38,
+          "dbMs": 38,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 1,
+          "stages": {
+            "identity": 0,
+            "version_query": 38
+          },
+          "routeDbQueries": 1
+        },
+        {
+          "time": 1793175571696,
+          "requestId": "b59a11ab-1df4-427f-93e3-3f52415c5331",
+          "status": 304,
+          "totalMs": 88,
+          "dbMs": 88,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 1,
+          "stages": {
+            "identity": 0,
+            "version_query": 88
+          },
+          "routeDbQueries": 1
+        },
+        {
+          "time": 1793175572721,
+          "requestId": "6a512c3b-19ee-431f-9e4e-9e840cce7a9c",
+          "status": 304,
+          "totalMs": 28,
+          "dbMs": 28,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 1,
+          "stages": {
+            "identity": 0,
+            "version_query": 28
+          },
+          "routeDbQueries": 1
+        },
+        {
+          "time": 1793175573754,
+          "requestId": "ee2250d8-c121-41c5-9d2a-4988b28c2a4a",
+          "status": 304,
+          "totalMs": 30,
+          "dbMs": 30,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 1,
+          "stages": {
+            "identity": 0,
+            "version_query": 30
+          },
+          "routeDbQueries": 1
+        },
+        {
+          "time": 1793175574707,
+          "requestId": "58a14b3d-26d1-4575-a2df-4b4ba3774750",
+          "status": 304,
+          "totalMs": 40,
+          "dbMs": 40,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 1,
+          "stages": {
+            "identity": 0,
+            "version_query": 40
+          },
+          "routeDbQueries": 1
+        },
+        {
+          "time": 1793175601059,
+          "requestId": "0b8886b2-dde9-46ec-bdec-7346c73e48e8",
+          "status": 304,
+          "totalMs": 83,
+          "dbMs": 83,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 1,
+          "stages": {
+            "identity": 0,
+            "version_query": 83
+          },
+          "routeDbQueries": 1
+        },
+        {
+          "time": 1793175628863,
+          "requestId": "4f1c4626-81ab-496a-8cb8-2f8b8c70ac3b",
+          "status": 304,
+          "totalMs": 37,
+          "dbMs": 37,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 1,
+          "stages": {
+            "identity": 0,
+            "version_query": 37
+          },
+          "routeDbQueries": 1
+        },
+        {
+          "time": 1793175629432,
+          "requestId": "1c992df4-4910-4770-b22b-edd1bc5b5bfe",
+          "status": 304,
+          "totalMs": 30,
+          "dbMs": 30,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 1,
+          "stages": {
+            "identity": 0,
+            "version_query": 30
+          },
+          "routeDbQueries": 1
+        },
+        {
+          "time": 1793175630020,
+          "requestId": "b6f15dfd-c083-4d91-8579-f78e0f28a3da",
+          "status": 304,
+          "totalMs": 31,
+          "dbMs": 31,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 1,
+          "stages": {
+            "identity": 0,
+            "version_query": 31
+          },
+          "routeDbQueries": 1
+        },
+        {
+          "time": 1793175631016,
+          "requestId": "9695407e-4499-4f67-a826-b45d7751c857",
+          "status": 304,
+          "totalMs": 31,
+          "dbMs": 31,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 1,
+          "stages": {
+            "identity": 0,
+            "version_query": 31
+          },
+          "routeDbQueries": 1
+        },
+        {
+          "time": 1793175632030,
+          "requestId": "d82e6058-f3e8-46b0-8214-326cd30b6bd0",
+          "status": 304,
+          "totalMs": 32,
+          "dbMs": 32,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 1,
+          "stages": {
+            "identity": 0,
+            "version_query": 32
+          },
+          "routeDbQueries": 1
+        },
+        {
+          "time": 1793175633050,
+          "requestId": "519bb979-70ec-4d35-adc1-1c4c9d3f9f97",
+          "status": 304,
+          "totalMs": 35,
+          "dbMs": 35,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 1,
+          "stages": {
+            "identity": 0,
+            "version_query": 35
+          },
+          "routeDbQueries": 1
+        },
+        {
+          "time": 1793175659838,
+          "requestId": "43f244e0-8cfc-48ae-a3b7-675646a10f06",
+          "status": 304,
+          "totalMs": 34,
+          "dbMs": 34,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 1,
+          "stages": {
+            "identity": 0,
+            "version_query": 34
+          },
+          "routeDbQueries": 1
+        },
+        {
+          "time": 1793175681685,
+          "requestId": "4b991a84-b483-47ad-bf48-26bccc1301ab",
+          "status": 304,
+          "totalMs": 39,
+          "dbMs": 39,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 1,
+          "stages": {
+            "identity": 0,
+            "version_query": 39
+          },
+          "routeDbQueries": 1
+        },
+        {
+          "time": 1793175682692,
+          "requestId": "5f63a6f4-f84f-473e-9313-a96fc3152116",
+          "status": 304,
+          "totalMs": 27,
+          "dbMs": 27,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 1,
+          "stages": {
+            "identity": 0,
+            "version_query": 27
+          },
+          "routeDbQueries": 1
+        },
+        {
+          "time": 1793175683908,
+          "requestId": "c22a5f1e-e8be-42ac-ba85-372feea36ee1",
+          "status": 304,
+          "totalMs": 39,
+          "dbMs": 39,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 1,
+          "stages": {
+            "identity": 0,
+            "version_query": 39
+          },
+          "routeDbQueries": 1
+        },
+        {
+          "time": 1793175684714,
+          "requestId": "67562b2a-e937-42fa-8547-75435df44c09",
+          "status": 304,
+          "totalMs": 32,
+          "dbMs": 32,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 1,
+          "stages": {
+            "identity": 0,
+            "version_query": 32
+          },
+          "routeDbQueries": 1
+        },
+        {
+          "time": 1793175685691,
+          "requestId": "29287aa5-09c4-4214-a64d-8870ade552ae",
+          "status": 304,
+          "totalMs": 28,
+          "dbMs": 28,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 1,
+          "stages": {
+            "identity": 0,
+            "version_query": 28
+          },
+          "routeDbQueries": 1
+        },
+        {
+          "time": 1793175689423,
+          "requestId": "fedda610-0147-43ca-b3f2-78c03faa4f72",
+          "status": 304,
+          "totalMs": 31,
+          "dbMs": 31,
+          "sessionMs": 0,
+          "serializeMs": 0,
+          "dbCalls": 1,
+          "stages": {
+            "identity": 0,
+            "version_query": 31
+          },
+          "routeDbQueries": 1
+        }
+      ],
+      "metrics": {
+        "totalMs": {
+          "p50": 32,
+          "p95": 83,
+          "min": 27,
+          "max": 88
+        },
+        "dbMs": {
+          "p50": 32,
+          "p95": 83,
+          "min": 27,
+          "max": 88
+        },
+        "sessionMs": {
+          "p50": 0,
+          "p95": 0,
+          "min": 0,
+          "max": 0
+        },
+        "serializeMs": {
+          "p50": 0,
+          "p95": 0,
+          "min": 0,
+          "max": 0
+        },
+        "dbCalls": {
+          "p50": 1,
+          "p95": 1,
+          "min": 1,
+          "max": 1
+        },
+        "app_identity": {
+          "n": 20,
+          "p50": 0,
+          "p95": 0
+        },
+        "app_version_query": {
+          "n": 20,
+          "p50": 32,
+          "p95": 83
+        }
+      }
+    }
+  }
+}

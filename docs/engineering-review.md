@@ -1,3 +1,7 @@
+# v87 scoped read / early304 release
+
+See [v84–v87 review](v84-v87-review.md) and [production samples](v84-v87-samples.json). Final live v87 fixes a directory-placeholder regression after immediate rollback to v85. Twenty samples per set: v84 142/383ms, v85 119/381ms, v87 normal71/320ms, v87 30432/83ms (p50/p95). Final normal and unchanged304 use one DB call. Current rollback target v85. Platform ingress delay and ineffective compression remain documented limits. No migration or notification work. Stopped for review.
+
 # v80 N+1 release
 
 See [N+1 review](nplus-review.md) and [20 production samples](nplus-samples.json).55 API tests, full response equality,5-call budget, TypeScript/build/Worker smoke passed. KEEP auth/data/projection; CHANGE NOW batching shipped; IMPROVE LATER further loading work; DO NOT ADD unrelated features. Guaranteed cold-isolate measurement remains unavailable.
