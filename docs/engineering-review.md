@@ -1,3 +1,7 @@
+# v90 loading follow-up — complete
+
+See [v88–v90 report](v88-v90-review.md) and [20-sample evidence](v88-v90-samples.json). Three independently deployed phases completed. Current live v90; rollback v89. Actual refresh30454/63ms, unread count85/92ms and list90/102ms (p50/p95),1 DBcall each. Previous notifications446/487ms,6calls. Actual browser confirms44 updates and net RM16.40.58 API checks, types/build/Worker smoke passed; cache/concurrency regression tests passed. No financial-data writes, outgoing messages or schema migration. Embedded JSON parsing and platform HTML delay remain explicit limits. KEEP history/auth/features; CHANGE NOW scheduling/cache/query changes shipped; IMPROVE LATER audit storage only after approval; DO NOT ADD more scope. Stopped for review.
+
 # v87 scoped read / early304 release
 
 See [v84–v87 review](v84-v87-review.md) and [production samples](v84-v87-samples.json). Final live v87 fixes a directory-placeholder regression after immediate rollback to v85. Twenty samples per set: v84 142/383ms, v85 119/381ms, v87 normal71/320ms, v87 30432/83ms (p50/p95). Final normal and unchanged304 use one DB call. Current rollback target v85. Platform ingress delay and ineffective compression remain documented limits. No migration or notification work. Stopped for review.

@@ -1,0 +1,3341 @@
+{
+  "date": "2026-10-28",
+  "method": "Authenticated cloud browser;20 successful application requests per set; nearest-rank percentiles; no client TTFB inference; raw native headers/identities excluded.",
+  "sets": {
+    "v88": {
+      "samples": [
+        {
+          "time": 1793178210735,
+          "requestId": "6b2604b2-ea2b-4e6e-a0b4-4d7a17de98a8",
+          "status": 200,
+          "totalMs": 390,
+          "dbQueries": 1,
+          "dbWallMs": 390,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "trip_query": 390,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "counts": {
+            "groupsRead": 1,
+            "sourceChars": 171205,
+            "billsRead": 43,
+            "plansRead": 0,
+            "historyRead": 106,
+            "groupsReturned": 1,
+            "responseChars": 171583
+          },
+          "queries": {
+            "owner": {
+              "count": 1,
+              "wallMs": 390,
+              "engineMs": 3.8785,
+              "rowsRead": 9,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793178210980,
+          "requestId": "e417e4d0-b721-4b46-aff0-7db15a6bd312",
+          "status": 200,
+          "totalMs": 97,
+          "dbQueries": 1,
+          "dbWallMs": 97,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "trip_query": 97,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "counts": {
+            "groupsRead": 1,
+            "sourceChars": 171205,
+            "billsRead": 43,
+            "plansRead": 0,
+            "historyRead": 106,
+            "groupsReturned": 1,
+            "responseChars": 171583
+          },
+          "queries": {
+            "owner": {
+              "count": 1,
+              "wallMs": 97,
+              "engineMs": 3.3184,
+              "rowsRead": 9,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793178211205,
+          "requestId": "70024765-8649-4f32-8ac8-a240b96c0699",
+          "status": 200,
+          "totalMs": 91,
+          "dbQueries": 1,
+          "dbWallMs": 91,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "trip_query": 91,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "counts": {
+            "groupsRead": 1,
+            "sourceChars": 171205,
+            "billsRead": 43,
+            "plansRead": 0,
+            "historyRead": 106,
+            "groupsReturned": 1,
+            "responseChars": 171583
+          },
+          "queries": {
+            "owner": {
+              "count": 1,
+              "wallMs": 91,
+              "engineMs": 2.4364,
+              "rowsRead": 9,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793178211706,
+          "requestId": "714f909c-763f-478b-8d1c-9d4bcea67dde",
+          "status": 200,
+          "totalMs": 382,
+          "dbQueries": 1,
+          "dbWallMs": 382,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "trip_query": 382,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "counts": {
+            "groupsRead": 1,
+            "sourceChars": 171205,
+            "billsRead": 43,
+            "plansRead": 0,
+            "historyRead": 106,
+            "groupsReturned": 1,
+            "responseChars": 171583
+          },
+          "queries": {
+            "owner": {
+              "count": 1,
+              "wallMs": 382,
+              "engineMs": 2.1361,
+              "rowsRead": 9,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793178211963,
+          "requestId": "64991d69-524e-4f17-bd0a-86aa49dc2164",
+          "status": 200,
+          "totalMs": 144,
+          "dbQueries": 1,
+          "dbWallMs": 144,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "trip_query": 144,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "counts": {
+            "groupsRead": 1,
+            "sourceChars": 171205,
+            "billsRead": 43,
+            "plansRead": 0,
+            "historyRead": 106,
+            "groupsReturned": 1,
+            "responseChars": 171583
+          },
+          "queries": {
+            "owner": {
+              "count": 1,
+              "wallMs": 144,
+              "engineMs": 2.8451,
+              "rowsRead": 9,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793178225058,
+          "requestId": "f39cda65-510f-45be-b894-760ccc50e5f5",
+          "status": 200,
+          "totalMs": 384,
+          "dbQueries": 1,
+          "dbWallMs": 384,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "trip_query": 384,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "counts": {
+            "groupsRead": 1,
+            "sourceChars": 171205,
+            "billsRead": 43,
+            "plansRead": 0,
+            "historyRead": 106,
+            "groupsReturned": 1,
+            "responseChars": 171583
+          },
+          "queries": {
+            "owner": {
+              "count": 1,
+              "wallMs": 384,
+              "engineMs": 2.125,
+              "rowsRead": 9,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793178225301,
+          "requestId": "98719507-2eb2-4329-9dc5-f5cba525fa52",
+          "status": 200,
+          "totalMs": 99,
+          "dbQueries": 1,
+          "dbWallMs": 99,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "trip_query": 99,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "counts": {
+            "groupsRead": 1,
+            "sourceChars": 171205,
+            "billsRead": 43,
+            "plansRead": 0,
+            "historyRead": 106,
+            "groupsReturned": 1,
+            "responseChars": 171583
+          },
+          "queries": {
+            "owner": {
+              "count": 1,
+              "wallMs": 99,
+              "engineMs": 3.4839,
+              "rowsRead": 9,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793178225827,
+          "requestId": "e3fe8918-afbc-4511-85a0-5cbd68f18b5b",
+          "status": 200,
+          "totalMs": 379,
+          "dbQueries": 1,
+          "dbWallMs": 379,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "trip_query": 379,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "counts": {
+            "groupsRead": 1,
+            "sourceChars": 171205,
+            "billsRead": 43,
+            "plansRead": 0,
+            "historyRead": 106,
+            "groupsReturned": 1,
+            "responseChars": 171583
+          },
+          "queries": {
+            "owner": {
+              "count": 1,
+              "wallMs": 379,
+              "engineMs": 2.8555,
+              "rowsRead": 9,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793178226098,
+          "requestId": "a2b0c9a9-e918-4e28-9262-1cad5149f803",
+          "status": 200,
+          "totalMs": 105,
+          "dbQueries": 1,
+          "dbWallMs": 105,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "trip_query": 105,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "counts": {
+            "groupsRead": 1,
+            "sourceChars": 171205,
+            "billsRead": 43,
+            "plansRead": 0,
+            "historyRead": 106,
+            "groupsReturned": 1,
+            "responseChars": 171583
+          },
+          "queries": {
+            "owner": {
+              "count": 1,
+              "wallMs": 105,
+              "engineMs": 2.6997,
+              "rowsRead": 9,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793178226647,
+          "requestId": "f4ac6ac2-1870-4143-b5a9-b28eee2137d6",
+          "status": 200,
+          "totalMs": 355,
+          "dbQueries": 1,
+          "dbWallMs": 355,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "trip_query": 355,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "counts": {
+            "groupsRead": 1,
+            "sourceChars": 171205,
+            "billsRead": 43,
+            "plansRead": 0,
+            "historyRead": 106,
+            "groupsReturned": 1,
+            "responseChars": 171583
+          },
+          "queries": {
+            "owner": {
+              "count": 1,
+              "wallMs": 355,
+              "engineMs": 2.6983,
+              "rowsRead": 9,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793178226906,
+          "requestId": "8d1c49aa-fd0e-4674-b92e-d70de18a94f7",
+          "status": 200,
+          "totalMs": 117,
+          "dbQueries": 1,
+          "dbWallMs": 117,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "trip_query": 117,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "counts": {
+            "groupsRead": 1,
+            "sourceChars": 171205,
+            "billsRead": 43,
+            "plansRead": 0,
+            "historyRead": 106,
+            "groupsReturned": 1,
+            "responseChars": 171583
+          },
+          "queries": {
+            "owner": {
+              "count": 1,
+              "wallMs": 117,
+              "engineMs": 2.5276,
+              "rowsRead": 9,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793178227198,
+          "requestId": "ffb43bb7-8342-4019-b926-6db4947cfc34",
+          "status": 200,
+          "totalMs": 136,
+          "dbQueries": 1,
+          "dbWallMs": 136,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "trip_query": 136,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "counts": {
+            "groupsRead": 1,
+            "sourceChars": 171205,
+            "billsRead": 43,
+            "plansRead": 0,
+            "historyRead": 106,
+            "groupsReturned": 1,
+            "responseChars": 171583
+          },
+          "queries": {
+            "owner": {
+              "count": 1,
+              "wallMs": 136,
+              "engineMs": 2.4252,
+              "rowsRead": 9,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793178239212,
+          "requestId": "8596c66d-f68f-49a7-9d3a-9b457013ba30",
+          "status": 200,
+          "totalMs": 470,
+          "dbQueries": 1,
+          "dbWallMs": 470,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "trip_query": 470,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "counts": {
+            "groupsRead": 1,
+            "sourceChars": 171205,
+            "billsRead": 43,
+            "plansRead": 0,
+            "historyRead": 106,
+            "groupsReturned": 1,
+            "responseChars": 171583
+          },
+          "queries": {
+            "owner": {
+              "count": 1,
+              "wallMs": 470,
+              "engineMs": 2.6957,
+              "rowsRead": 9,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793178239495,
+          "requestId": "d214e540-3ad6-477a-906d-2f9a445e8227",
+          "status": 200,
+          "totalMs": 152,
+          "dbQueries": 1,
+          "dbWallMs": 152,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "trip_query": 152,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "counts": {
+            "groupsRead": 1,
+            "sourceChars": 171205,
+            "billsRead": 43,
+            "plansRead": 0,
+            "historyRead": 106,
+            "groupsReturned": 1,
+            "responseChars": 171583
+          },
+          "queries": {
+            "owner": {
+              "count": 1,
+              "wallMs": 152,
+              "engineMs": 3.9408,
+              "rowsRead": 9,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793178240027,
+          "requestId": "29a2c6e7-848a-4f27-83f3-6fd4dd789cdc",
+          "status": 200,
+          "totalMs": 391,
+          "dbQueries": 1,
+          "dbWallMs": 391,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "trip_query": 391,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "counts": {
+            "groupsRead": 1,
+            "sourceChars": 171205,
+            "billsRead": 43,
+            "plansRead": 0,
+            "historyRead": 106,
+            "groupsReturned": 1,
+            "responseChars": 171583
+          },
+          "queries": {
+            "owner": {
+              "count": 1,
+              "wallMs": 391,
+              "engineMs": 2.8297,
+              "rowsRead": 9,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793178240589,
+          "requestId": "3dcd43f2-bdb5-4176-9ec8-8a1fddb1c8ae",
+          "status": 200,
+          "totalMs": 419,
+          "dbQueries": 1,
+          "dbWallMs": 419,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "trip_query": 419,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "counts": {
+            "groupsRead": 1,
+            "sourceChars": 171205,
+            "billsRead": 43,
+            "plansRead": 0,
+            "historyRead": 106,
+            "groupsReturned": 1,
+            "responseChars": 171583
+          },
+          "queries": {
+            "owner": {
+              "count": 1,
+              "wallMs": 419,
+              "engineMs": 2.6888,
+              "rowsRead": 9,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793178240903,
+          "requestId": "9c094cae-8923-493a-87c7-45f4e235bba8",
+          "status": 200,
+          "totalMs": 143,
+          "dbQueries": 1,
+          "dbWallMs": 143,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "trip_query": 143,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "counts": {
+            "groupsRead": 1,
+            "sourceChars": 171205,
+            "billsRead": 43,
+            "plansRead": 0,
+            "historyRead": 106,
+            "groupsReturned": 1,
+            "responseChars": 171583
+          },
+          "queries": {
+            "owner": {
+              "count": 1,
+              "wallMs": 143,
+              "engineMs": 2.9074,
+              "rowsRead": 9,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793178241426,
+          "requestId": "9611c7f0-7578-4568-b8b3-49512f25c011",
+          "status": 200,
+          "totalMs": 243,
+          "dbQueries": 1,
+          "dbWallMs": 243,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "trip_query": 243,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "counts": {
+            "groupsRead": 1,
+            "sourceChars": 171205,
+            "billsRead": 43,
+            "plansRead": 0,
+            "historyRead": 106,
+            "groupsReturned": 1,
+            "responseChars": 171583
+          },
+          "queries": {
+            "owner": {
+              "count": 1,
+              "wallMs": 243,
+              "engineMs": 3.7859,
+              "rowsRead": 9,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793178241647,
+          "requestId": "aad39313-9c8e-4695-9c44-a7faba62eb66",
+          "status": 200,
+          "totalMs": 65,
+          "dbQueries": 1,
+          "dbWallMs": 65,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "trip_query": 65,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "counts": {
+            "groupsRead": 1,
+            "sourceChars": 171205,
+            "billsRead": 43,
+            "plansRead": 0,
+            "historyRead": 106,
+            "groupsReturned": 1,
+            "responseChars": 171583
+          },
+          "queries": {
+            "owner": {
+              "count": 1,
+              "wallMs": 65,
+              "engineMs": 2.2759,
+              "rowsRead": 9,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793178241835,
+          "requestId": "2b88d12a-7f3b-4e13-91ac-a29dedd92448",
+          "status": 200,
+          "totalMs": 63,
+          "dbQueries": 1,
+          "dbWallMs": 63,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "trip_query": 63,
+            "json_parse": 0,
+            "bills": 0,
+            "projection": 0,
+            "serialize": 0
+          },
+          "counts": {
+            "groupsRead": 1,
+            "sourceChars": 171205,
+            "billsRead": 43,
+            "plansRead": 0,
+            "historyRead": 106,
+            "groupsReturned": 1,
+            "responseChars": 171583
+          },
+          "queries": {
+            "owner": {
+              "count": 1,
+              "wallMs": 63,
+              "engineMs": 2.816,
+              "rowsRead": 9,
+              "rowsWritten": 0
+            }
+          }
+        }
+      ],
+      "metrics": {
+        "totalMs": {
+          "n": 20,
+          "p50": 144,
+          "p95": 419
+        },
+        "dbWallMs": {
+          "n": 20,
+          "p50": 144,
+          "p95": 419
+        },
+        "dbQueries": {
+          "n": 20,
+          "p50": 1,
+          "p95": 1
+        },
+        "sessionMs": {
+          "n": 20,
+          "p50": 0,
+          "p95": 0
+        },
+        "app_identity": {
+          "n": 20,
+          "p50": 0,
+          "p95": 0
+        },
+        "app_trip_query": {
+          "n": 20,
+          "p50": 144,
+          "p95": 419
+        },
+        "app_json_parse": {
+          "n": 20,
+          "p50": 0,
+          "p95": 0
+        },
+        "app_bills": {
+          "n": 20,
+          "p50": 0,
+          "p95": 0
+        },
+        "app_projection": {
+          "n": 20,
+          "p50": 0,
+          "p95": 0
+        },
+        "app_serialize": {
+          "n": 20,
+          "p50": 0,
+          "p95": 0
+        }
+      }
+    },
+    "v89_refresh": {
+      "samples": [
+        {
+          "time": 1793178573158,
+          "requestId": "f63cb21e-90f6-40e2-8555-f43de3886f73",
+          "status": 304,
+          "totalMs": 52,
+          "dbQueries": 1,
+          "dbWallMs": 52,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "version_query": 52
+          },
+          "queries": {
+            "owner": {
+              "count": 1,
+              "wallMs": 52,
+              "engineMs": 0.8197,
+              "rowsRead": 9,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793178573693,
+          "requestId": "41325ef8-f7c0-48db-851e-fc9f7a57c09e",
+          "status": 304,
+          "totalMs": 54,
+          "dbQueries": 1,
+          "dbWallMs": 54,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "version_query": 54
+          },
+          "queries": {
+            "owner": {
+              "count": 1,
+              "wallMs": 54,
+              "engineMs": 0.9558,
+              "rowsRead": 9,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793178574110,
+          "requestId": "07a0028e-fda6-4648-8e6f-5c8b1fa7b231",
+          "status": 304,
+          "totalMs": 55,
+          "dbQueries": 1,
+          "dbWallMs": 55,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "version_query": 55
+          },
+          "queries": {
+            "owner": {
+              "count": 1,
+              "wallMs": 55,
+              "engineMs": 0.723,
+              "rowsRead": 9,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793178591284,
+          "requestId": "e255baca-f7a4-40d8-bd57-97fbe9102ae6",
+          "status": 304,
+          "totalMs": 68,
+          "dbQueries": 1,
+          "dbWallMs": 68,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "version_query": 68
+          },
+          "queries": {
+            "owner": {
+              "count": 1,
+              "wallMs": 68,
+              "engineMs": 0.8578,
+              "rowsRead": 9,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793178591640,
+          "requestId": "8c41b1e2-9b90-44a8-8de6-35cc88f48b10",
+          "status": 304,
+          "totalMs": 48,
+          "dbQueries": 1,
+          "dbWallMs": 48,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "version_query": 48
+          },
+          "queries": {
+            "owner": {
+              "count": 1,
+              "wallMs": 48,
+              "engineMs": 0.7458,
+              "rowsRead": 9,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793178592459,
+          "requestId": "45cb35c0-99ee-4159-979c-a444cb4927b9",
+          "status": 304,
+          "totalMs": 50,
+          "dbQueries": 1,
+          "dbWallMs": 50,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "version_query": 50
+          },
+          "queries": {
+            "owner": {
+              "count": 1,
+              "wallMs": 50,
+              "engineMs": 0.8811,
+              "rowsRead": 9,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793178592875,
+          "requestId": "78a0ab76-e546-4167-97e4-cdb65c3d607d",
+          "status": 304,
+          "totalMs": 54,
+          "dbQueries": 1,
+          "dbWallMs": 54,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "version_query": 54
+          },
+          "queries": {
+            "owner": {
+              "count": 1,
+              "wallMs": 54,
+              "engineMs": 1.0689,
+              "rowsRead": 9,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793178609671,
+          "requestId": "e0e54285-87fa-4a66-b308-34630fecf263",
+          "status": 304,
+          "totalMs": 58,
+          "dbQueries": 1,
+          "dbWallMs": 58,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "version_query": 58
+          },
+          "queries": {
+            "owner": {
+              "count": 1,
+              "wallMs": 58,
+              "engineMs": 1.0554,
+              "rowsRead": 9,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793178624272,
+          "requestId": "d74aabff-6e85-4f4c-9428-ac068abdf08b",
+          "status": 304,
+          "totalMs": 60,
+          "dbQueries": 1,
+          "dbWallMs": 60,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "version_query": 60
+          },
+          "queries": {
+            "owner": {
+              "count": 1,
+              "wallMs": 60,
+              "engineMs": 0.8909,
+              "rowsRead": 9,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793178624661,
+          "requestId": "bd75ec12-44c3-4dc0-8221-893aa62fd1ce",
+          "status": 304,
+          "totalMs": 54,
+          "dbQueries": 1,
+          "dbWallMs": 54,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "version_query": 54
+          },
+          "queries": {
+            "owner": {
+              "count": 1,
+              "wallMs": 54,
+              "engineMs": 1.1185,
+              "rowsRead": 9,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793178625042,
+          "requestId": "3bb07abb-3f37-44e8-94ea-f1c6d04ce856",
+          "status": 304,
+          "totalMs": 58,
+          "dbQueries": 1,
+          "dbWallMs": 58,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "version_query": 58
+          },
+          "queries": {
+            "owner": {
+              "count": 1,
+              "wallMs": 58,
+              "engineMs": 1.1714,
+              "rowsRead": 9,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793178625500,
+          "requestId": "8b451a65-9a08-4b88-b56b-a5614a570bd2",
+          "status": 304,
+          "totalMs": 51,
+          "dbQueries": 1,
+          "dbWallMs": 51,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "version_query": 51
+          },
+          "queries": {
+            "owner": {
+              "count": 1,
+              "wallMs": 51,
+              "engineMs": 1.0023,
+              "rowsRead": 9,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793178625953,
+          "requestId": "d164245f-41d8-4b12-aa11-a4be96558cee",
+          "status": 304,
+          "totalMs": 54,
+          "dbQueries": 1,
+          "dbWallMs": 54,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "version_query": 54
+          },
+          "queries": {
+            "owner": {
+              "count": 1,
+              "wallMs": 54,
+              "engineMs": 0.6793,
+              "rowsRead": 9,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793178656949,
+          "requestId": "dbae0ac7-c575-4134-88dd-7957efa36de4",
+          "status": 304,
+          "totalMs": 58,
+          "dbQueries": 1,
+          "dbWallMs": 58,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "version_query": 58
+          },
+          "queries": {
+            "owner": {
+              "count": 1,
+              "wallMs": 58,
+              "engineMs": 1.4057,
+              "rowsRead": 9,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793178671641,
+          "requestId": "cdd5edf7-96d3-4d09-aab2-16b55c83e15d",
+          "status": 304,
+          "totalMs": 63,
+          "dbQueries": 1,
+          "dbWallMs": 63,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "version_query": 63
+          },
+          "queries": {
+            "owner": {
+              "count": 1,
+              "wallMs": 63,
+              "engineMs": 0.8293,
+              "rowsRead": 9,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793178672140,
+          "requestId": "7d1f54ec-e3c2-4bcb-981e-880651b34f47",
+          "status": 304,
+          "totalMs": 55,
+          "dbQueries": 1,
+          "dbWallMs": 55,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "version_query": 55
+          },
+          "queries": {
+            "owner": {
+              "count": 1,
+              "wallMs": 55,
+              "engineMs": 0.9481,
+              "rowsRead": 9,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793178672514,
+          "requestId": "27ee1923-1005-4612-b974-879c8b3ccedf",
+          "status": 304,
+          "totalMs": 53,
+          "dbQueries": 1,
+          "dbWallMs": 53,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "version_query": 53
+          },
+          "queries": {
+            "owner": {
+              "count": 1,
+              "wallMs": 53,
+              "engineMs": 1.3406,
+              "rowsRead": 9,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793178672955,
+          "requestId": "f12041ed-dac0-4135-b497-c07a4a11b4a0",
+          "status": 304,
+          "totalMs": 54,
+          "dbQueries": 1,
+          "dbWallMs": 54,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "version_query": 54
+          },
+          "queries": {
+            "owner": {
+              "count": 1,
+              "wallMs": 54,
+              "engineMs": 0.7959,
+              "rowsRead": 9,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793178673413,
+          "requestId": "4453f99b-c5ce-4a5a-a4d4-445a29c4c260",
+          "status": 304,
+          "totalMs": 58,
+          "dbQueries": 1,
+          "dbWallMs": 58,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "version_query": 58
+          },
+          "queries": {
+            "owner": {
+              "count": 1,
+              "wallMs": 58,
+              "engineMs": 0.9071,
+              "rowsRead": 9,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793178695499,
+          "requestId": "840024bc-b69c-4f96-b6fa-8a3936b525b4",
+          "status": 304,
+          "totalMs": 55,
+          "dbQueries": 1,
+          "dbWallMs": 55,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "version_query": 55
+          },
+          "queries": {
+            "owner": {
+              "count": 1,
+              "wallMs": 55,
+              "engineMs": 0.9135,
+              "rowsRead": 9,
+              "rowsWritten": 0
+            }
+          }
+        }
+      ],
+      "metrics": {
+        "totalMs": {
+          "n": 20,
+          "p50": 54,
+          "p95": 63
+        },
+        "dbWallMs": {
+          "n": 20,
+          "p50": 54,
+          "p95": 63
+        },
+        "dbQueries": {
+          "n": 20,
+          "p50": 1,
+          "p95": 1
+        },
+        "sessionMs": {
+          "n": 20,
+          "p50": 0,
+          "p95": 0
+        },
+        "app_identity": {
+          "n": 20,
+          "p50": 0,
+          "p95": 0
+        },
+        "app_version_query": {
+          "n": 20,
+          "p50": 54,
+          "p95": 63
+        }
+      }
+    },
+    "notifications_before": {
+      "samples": [
+        {
+          "time": 1793178573713,
+          "requestId": "08c1e0a2-e22f-4590-a29b-5ec90f5974cb",
+          "status": 200,
+          "totalMs": 451,
+          "dbQueries": 6,
+          "dbWallMs": 451,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "trip_query": 172,
+            "access": 279,
+            "json_parse": 0,
+            "bills": 0,
+            "history": 0,
+            "serialize": 0
+          },
+          "counts": {
+            "groupsRead": 5,
+            "sourceChars": 370825,
+            "billsRead": 60,
+            "plansRead": 6,
+            "historyRead": 228,
+            "responseChars": 9967
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 172,
+              "engineMs": 4.4367,
+              "rowsRead": 5,
+              "rowsWritten": 0
+            },
+            "access_grant": {
+              "count": 5,
+              "wallMs": 279,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793178574271,
+          "requestId": "7aa1ca16-d321-46a0-9c3a-479317bb5017",
+          "status": 200,
+          "totalMs": 487,
+          "dbQueries": 6,
+          "dbWallMs": 487,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "trip_query": 199,
+            "access": 288,
+            "json_parse": 0,
+            "bills": 0,
+            "history": 0,
+            "serialize": 0
+          },
+          "counts": {
+            "groupsRead": 5,
+            "sourceChars": 370825,
+            "billsRead": 60,
+            "plansRead": 6,
+            "historyRead": 228,
+            "responseChars": 9967
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 199,
+              "engineMs": 5.6317,
+              "rowsRead": 5,
+              "rowsWritten": 0
+            },
+            "access_grant": {
+              "count": 5,
+              "wallMs": 288,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793178574768,
+          "requestId": "22fe0988-b747-4ea2-ba4a-81cc8ec1774a",
+          "status": 200,
+          "totalMs": 431,
+          "dbQueries": 6,
+          "dbWallMs": 431,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "trip_query": 168,
+            "access": 263,
+            "json_parse": 0,
+            "bills": 0,
+            "history": 0,
+            "serialize": 0
+          },
+          "counts": {
+            "groupsRead": 5,
+            "sourceChars": 370825,
+            "billsRead": 60,
+            "plansRead": 6,
+            "historyRead": 228,
+            "responseChars": 9967
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 168,
+              "engineMs": 3.4177,
+              "rowsRead": 5,
+              "rowsWritten": 0
+            },
+            "access_grant": {
+              "count": 5,
+              "wallMs": 263,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793178591562,
+          "requestId": "4241d5b5-a605-49d5-9b62-9a8f858fc4eb",
+          "status": 200,
+          "totalMs": 350,
+          "dbQueries": 6,
+          "dbWallMs": 350,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "trip_query": 84,
+            "access": 266,
+            "json_parse": 0,
+            "bills": 0,
+            "history": 0,
+            "serialize": 0
+          },
+          "counts": {
+            "groupsRead": 5,
+            "sourceChars": 370825,
+            "billsRead": 60,
+            "plansRead": 6,
+            "historyRead": 228,
+            "responseChars": 9967
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 84,
+              "engineMs": 3.2539,
+              "rowsRead": 5,
+              "rowsWritten": 0
+            },
+            "access_grant": {
+              "count": 5,
+              "wallMs": 266,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793178592078,
+          "requestId": "6134be16-534f-48f3-a67c-4c1ccbf55d60",
+          "status": 200,
+          "totalMs": 447,
+          "dbQueries": 6,
+          "dbWallMs": 447,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "trip_query": 183,
+            "access": 264,
+            "json_parse": 0,
+            "bills": 0,
+            "history": 0,
+            "serialize": 0
+          },
+          "counts": {
+            "groupsRead": 5,
+            "sourceChars": 370825,
+            "billsRead": 60,
+            "plansRead": 6,
+            "historyRead": 228,
+            "responseChars": 9967
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 183,
+              "engineMs": 4.7595,
+              "rowsRead": 5,
+              "rowsWritten": 0
+            },
+            "access_grant": {
+              "count": 5,
+              "wallMs": 264,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793178592581,
+          "requestId": "6005bd74-35ac-4541-8ed0-b59564ed585b",
+          "status": 200,
+          "totalMs": 446,
+          "dbQueries": 6,
+          "dbWallMs": 446,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "trip_query": 177,
+            "access": 269,
+            "json_parse": 0,
+            "bills": 0,
+            "history": 0,
+            "serialize": 0
+          },
+          "counts": {
+            "groupsRead": 5,
+            "sourceChars": 370825,
+            "billsRead": 60,
+            "plansRead": 6,
+            "historyRead": 228,
+            "responseChars": 9967
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 177,
+              "engineMs": 3.5631,
+              "rowsRead": 5,
+              "rowsWritten": 0
+            },
+            "access_grant": {
+              "count": 5,
+              "wallMs": 269,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793178593114,
+          "requestId": "52b5e9c7-453c-41f2-b7e8-6fdc25aa4351",
+          "status": 200,
+          "totalMs": 475,
+          "dbQueries": 6,
+          "dbWallMs": 475,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "trip_query": 195,
+            "access": 280,
+            "json_parse": 0,
+            "bills": 0,
+            "history": 0,
+            "serialize": 0
+          },
+          "counts": {
+            "groupsRead": 5,
+            "sourceChars": 370825,
+            "billsRead": 60,
+            "plansRead": 6,
+            "historyRead": 228,
+            "responseChars": 9967
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 195,
+              "engineMs": 4.754,
+              "rowsRead": 5,
+              "rowsWritten": 0
+            },
+            "access_grant": {
+              "count": 5,
+              "wallMs": 280,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793178610037,
+          "requestId": "3f399277-8031-4087-b11c-c83f4492c083",
+          "status": 200,
+          "totalMs": 399,
+          "dbQueries": 6,
+          "dbWallMs": 399,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "trip_query": 125,
+            "access": 274,
+            "json_parse": 0,
+            "bills": 0,
+            "history": 0,
+            "serialize": 0
+          },
+          "counts": {
+            "groupsRead": 5,
+            "sourceChars": 370825,
+            "billsRead": 60,
+            "plansRead": 6,
+            "historyRead": 228,
+            "responseChars": 9967
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 125,
+              "engineMs": 4.8149,
+              "rowsRead": 5,
+              "rowsWritten": 0
+            },
+            "access_grant": {
+              "count": 5,
+              "wallMs": 274,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793178624665,
+          "requestId": "77cb9b4c-8b1a-40dc-9d61-2e3a35af349f",
+          "status": 200,
+          "totalMs": 458,
+          "dbQueries": 6,
+          "dbWallMs": 458,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "trip_query": 194,
+            "access": 264,
+            "json_parse": 0,
+            "bills": 0,
+            "history": 0,
+            "serialize": 0
+          },
+          "counts": {
+            "groupsRead": 5,
+            "sourceChars": 370825,
+            "billsRead": 60,
+            "plansRead": 6,
+            "historyRead": 228,
+            "responseChars": 9967
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 194,
+              "engineMs": 4.3344,
+              "rowsRead": 5,
+              "rowsWritten": 0
+            },
+            "access_grant": {
+              "count": 5,
+              "wallMs": 264,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793178625189,
+          "requestId": "24b69723-ea26-4441-bffb-e9683af38695",
+          "status": 200,
+          "totalMs": 474,
+          "dbQueries": 6,
+          "dbWallMs": 474,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "trip_query": 197,
+            "access": 277,
+            "json_parse": 0,
+            "bills": 0,
+            "history": 0,
+            "serialize": 0
+          },
+          "counts": {
+            "groupsRead": 5,
+            "sourceChars": 370825,
+            "billsRead": 60,
+            "plansRead": 6,
+            "historyRead": 228,
+            "responseChars": 9967
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 197,
+              "engineMs": 6.239,
+              "rowsRead": 5,
+              "rowsWritten": 0
+            },
+            "access_grant": {
+              "count": 5,
+              "wallMs": 277,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793178625648,
+          "requestId": "642f4d97-697a-4f88-b192-c7dd985da90d",
+          "status": 200,
+          "totalMs": 394,
+          "dbQueries": 6,
+          "dbWallMs": 394,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "trip_query": 107,
+            "access": 287,
+            "json_parse": 0,
+            "bills": 0,
+            "history": 0,
+            "serialize": 0
+          },
+          "counts": {
+            "groupsRead": 5,
+            "sourceChars": 370825,
+            "billsRead": 60,
+            "plansRead": 6,
+            "historyRead": 228,
+            "responseChars": 9967
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 107,
+              "engineMs": 4.9875,
+              "rowsRead": 5,
+              "rowsWritten": 0
+            },
+            "access_grant": {
+              "count": 5,
+              "wallMs": 287,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793178626060,
+          "requestId": "3a2727fb-6f5d-4287-ba45-e04be37d3f7b",
+          "status": 200,
+          "totalMs": 352,
+          "dbQueries": 6,
+          "dbWallMs": 352,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "trip_query": 77,
+            "access": 275,
+            "json_parse": 0,
+            "bills": 0,
+            "history": 0,
+            "serialize": 0
+          },
+          "counts": {
+            "groupsRead": 5,
+            "sourceChars": 370825,
+            "billsRead": 60,
+            "plansRead": 6,
+            "historyRead": 228,
+            "responseChars": 9967
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 77,
+              "engineMs": 3.5114,
+              "rowsRead": 5,
+              "rowsWritten": 0
+            },
+            "access_grant": {
+              "count": 5,
+              "wallMs": 275,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793178626565,
+          "requestId": "3025a2e0-7dbc-48ff-b1d1-e2a8a10d08d7",
+          "status": 200,
+          "totalMs": 436,
+          "dbQueries": 6,
+          "dbWallMs": 436,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "trip_query": 170,
+            "access": 266,
+            "json_parse": 0,
+            "bills": 0,
+            "history": 0,
+            "serialize": 0
+          },
+          "counts": {
+            "groupsRead": 5,
+            "sourceChars": 370825,
+            "billsRead": 60,
+            "plansRead": 6,
+            "historyRead": 228,
+            "responseChars": 9967
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 170,
+              "engineMs": 6.1271,
+              "rowsRead": 5,
+              "rowsWritten": 0
+            },
+            "access_grant": {
+              "count": 5,
+              "wallMs": 266,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793178671361,
+          "requestId": "cdd991f6-e07f-45c3-b08d-2011254e619a",
+          "status": 200,
+          "totalMs": 477,
+          "dbQueries": 6,
+          "dbWallMs": 477,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "trip_query": 148,
+            "access": 329,
+            "json_parse": 0,
+            "bills": 0,
+            "history": 0,
+            "serialize": 0
+          },
+          "counts": {
+            "groupsRead": 5,
+            "sourceChars": 370825,
+            "billsRead": 60,
+            "plansRead": 6,
+            "historyRead": 228,
+            "responseChars": 9967
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 148,
+              "engineMs": 6.0442,
+              "rowsRead": 5,
+              "rowsWritten": 0
+            },
+            "access_grant": {
+              "count": 5,
+              "wallMs": 329,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793178672308,
+          "requestId": "1916a9aa-488c-4aa7-ae03-26acd247993f",
+          "status": 200,
+          "totalMs": 727,
+          "dbQueries": 6,
+          "dbWallMs": 727,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "trip_query": 439,
+            "access": 288,
+            "json_parse": 0,
+            "bills": 0,
+            "history": 0,
+            "serialize": 0
+          },
+          "counts": {
+            "groupsRead": 5,
+            "sourceChars": 370825,
+            "billsRead": 60,
+            "plansRead": 6,
+            "historyRead": 228,
+            "responseChars": 9967
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 439,
+              "engineMs": 4.6804,
+              "rowsRead": 5,
+              "rowsWritten": 0
+            },
+            "access_grant": {
+              "count": 5,
+              "wallMs": 288,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793178672797,
+          "requestId": "cad2d898-7028-4934-a45a-ae5c6ca9c2db",
+          "status": 200,
+          "totalMs": 417,
+          "dbQueries": 6,
+          "dbWallMs": 417,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "trip_query": 157,
+            "access": 260,
+            "json_parse": 0,
+            "bills": 0,
+            "history": 0,
+            "serialize": 0
+          },
+          "counts": {
+            "groupsRead": 5,
+            "sourceChars": 370825,
+            "billsRead": 60,
+            "plansRead": 6,
+            "historyRead": 228,
+            "responseChars": 9967
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 157,
+              "engineMs": 4.1236,
+              "rowsRead": 5,
+              "rowsWritten": 0
+            },
+            "access_grant": {
+              "count": 5,
+              "wallMs": 260,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793178673236,
+          "requestId": "7339c8e9-0a78-40c5-9358-08aa10752b7e",
+          "status": 200,
+          "totalMs": 383,
+          "dbQueries": 6,
+          "dbWallMs": 383,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "trip_query": 98,
+            "access": 285,
+            "json_parse": 0,
+            "bills": 0,
+            "history": 0,
+            "serialize": 0
+          },
+          "counts": {
+            "groupsRead": 5,
+            "sourceChars": 370825,
+            "billsRead": 60,
+            "plansRead": 6,
+            "historyRead": 228,
+            "responseChars": 9967
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 98,
+              "engineMs": 5.4183,
+              "rowsRead": 5,
+              "rowsWritten": 0
+            },
+            "access_grant": {
+              "count": 5,
+              "wallMs": 285,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793178673769,
+          "requestId": "121a5142-f593-48aa-b13b-6012d2ef37b5",
+          "status": 200,
+          "totalMs": 474,
+          "dbQueries": 6,
+          "dbWallMs": 474,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "trip_query": 196,
+            "access": 278,
+            "json_parse": 0,
+            "bills": 0,
+            "history": 0,
+            "serialize": 0
+          },
+          "counts": {
+            "groupsRead": 5,
+            "sourceChars": 370825,
+            "billsRead": 60,
+            "plansRead": 6,
+            "historyRead": 228,
+            "responseChars": 9967
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 196,
+              "engineMs": 4.219,
+              "rowsRead": 5,
+              "rowsWritten": 0
+            },
+            "access_grant": {
+              "count": 5,
+              "wallMs": 278,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793178674286,
+          "requestId": "b10f157d-ed57-40cf-94de-2cb384d022a6",
+          "status": 200,
+          "totalMs": 449,
+          "dbQueries": 6,
+          "dbWallMs": 449,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "trip_query": 190,
+            "access": 259,
+            "json_parse": 0,
+            "bills": 0,
+            "history": 0,
+            "serialize": 0
+          },
+          "counts": {
+            "groupsRead": 5,
+            "sourceChars": 370825,
+            "billsRead": 60,
+            "plansRead": 6,
+            "historyRead": 228,
+            "responseChars": 9967
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 190,
+              "engineMs": 3.9483,
+              "rowsRead": 5,
+              "rowsWritten": 0
+            },
+            "access_grant": {
+              "count": 5,
+              "wallMs": 259,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793178695882,
+          "requestId": "77eb1f81-9bcf-4ad7-b372-860b6ec3461c",
+          "status": 200,
+          "totalMs": 442,
+          "dbQueries": 6,
+          "dbWallMs": 442,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "trip_query": 180,
+            "access": 262,
+            "json_parse": 0,
+            "bills": 0,
+            "history": 0,
+            "serialize": 0
+          },
+          "counts": {
+            "groupsRead": 5,
+            "sourceChars": 370825,
+            "billsRead": 60,
+            "plansRead": 6,
+            "historyRead": 228,
+            "responseChars": 9967
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 180,
+              "engineMs": 5.8113,
+              "rowsRead": 5,
+              "rowsWritten": 0
+            },
+            "access_grant": {
+              "count": 5,
+              "wallMs": 262,
+              "engineMs": 0,
+              "rowsRead": 0,
+              "rowsWritten": 0
+            }
+          }
+        }
+      ],
+      "metrics": {
+        "totalMs": {
+          "n": 20,
+          "p50": 446,
+          "p95": 487
+        },
+        "dbWallMs": {
+          "n": 20,
+          "p50": 446,
+          "p95": 487
+        },
+        "dbQueries": {
+          "n": 20,
+          "p50": 6,
+          "p95": 6
+        },
+        "sessionMs": {
+          "n": 20,
+          "p50": 0,
+          "p95": 0
+        },
+        "app_identity": {
+          "n": 20,
+          "p50": 0,
+          "p95": 0
+        },
+        "app_trip_query": {
+          "n": 20,
+          "p50": 172,
+          "p95": 199
+        },
+        "app_access": {
+          "n": 20,
+          "p50": 274,
+          "p95": 288
+        },
+        "app_json_parse": {
+          "n": 20,
+          "p50": 0,
+          "p95": 0
+        },
+        "app_bills": {
+          "n": 20,
+          "p50": 0,
+          "p95": 0
+        },
+        "app_history": {
+          "n": 20,
+          "p50": 0,
+          "p95": 0
+        },
+        "app_serialize": {
+          "n": 20,
+          "p50": 0,
+          "p95": 0
+        }
+      }
+    },
+    "v90_count": {
+      "samples": [
+        {
+          "time": 1793179147100,
+          "requestId": "4e7d4ae5-a818-49ce-85d8-c73b374587cc",
+          "status": 200,
+          "totalMs": 82,
+          "dbQueries": 1,
+          "dbWallMs": 82,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "unread_query": 82,
+            "serialize": 0
+          },
+          "counts": {
+            "countOnly": 1,
+            "notificationsReturned": 0,
+            "responseChars": 13
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 82,
+              "engineMs": 26.7646,
+              "rowsRead": 557,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793179147320,
+          "requestId": "4c266de0-ae2f-477a-9cad-188f1c71d8aa",
+          "status": 200,
+          "totalMs": 83,
+          "dbQueries": 1,
+          "dbWallMs": 83,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "unread_query": 83,
+            "serialize": 0
+          },
+          "counts": {
+            "countOnly": 1,
+            "notificationsReturned": 0,
+            "responseChars": 13
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 83,
+              "engineMs": 28.0162,
+              "rowsRead": 557,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793179147549,
+          "requestId": "624f91ae-6de8-45d6-b211-c53f762dc38f",
+          "status": 200,
+          "totalMs": 85,
+          "dbQueries": 1,
+          "dbWallMs": 85,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "unread_query": 85,
+            "serialize": 0
+          },
+          "counts": {
+            "countOnly": 1,
+            "notificationsReturned": 0,
+            "responseChars": 13
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 85,
+              "engineMs": 35.0157,
+              "rowsRead": 557,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793179147737,
+          "requestId": "efee0b0f-8c04-42aa-afff-2c8c43023326",
+          "status": 200,
+          "totalMs": 86,
+          "dbQueries": 1,
+          "dbWallMs": 86,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "unread_query": 86,
+            "serialize": 0
+          },
+          "counts": {
+            "countOnly": 1,
+            "notificationsReturned": 0,
+            "responseChars": 13
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 86,
+              "engineMs": 29.6281,
+              "rowsRead": 557,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793179147957,
+          "requestId": "d3ceb2aa-ed3a-43ad-8e56-d592f415c907",
+          "status": 200,
+          "totalMs": 87,
+          "dbQueries": 1,
+          "dbWallMs": 87,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "unread_query": 87,
+            "serialize": 0
+          },
+          "counts": {
+            "countOnly": 1,
+            "notificationsReturned": 0,
+            "responseChars": 13
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 87,
+              "engineMs": 28.8022,
+              "rowsRead": 557,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793179148151,
+          "requestId": "7395f0f1-389c-4eaf-b0c5-b56e38f47deb",
+          "status": 200,
+          "totalMs": 91,
+          "dbQueries": 1,
+          "dbWallMs": 91,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "unread_query": 91,
+            "serialize": 0
+          },
+          "counts": {
+            "countOnly": 1,
+            "notificationsReturned": 0,
+            "responseChars": 13
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 91,
+              "engineMs": 34.1806,
+              "rowsRead": 557,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793179148746,
+          "requestId": "e631bb67-acc3-47ed-80c7-d493f3ac0db6",
+          "status": 200,
+          "totalMs": 85,
+          "dbQueries": 1,
+          "dbWallMs": 85,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "unread_query": 85,
+            "serialize": 0
+          },
+          "counts": {
+            "countOnly": 1,
+            "notificationsReturned": 0,
+            "responseChars": 13
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 85,
+              "engineMs": 28.9903,
+              "rowsRead": 557,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793179167063,
+          "requestId": "dfb9858e-c4b3-4a8d-ad5a-56ff34d83b50",
+          "status": 200,
+          "totalMs": 91,
+          "dbQueries": 1,
+          "dbWallMs": 91,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "unread_query": 91,
+            "serialize": 0
+          },
+          "counts": {
+            "countOnly": 1,
+            "notificationsReturned": 0,
+            "responseChars": 13
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 91,
+              "engineMs": 35.1313,
+              "rowsRead": 557,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793179167249,
+          "requestId": "92fb1d36-bfa5-4d96-8fbe-ab1d1c7522a7",
+          "status": 200,
+          "totalMs": 79,
+          "dbQueries": 1,
+          "dbWallMs": 79,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "unread_query": 79,
+            "serialize": 0
+          },
+          "counts": {
+            "countOnly": 1,
+            "notificationsReturned": 0,
+            "responseChars": 13
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 79,
+              "engineMs": 26.5316,
+              "rowsRead": 557,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793179167443,
+          "requestId": "98721eb5-78e3-476a-b674-db506adc74ca",
+          "status": 200,
+          "totalMs": 82,
+          "dbQueries": 1,
+          "dbWallMs": 82,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "unread_query": 82,
+            "serialize": 0
+          },
+          "counts": {
+            "countOnly": 1,
+            "notificationsReturned": 0,
+            "responseChars": 13
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 82,
+              "engineMs": 27.4504,
+              "rowsRead": 557,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793179167622,
+          "requestId": "d1f4944a-4d0d-46ff-a76b-f304123c8eb5",
+          "status": 200,
+          "totalMs": 76,
+          "dbQueries": 1,
+          "dbWallMs": 76,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "unread_query": 76,
+            "serialize": 0
+          },
+          "counts": {
+            "countOnly": 1,
+            "notificationsReturned": 0,
+            "responseChars": 13
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 76,
+              "engineMs": 26.2909,
+              "rowsRead": 557,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793179167833,
+          "requestId": "a0afe4b6-ecca-400c-bb34-02cf82626f1c",
+          "status": 200,
+          "totalMs": 82,
+          "dbQueries": 1,
+          "dbWallMs": 82,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "unread_query": 82,
+            "serialize": 0
+          },
+          "counts": {
+            "countOnly": 1,
+            "notificationsReturned": 0,
+            "responseChars": 13
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 82,
+              "engineMs": 29.1849,
+              "rowsRead": 557,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793179168021,
+          "requestId": "d5692ac8-27d9-4ba1-8028-fcf7cfcf2161",
+          "status": 200,
+          "totalMs": 87,
+          "dbQueries": 1,
+          "dbWallMs": 87,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "unread_query": 87,
+            "serialize": 0
+          },
+          "counts": {
+            "countOnly": 1,
+            "notificationsReturned": 0,
+            "responseChars": 13
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 87,
+              "engineMs": 28.9735,
+              "rowsRead": 557,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793179168204,
+          "requestId": "41f129e5-9232-4542-bb5c-318750c1ce7f",
+          "status": 200,
+          "totalMs": 85,
+          "dbQueries": 1,
+          "dbWallMs": 85,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "unread_query": 85,
+            "serialize": 0
+          },
+          "counts": {
+            "countOnly": 1,
+            "notificationsReturned": 0,
+            "responseChars": 13
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 85,
+              "engineMs": 29.442,
+              "rowsRead": 557,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793179184148,
+          "requestId": "162df76d-ee6c-4343-9fd8-d0d7751a8130",
+          "status": 200,
+          "totalMs": 92,
+          "dbQueries": 1,
+          "dbWallMs": 92,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "unread_query": 92,
+            "serialize": 0
+          },
+          "counts": {
+            "countOnly": 1,
+            "notificationsReturned": 0,
+            "responseChars": 13
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 92,
+              "engineMs": 38.5365,
+              "rowsRead": 557,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793179184351,
+          "requestId": "e7887d8d-f3dd-4947-8be7-3eb760a756a6",
+          "status": 200,
+          "totalMs": 94,
+          "dbQueries": 1,
+          "dbWallMs": 94,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "unread_query": 94,
+            "serialize": 0
+          },
+          "counts": {
+            "countOnly": 1,
+            "notificationsReturned": 0,
+            "responseChars": 13
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 94,
+              "engineMs": 33.7889,
+              "rowsRead": 557,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793179184558,
+          "requestId": "5340b005-d06a-443a-a295-2d2903391d59",
+          "status": 200,
+          "totalMs": 84,
+          "dbQueries": 1,
+          "dbWallMs": 84,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "unread_query": 84,
+            "serialize": 0
+          },
+          "counts": {
+            "countOnly": 1,
+            "notificationsReturned": 0,
+            "responseChars": 13
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 84,
+              "engineMs": 28.8856,
+              "rowsRead": 557,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793179184764,
+          "requestId": "b143473c-37e4-4971-abc7-93021b1510b5",
+          "status": 200,
+          "totalMs": 85,
+          "dbQueries": 1,
+          "dbWallMs": 85,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "unread_query": 85,
+            "serialize": 0
+          },
+          "counts": {
+            "countOnly": 1,
+            "notificationsReturned": 0,
+            "responseChars": 13
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 85,
+              "engineMs": 27.6094,
+              "rowsRead": 557,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793179184951,
+          "requestId": "509f5a51-e1bc-410a-9580-c354c769e4de",
+          "status": 200,
+          "totalMs": 82,
+          "dbQueries": 1,
+          "dbWallMs": 82,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "unread_query": 82,
+            "serialize": 0
+          },
+          "counts": {
+            "countOnly": 1,
+            "notificationsReturned": 0,
+            "responseChars": 13
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 82,
+              "engineMs": 25.5098,
+              "rowsRead": 557,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793179185146,
+          "requestId": "50ca392c-2787-4701-aaab-eb8d69fbaa43",
+          "status": 200,
+          "totalMs": 87,
+          "dbQueries": 1,
+          "dbWallMs": 87,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "unread_query": 87,
+            "serialize": 0
+          },
+          "counts": {
+            "countOnly": 1,
+            "notificationsReturned": 0,
+            "responseChars": 13
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 87,
+              "engineMs": 29.9424,
+              "rowsRead": 557,
+              "rowsWritten": 0
+            }
+          }
+        }
+      ],
+      "metrics": {
+        "totalMs": {
+          "n": 20,
+          "p50": 85,
+          "p95": 92
+        },
+        "dbWallMs": {
+          "n": 20,
+          "p50": 85,
+          "p95": 92
+        },
+        "dbQueries": {
+          "n": 20,
+          "p50": 1,
+          "p95": 1
+        },
+        "sessionMs": {
+          "n": 20,
+          "p50": 0,
+          "p95": 0
+        },
+        "app_identity": {
+          "n": 20,
+          "p50": 0,
+          "p95": 0
+        },
+        "app_unread_query": {
+          "n": 20,
+          "p50": 85,
+          "p95": 92
+        },
+        "app_serialize": {
+          "n": 20,
+          "p50": 0,
+          "p95": 0
+        }
+      }
+    },
+    "v90_list": {
+      "samples": [
+        {
+          "time": 1793179202870,
+          "requestId": "497ec106-f629-4bfb-b876-52e9a04a81b7",
+          "status": 200,
+          "totalMs": 105,
+          "dbQueries": 1,
+          "dbWallMs": 105,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "notification_query": 105,
+            "serialize": 0
+          },
+          "counts": {
+            "countOnly": 0,
+            "notificationsReturned": 44,
+            "responseChars": 9979
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 105,
+              "engineMs": 46.5206,
+              "rowsRead": 557,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793179203088,
+          "requestId": "cc845b56-d255-489d-b312-3a99130d5f11",
+          "status": 200,
+          "totalMs": 101,
+          "dbQueries": 1,
+          "dbWallMs": 101,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "notification_query": 101,
+            "serialize": 0
+          },
+          "counts": {
+            "countOnly": 0,
+            "notificationsReturned": 44,
+            "responseChars": 9979
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 101,
+              "engineMs": 39.9751,
+              "rowsRead": 557,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793179203311,
+          "requestId": "7a77f7ff-8ae7-4d3d-8471-f703c020720e",
+          "status": 200,
+          "totalMs": 98,
+          "dbQueries": 1,
+          "dbWallMs": 98,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "notification_query": 98,
+            "serialize": 0
+          },
+          "counts": {
+            "countOnly": 0,
+            "notificationsReturned": 44,
+            "responseChars": 9979
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 98,
+              "engineMs": 30.1513,
+              "rowsRead": 557,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793179203556,
+          "requestId": "abbad588-b23f-499b-a5f3-c3e8878fc26a",
+          "status": 200,
+          "totalMs": 102,
+          "dbQueries": 1,
+          "dbWallMs": 102,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "notification_query": 102,
+            "serialize": 0
+          },
+          "counts": {
+            "countOnly": 0,
+            "notificationsReturned": 44,
+            "responseChars": 9979
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 102,
+              "engineMs": 28.0436,
+              "rowsRead": 557,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793179203747,
+          "requestId": "66770b5f-fabf-42ed-97ea-1884793a8729",
+          "status": 200,
+          "totalMs": 94,
+          "dbQueries": 1,
+          "dbWallMs": 94,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "notification_query": 94,
+            "serialize": 0
+          },
+          "counts": {
+            "countOnly": 0,
+            "notificationsReturned": 44,
+            "responseChars": 9979
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 94,
+              "engineMs": 37.3101,
+              "rowsRead": 557,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793179225388,
+          "requestId": "c9c93cad-156a-494d-817e-058b658f9972",
+          "status": 200,
+          "totalMs": 89,
+          "dbQueries": 1,
+          "dbWallMs": 89,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "notification_query": 89,
+            "serialize": 0
+          },
+          "counts": {
+            "countOnly": 0,
+            "notificationsReturned": 44,
+            "responseChars": 9979
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 89,
+              "engineMs": 29.4167,
+              "rowsRead": 557,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793179244814,
+          "requestId": "7bc8f46d-2e25-49af-b927-93e5cecb854c",
+          "status": 200,
+          "totalMs": 89,
+          "dbQueries": 1,
+          "dbWallMs": 89,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "notification_query": 89,
+            "serialize": 0
+          },
+          "counts": {
+            "countOnly": 0,
+            "notificationsReturned": 44,
+            "responseChars": 9979
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 89,
+              "engineMs": 29.6085,
+              "rowsRead": 557,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793179245092,
+          "requestId": "3277954a-1ebc-4430-83dd-e78805476567",
+          "status": 200,
+          "totalMs": 90,
+          "dbQueries": 1,
+          "dbWallMs": 90,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "notification_query": 90,
+            "serialize": 0
+          },
+          "counts": {
+            "countOnly": 0,
+            "notificationsReturned": 44,
+            "responseChars": 9979
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 90,
+              "engineMs": 31.4909,
+              "rowsRead": 557,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793179245354,
+          "requestId": "e1ed2197-6737-46ea-909e-e29ba9dd296f",
+          "status": 200,
+          "totalMs": 90,
+          "dbQueries": 1,
+          "dbWallMs": 90,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "notification_query": 90,
+            "serialize": 0
+          },
+          "counts": {
+            "countOnly": 0,
+            "notificationsReturned": 44,
+            "responseChars": 9979
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 90,
+              "engineMs": 31.8368,
+              "rowsRead": 557,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793179245538,
+          "requestId": "bce364c5-a1ca-43af-89fc-62e513836624",
+          "status": 200,
+          "totalMs": 102,
+          "dbQueries": 1,
+          "dbWallMs": 102,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "notification_query": 102,
+            "serialize": 0
+          },
+          "counts": {
+            "countOnly": 0,
+            "notificationsReturned": 44,
+            "responseChars": 9979
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 102,
+              "engineMs": 38.8276,
+              "rowsRead": 557,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793179245792,
+          "requestId": "fc43be7d-2162-4bf8-b8a7-ed0a6ab6dd0d",
+          "status": 200,
+          "totalMs": 97,
+          "dbQueries": 1,
+          "dbWallMs": 97,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "notification_query": 97,
+            "serialize": 0
+          },
+          "counts": {
+            "countOnly": 0,
+            "notificationsReturned": 44,
+            "responseChars": 9979
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 97,
+              "engineMs": 35.2488,
+              "rowsRead": 557,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793179245988,
+          "requestId": "9fce638e-0c45-4c48-a6dd-bb4c6ec78e3c",
+          "status": 200,
+          "totalMs": 92,
+          "dbQueries": 1,
+          "dbWallMs": 92,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "notification_query": 92,
+            "serialize": 0
+          },
+          "counts": {
+            "countOnly": 0,
+            "notificationsReturned": 44,
+            "responseChars": 9979
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 92,
+              "engineMs": 30.0228,
+              "rowsRead": 557,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793179246185,
+          "requestId": "f52455ec-cfbc-476f-a907-136b5a3cae4b",
+          "status": 200,
+          "totalMs": 94,
+          "dbQueries": 1,
+          "dbWallMs": 94,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "notification_query": 94,
+            "serialize": 0
+          },
+          "counts": {
+            "countOnly": 0,
+            "notificationsReturned": 44,
+            "responseChars": 9979
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 94,
+              "engineMs": 34.5056,
+              "rowsRead": 557,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793179259770,
+          "requestId": "034ceca8-f6f2-4f90-bb13-bc9a31930d8f",
+          "status": 200,
+          "totalMs": 91,
+          "dbQueries": 1,
+          "dbWallMs": 91,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "notification_query": 91,
+            "serialize": 0
+          },
+          "counts": {
+            "countOnly": 0,
+            "notificationsReturned": 44,
+            "responseChars": 9979
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 91,
+              "engineMs": 33.7878,
+              "rowsRead": 557,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793179259964,
+          "requestId": "eca52ea8-64a5-41b5-831b-ac6591de96e7",
+          "status": 200,
+          "totalMs": 88,
+          "dbQueries": 1,
+          "dbWallMs": 88,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "notification_query": 88,
+            "serialize": 0
+          },
+          "counts": {
+            "countOnly": 0,
+            "notificationsReturned": 44,
+            "responseChars": 9979
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 88,
+              "engineMs": 28.7622,
+              "rowsRead": 557,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793179260171,
+          "requestId": "74ffc22e-3c48-48e0-a2e9-9de9832ca4bf",
+          "status": 200,
+          "totalMs": 83,
+          "dbQueries": 1,
+          "dbWallMs": 83,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "notification_query": 83,
+            "serialize": 0
+          },
+          "counts": {
+            "countOnly": 0,
+            "notificationsReturned": 44,
+            "responseChars": 9979
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 83,
+              "engineMs": 28.2228,
+              "rowsRead": 557,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793179260478,
+          "requestId": "9a76b5ea-e429-45eb-9038-e29fcd47cd3e",
+          "status": 200,
+          "totalMs": 85,
+          "dbQueries": 1,
+          "dbWallMs": 85,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "notification_query": 85,
+            "serialize": 0
+          },
+          "counts": {
+            "countOnly": 0,
+            "notificationsReturned": 44,
+            "responseChars": 9979
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 85,
+              "engineMs": 31.7793,
+              "rowsRead": 557,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793179260699,
+          "requestId": "7a9ad7c0-dd88-4154-9fc1-57277ce61fc0",
+          "status": 200,
+          "totalMs": 81,
+          "dbQueries": 1,
+          "dbWallMs": 81,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "notification_query": 81,
+            "serialize": 0
+          },
+          "counts": {
+            "countOnly": 0,
+            "notificationsReturned": 44,
+            "responseChars": 9979
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 81,
+              "engineMs": 24.2534,
+              "rowsRead": 557,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793179260912,
+          "requestId": "b25dcd3c-ee8e-4645-b15c-346247824b73",
+          "status": 200,
+          "totalMs": 90,
+          "dbQueries": 1,
+          "dbWallMs": 90,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "notification_query": 90,
+            "serialize": 0
+          },
+          "counts": {
+            "countOnly": 0,
+            "notificationsReturned": 44,
+            "responseChars": 9979
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 90,
+              "engineMs": 30.8265,
+              "rowsRead": 557,
+              "rowsWritten": 0
+            }
+          }
+        },
+        {
+          "time": 1793179270391,
+          "requestId": "52ea19cc-d8cb-4136-a4a8-79b85e5617b8",
+          "status": 200,
+          "totalMs": 87,
+          "dbQueries": 1,
+          "dbWallMs": 87,
+          "sessionMs": 0,
+          "stages": {
+            "identity": 0,
+            "notification_query": 87,
+            "serialize": 0
+          },
+          "counts": {
+            "countOnly": 0,
+            "notificationsReturned": 44,
+            "responseChars": 9979
+          },
+          "queries": {
+            "trips": {
+              "count": 1,
+              "wallMs": 87,
+              "engineMs": 28.1728,
+              "rowsRead": 557,
+              "rowsWritten": 0
+            }
+          }
+        }
+      ],
+      "metrics": {
+        "totalMs": {
+          "n": 20,
+          "p50": 90,
+          "p95": 102
+        },
+        "dbWallMs": {
+          "n": 20,
+          "p50": 90,
+          "p95": 102
+        },
+        "dbQueries": {
+          "n": 20,
+          "p50": 1,
+          "p95": 1
+        },
+        "sessionMs": {
+          "n": 20,
+          "p50": 0,
+          "p95": 0
+        },
+        "app_identity": {
+          "n": 20,
+          "p50": 0,
+          "p95": 0
+        },
+        "app_notification_query": {
+          "n": 20,
+          "p50": 90,
+          "p95": 102
+        },
+        "app_serialize": {
+          "n": 20,
+          "p50": 0,
+          "p95": 0
+        }
+      }
+    }
+  }
+}
