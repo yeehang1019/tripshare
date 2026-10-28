@@ -1,3 +1,4 @@
+import {normalize} from '@/lib/ledger';
 "use client";
 import {outstandingSummary,outstandingText} from '@/lib/settlement-outstanding';
 import {finalDueLines} from '@/lib/settlement-display';
@@ -93,6 +94,7 @@ import SimpleItinerary from './simple-itinerary';
 import PersonalMoney from './personal-money';
 import type {personalView} from '@/lib/personal';
 export type RecordT = {
+  directoryOnly?:boolean;
   memberKeys?: Record<string,string>;
   id: string;
   data: TripEvent;
@@ -187,6 +189,8 @@ export default function TripApp({ shared = false, authenticatedEmail = "", authe
       description: string;
       run: () => void;
     } | null>(null);
+  const groupDirectory=useRef<RecordT[]>([]),groupMemory=useRef(new Map<string,{record:RecordT;etag:string}>());
+  const [allGroupsLoaded,setAllGroupsLoaded]=useState(false),[allGroupsBusy,setAllGroupsBusy]=useState(false);
   const responseCache=useRef<{etag:string;snapshot:any;session:string}|null>(null);
   const loading=useRef<Promise<any>|null>(null);
   const [problemId,setProblemId]=useState("");
@@ -221,7 +225,7 @@ export default function TripApp({ shared = false, authenticatedEmail = "", authe
 
   useEffect(()=>{const invitation=new URLSearchParams(window.location.hash.slice(1)).get('invite');if(invitation&&!shared){setInviteToken(invitation);setInvitePrompt(true);history.replaceState(null,'',window.location.pathname+window.location.search)}},[shared]);
   function celebrateSave(){feedback(workspace.data.sound,workspace.data.haptics);setCelebrate(true);setTimeout(()=>setCelebrate(false),1400)}
- const rec = records.find((x) => x.id === id) || records[0],
+ const rec = records.find((x) => x.id === id&&!x.directoryOnly) || records.filter(x=>!x.directoryOnly)[0],
     e = (isTripSection(tab)?rec?.planning:undefined)||rec?.data;
   const localScope=!shared&&user&&rec?.id?makeDraftScope(user,rec.id):undefined;
   const planDraftStatus=useDraftSave(localScope,"plan",activity,draftRevision,e?.activities.find(a=>a.id===activity?.id)||null);
@@ -235,10 +239,12 @@ export default function TripApp({ shared = false, authenticatedEmail = "", authe
   const token = useRef(""),
     pinRef = useRef("");
   pinRef.current = pin;
-  function load(force=false):Promise<any>{if(loading.current)return force?loading.current.then(()=>load(true)):loading.current;const work=performLoad();loading.current=work;return work.finally(()=>{if(loading.current===work)loading.current=null})}
-  async function performLoad() {
+  function load(force=false,groupOverride?:string):Promise<any>{if(loading.current)return force?loading.current.then(()=>load(true,groupOverride)):loading.current;const work=performLoad(groupOverride);loading.current=work;return work.finally(()=>{if(loading.current===work)loading.current=null})}
+  async function performLoad(groupOverride?:string) {
     try {
-      let r;
+      let r,selectedGroup=groupOverride||id||(typeof window!=='undefined'?new URLSearchParams(window.location.search).get('group')||'':'');
+      if(!shared&&!groupDirectory.current.length){const d=await fetch('/api/trips?directory=1',{signal:AbortSignal.timeout(20000),headers:authenticatedSession?{'X-TripShare-Session':authenticatedSession}:{}});const j:any=await d.json();if(!d.ok)throw Error(j.error||'Could not load groups');groupDirectory.current=j.groups.map((g:any)=>({id:g.id,revision:g.revision,owner:g.owner,permissions:g.permissions,person:g.person,directoryOnly:true,data:normalize({name:g.name,kind:g.kind,people:[],bills:[],payments:[]}),...(g.kind==='trip'&&!g.owner?{planning:normalize({name:g.name,kind:'trip',people:[],bills:[],payments:[]})}:{})}));if(!selectedGroup||!groupDirectory.current.some(g=>g.id===selectedGroup)){const requested=new URLSearchParams(window.location.search).get('space');selectedGroup=(requested==='trip'?groupDirectory.current.find(g=>g.data.kind==='trip'):groupDirectory.current[0])?.id||''}setCanCreateEvents(Boolean(j.canCreate));if(!selectedGroup){setRecords([]);setLoaded(true);return {trips:[],user:j.user,canCreate:j.canCreate}}}
+      const cached=groupMemory.current.get(selectedGroup);
       if (shared) {
         token.current =
           new URLSearchParams(window.location.hash.slice(1)).get("key") || "";
@@ -248,11 +254,11 @@ export default function TripApp({ shared = false, authenticatedEmail = "", authe
           headers: { "Content-Type": "application/json",...(authenticatedSession ? {"X-TripShare-Session":authenticatedSession} : {}) },
           body: JSON.stringify({ token: token.current, pin: pinRef.current }),
         });
-      } else r = await fetch("/api/trips", {
+      } else r = await fetch("/api/trips?group="+encodeURIComponent(selectedGroup), {
         signal:AbortSignal.timeout(20000),
-        headers: {...(authenticatedSession ? { "X-TripShare-Session": authenticatedSession } : {}),...(responseCache.current?.session===authenticatedSession?{"If-None-Match":responseCache.current.etag}:{})},
+        headers: {...(authenticatedSession ? { "X-TripShare-Session": authenticatedSession } : {}),...(cached?.etag?{"If-None-Match":cached.etag}:{})},
       });
-      if(r.status===304&&responseCache.current){setLastSync(new Date().toISOString());setSyncState("loaded");setError("");return responseCache.current.snapshot}
+      if(r.status===304&&cached){setRecords(old=>[cached.record,...old.filter(x=>x.id!==cached.record.id)]);setLastSync(new Date().toISOString());setSyncState("loaded");setError("");return {trips:[cached.record]}}
       const j:any = await r.json();
       if(!r.ok&&j.requestId)setProblemId(j.requestId);
       if (j.needsPin) {
@@ -267,7 +273,8 @@ export default function TripApp({ shared = false, authenticatedEmail = "", authe
       if (!r.ok) throw Error((j.error || "Could not load")+(j.requestId?" · Reference "+j.requestId:""));
       setNeedsPin(false);
       if(!shared)responseCache.current={etag:r.headers.get("ETag")||"",snapshot:j,session:authenticatedSession};
-      setRecords(shared ? [j.trip] : j.trips);
+      if(shared)setRecords([j.trip]);else{if(!j.trips.length){groupMemory.current.clear();groupDirectory.current=[];setRecords([]);throw Error('This group is no longer accessible. Refresh your groups.')}for(const record of j.trips){if(cached&&cached.record.revision!==record.revision)setAllGroupsLoaded(false);groupMemory.current.set(record.id,{record,etag:r.headers.get('ETag')||''})}setRecords([...groupDirectory.current.map(d=>groupMemory.current.get(d.id)?.record||d)]);}
+
       if (j.user) setUser(j.user);
       if (!shared) setCanCreateEvents(Boolean(j.canCreate));
       setLoaded(true);
@@ -419,7 +426,7 @@ setPlannerDirty(false);setTemplateDirty(false);
     if(sending.current)return null;sending.current=true;
     const changesData=!["history","accessInfo"].includes(action);
     setBusy(true);
-    if(changesData)setSyncState("saving");
+    if(changesData){setSyncState("saving");setAllGroupsLoaded(false)}
     setError("");
     try {
       const r = await fetch("/api/trips", {
@@ -460,7 +467,7 @@ setPlannerDirty(false);setTemplateDirty(false);
       if (!r.ok) throw Error((j.error || "Save failed")+(j.requestId?" · Reference "+j.requestId:""));
       if (j.id) setId(j.id);
       const confirmedAt=new Date().toISOString();
-      if(refresh){const refreshed=await load(true);if(!refreshed)setNotice('Save confirmed, but latest data could not be loaded. Check latest before another edit.');}
+      if(refresh){if(["create","import","deleteEvent","acceptInvite","grant","revoke"].includes(action))groupDirectory.current=[];const refreshed=await load(true,j.id||rec?.id);if(!refreshed)setNotice('Save confirmed, but latest data could not be loaded. Check latest before another edit.');}
       if(changesData){setLastSync(confirmedAt);setSyncState('saved');setProblemId('');}
       if(localScope&&['expense','activity'].includes(action)&&extra.entity?.id)removeDraft(localScope,action==='expense'?'expense':'plan',extra.entity.id);
       return j;
@@ -549,7 +556,7 @@ setPlannerDirty(false);setTemplateDirty(false);
   function choose(id:string){
     const target=records.find(r=>r.id===id);
     const next=spaceIntent.current==='trip'&&target?.data.kind==='trip'&&(!target.personal||target.planning)?'Trip Plan':target?.personal?'My spending':'Dashboard';
-    const run=()=>{clearUnsavedInput();setFocusExpense('');setFocusActivity('');setId(id);setTab(next)};
+    const run=async()=>{clearUnsavedInput();if(target?.directoryOnly){const result=await load(true,id);if(!result)return}setFocusExpense('');setFocusActivity('');setId(id);setTab(next)};
     if(editing.current)setConfirm({title:'Leave unsaved input?',description:'Open editors will close. Expense and plan drafts remain recoverable on this browser.',run});else run();
   }
   function whatsapp(text: string) {
@@ -841,7 +848,7 @@ setPlannerDirty(false);setTemplateDirty(false);
     const run=()=>{
       clearUnsavedInput();setFocusExpense('');spaceIntent.current=next;setFocusActivity(next==="trip"?activityId:"");setActivityFilter(next==="money"?activityId:"");
       if(next==='trip'){
-        if(e?.kind!=='trip'||rec?.personal&&!rec?.planning){const first=tripRecords(records)[0];if(first)setId(first.id)}
+        if(e?.kind!=='trip'||rec?.personal&&!rec?.planning){const first=tripRecords(records)[0];if(first){if(first.directoryOnly)load(true,first.id).then(result=>{if(result)setId(first.id)});else setId(first.id)}}
         setTab(activityId?'Itinerary':'Trip Plan');
       }else setTab(rec?.personal?'My spending':activityId?'Expenses':'Dashboard');
     };
@@ -890,7 +897,9 @@ setPlannerDirty(false);setTemplateDirty(false);
   </>;
   const quickNavigator=<QuickNavigator open={quickOpen} onOpenChange={setQuickOpen} records={records} destinations={destinations} onOpenRecord={openSearchRecord} onGroup={choose} onNavigate={navigate} onAdd={can("addExpense")?requestAdd:undefined} onAppearance={()=>setAppearanceOpen(true)}/>;
   const recoveryUI=!shared&&loaded&&rec&&localScope?<><SaveStatus reference={problemId} state={syncState} last={lastSync} retry={()=>{if(!busy){setSyncState('refreshing');load()}}}/ >{activity&&planDraftStatus&&<p className="muted" role="status">{planDraftStatus}</p>}<DraftRecovery event={rec.entryContext||rec.planning||rec.data} key={localScope} scope={localScope} expenses={rec.personal?rec.ownEntries||[]:rec.data.expenses} plans={(rec.planning||rec.data).activities} disabled={editing.current} canRestore={d=>d.kind==='plan'?can('plan'):allowed(rec.permissions,'expense',user,(rec.personal?rec.ownEntries||[]:rec.data.expenses).find(b=>b.id===d.entity.id))} onRestore={d=>{setDraftRevision(rec.revision);setError('');if(d.kind==='expense'){const current=(rec.personal?rec.ownEntries||[]:rec.data.expenses).find(b=>b.id===d.entity.id);baselineBill.current=current?structuredClone(current):null;spaceIntent.current='money';setTab(rec.personal?'My spending':'Expenses');setBill(structuredClone(d.entity as Expense));setEditorEpoch(v=>v+1)}else{spaceIntent.current='trip';setTab('Itinerary');setActivity(structuredClone(d.entity as Activity));setPlannerSelection({day:d.entity.date,type:'All'})}}}/ >{space==='money'&&(canViewGroup||!!rec.ownEntries?.length)&&<MoneyTools key={rec.id+':money:'+toolsEpoch} event={rec.personal?{...(rec.entryContext||rec.planning||rec.data),expenses:rec.ownEntries||[]}:rec.data} canBatch={can('editAll')} busy={busy} revision={rec.revision} canBudget={rec.owner} onBudget={(entity,revision)=>send('categoryBudgets',{entity,revision}).then(Boolean)} onRefresh={()=>load(true).then(Boolean)} disabled={editing.current} onDirty={setToolsDirty} saveError={error} onEdit={b=>{if(allowed(rec.permissions,'expense',user,b))edit(b);else{setTab("Expenses");setFocusExpense(b.id);setJumpEpoch(v=>v+1);setStart("");setEnd("");setCat("All");setMerchant("")}}} onApply={(entity,revision)=>send('expenseBatch',{entity,revision:revision??rec.revision}).then(Boolean)}/ >}</>:null;
-  function spendingOverview() { return !shared ? <PersonalHub records={records} workspace={workspace} onGroup={choose} viewerKey={me}/> : null; }
+  async function loadAcrossGroups(){if(allGroupsBusy)return;setAllGroupsBusy(true);try{const r=await fetch('/api/trips',{signal:AbortSignal.timeout(20000),headers:authenticatedSession?{'X-TripShare-Session':authenticatedSession}:{}});const j:any=await r.json();if(!r.ok)throw Error(j.error||'Could not load across groups');for(const record of j.trips)groupMemory.current.set(record.id,{record,etag:''});groupDirectory.current=j.trips.map((r:RecordT)=>({...r,directoryOnly:true,data:normalize({name:r.data.name,kind:r.data.kind,people:[],bills:[],payments:[]})}));setRecords(j.trips);setAllGroupsLoaded(true)}catch(e){setError((e as Error).message)}finally{setAllGroupsBusy(false)}}
+  useEffect(()=>{if(quickOpen&&!shared&&!allGroupsLoaded)loadAcrossGroups()},[quickOpen]);
+  function spendingOverview() { return !shared ? allGroupsLoaded?<PersonalHub records={records} workspace={workspace} onGroup={choose} viewerKey={me}/>:<section className="panel"><h2>Across my groups</h2><p>Load your spending across all groups.</p><button className="primary" disabled={allGroupsBusy} onClick={loadAcrossGroups}>{allGroupsBusy?'Loading…':'Load my overview'}</button></section> : null; }
   if(rec?.personal&&!rec.permissions.length){
     const itinerary=rec.planning;
     return <div data-space={space} className="app workspace-app simple-member-app">{appearance}<header className="simple-member-header"><a className="brand" href="/">tripshare<span className="brand-dot">.</span></a><span>{rec.personal.name}</span><button className="secondary" onClick={()=>setAppearanceOpen(true)}>Appearance</button></header><main><div className="simple-member-controls"><label className="field"><span>Trip / group</span><select value={rec.id} onChange={event=>choose(event.target.value)}>{records.map(r=><option key={r.id} value={r.id}>{r.data.name}</option>)}</select></label><div className="simple-member-switch" role="group" aria-label="My pages">{itinerary&&<button className="secondary" aria-pressed={space==='trip'} onClick={()=>switchSpace('trip')}>Itinerary</button>}<button className="secondary" aria-pressed={space==='money'} onClick={()=>switchSpace('money')}>My Money</button></div></div>{error&&<p className="message error" role="alert">{error}</p>}{space==='trip'&&itinerary?<SimpleItinerary key={rec.id} event={itinerary} initialDay={plannerSelection.day} onDayChange={day=>setPlannerSelection(s=>({...s,day}))}/>:<PersonalMoney key={rec.id} view={rec.personal} currency={rec.data.settlement}/>}<button className="text-button" disabled={busy} onClick={()=>load(true)}>Refresh latest</button></main></div>;
@@ -1300,7 +1309,7 @@ setPlannerDirty(false);setTemplateDirty(false);
             )}
             {e && !creating && !settings && (
               <>
-                {tab === "Dashboard" && canViewGroup && <FocusSections locked={templateDirty} key={rec.id} label="Money dashboard sections" initial={shared?'group':'overview'} sections={[
+                {tab === "Dashboard" && canViewGroup && <FocusSections locked={templateDirty} key={rec.id} label="Money dashboard sections" initial='group' sections={[
                   ...(!shared?[{id:'overview',label:'My overview',render:()=>spendingOverview()}]:[]),
                   {id:'group',label:'Group snapshot',render:()=> <>                    {hasPersonalAccess ? <section className="stats">
                       <article className="stat featured">
@@ -1559,13 +1568,13 @@ setPlannerDirty(false);setTemplateDirty(false);
                 )}
                 {tab === "Settlement" && (
                   <section className="settlement-page">
-                    {!shared && <details className="panel cross-group-summary cross-group-compact" aria-label="All groups settlement summary">
-                      <summary><Wallet size={16}/><b>Across my groups</b><small>{crossGroupBalances.length} groups</small>{unselectedOwnerGroups>0&&<small>{unselectedOwnerGroups} not included</small>}{crossGroupTotals.map(([currency,total])=><span key={currency}>{currency} · Pay {money(total.pay,currency)} · Receive {money(total.receive,currency)}</span>)}</summary>
-                      {crossGroupTotals.length ? <>
+                    {!shared && <details className="panel cross-group-summary cross-group-compact" aria-label="All groups settlement summary" onToggle={event=>{if(event.currentTarget.open&&!allGroupsLoaded)loadAcrossGroups()}}>
+                      <summary><Wallet size={16}/><b>Across my groups</b>{!allGroupsLoaded&&<span>Open to load totals</span>}{allGroupsLoaded&&<small>{crossGroupBalances.length} groups</small>}{allGroupsLoaded&&unselectedOwnerGroups>0&&<small>{unselectedOwnerGroups} not included</small>}{allGroupsLoaded&&crossGroupTotals.map(([currency,total])=><span key={currency}>{currency} · Pay {money(total.pay,currency)} · Receive {money(total.receive,currency)}</span>)}</summary>
+                      {!allGroupsLoaded?<p><button className="secondary" disabled={allGroupsBusy} onClick={loadAcrossGroups}>{allGroupsBusy?'Loading totals…':'Load totals'}</button></p>:crossGroupTotals.length ? <>
                         <div className="cross-group-totals">{crossGroupTotals.map(([currency, total]) => <div key={currency} className="cross-group-total"><span>{currency} · Total to pay</span><strong>{money(total.pay, currency)}</strong><small>To receive: {money(total.receive, currency)}</small></div>)}</div>
                         <div className="cross-group-list">{crossGroupBalances.map((group) => <button key={group.id} className="cross-group-row" onClick={() => { if (group.id !== rec.id) choose(group.id); else document.querySelector(".settlement-current")?.scrollIntoView({ behavior: "smooth" }); }}><span><b>{group.name}</b><small>{group.kind === "daily" ? "Daily group" : "Trip"} · {group.member}</small></span><span>Pay {money(group.pay, group.currency)}<small>Receive {money(group.receive, group.currency)}</small></span></button>)}</div>
                       </> : <p className="muted">Link your account to a member, or choose your member in each group to see your total.</p>}
-                      {unselectedOwnerGroups > 0 && <p className="muted">{unselectedOwnerGroups} owned group{unselectedOwnerGroups === 1 ? " is" : "s are"} excluded. Open each one and choose your own name under Viewing member.</p>}
+                      {allGroupsLoaded&&unselectedOwnerGroups > 0 && <p className="muted">{unselectedOwnerGroups} owned group{unselectedOwnerGroups === 1 ? " is" : "s are"} excluded. Open each one and choose your own name under Viewing member.</p>}
                       <small>Totals are kept separate by currency. Payments to receive do not reduce the amount to pay.</small>
                     </details>}
                     <div className="settlement-hero">
