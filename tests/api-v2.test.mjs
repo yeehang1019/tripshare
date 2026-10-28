@@ -36,8 +36,8 @@ test('Trip planning persists bookings, dates and tasks; viewers cannot edit and 
 });
 
 async function harness(){const sqlite=new DatabaseSync(':memory:');for(const f of readdirSync(new URL('../drizzle/',import.meta.url)).filter(f=>f.endsWith('.sql')).sort())sqlite.exec(readFileSync(new URL('../drizzle/'+f,import.meta.url),'utf8'));
- let batchQueue=Promise.resolve();
- const db={prepare(sql){let args=[];return {bind(...v){args=v;return this},async first(){return sqlite.prepare(sql).get(...args)||null},async all(){return {results:sqlite.prepare(sql).all(...args)}},async run(){const r=sqlite.prepare(sql).run(...args);return {meta:{changes:r.changes}}}}},async batch(statements){const operation=batchQueue.then(async()=>{sqlite.exec('BEGIN');try{const results=[];for(const s of statements)results.push(await s.run());sqlite.exec('COMMIT');return results}catch(e){sqlite.exec('ROLLBACK');throw e}});batchQueue=operation.catch(()=>{});return operation}};
+ let batchQueue=Promise.resolve(),queryCount=0;
+ const db={prepare(sql){let args=[];return {bind(...v){args=v;return this},async first(){queryCount++;return sqlite.prepare(sql).get(...args)||null},async all(){queryCount++;return {results:sqlite.prepare(sql).all(...args)}},async run(){queryCount++;const r=sqlite.prepare(sql).run(...args);return {meta:{changes:r.changes}}}}},async batch(statements){const operation=batchQueue.then(async()=>{sqlite.exec('BEGIN');try{const results=[];for(const s of statements)results.push(await s.run());sqlite.exec('COMMIT');return results}catch(e){sqlite.exec('ROLLBACK');throw e}});batchQueue=operation.catch(()=>{});return operation}};
  const objects=new Map();const bucket={async put(key,bytes){objects.set(key,bytes)},async get(key){return objects.has(key)?{body:objects.get(key)}:null},async delete(key){objects.delete(key)}};
  const integrationEnv={POCKET_SYNC_TOKEN:'test-only-secret',POCKET_SYNC_EMAIL:'b@example.com',BUCKET:bucket};
  const context=createContext({Request,Response,Headers,URL,crypto,structuredClone,TextEncoder,TextDecoder,File,Uint8Array,btoa,atob,escape,unescape,console:{error(){},info(){}}});const modules={};const synthetic=(name,obj)=>new SyntheticModule(Object.keys(obj),function(){for(const k of Object.keys(obj))this.setExport(k,obj[k])},{context,identifier:name});modules['@/lib/ledger']=synthetic('ledger',ledger);modules['@/db/raw']=synthetic('database',{database:()=>db});modules['cloudflare:workers']=synthetic('env',{env:integrationEnv});
@@ -52,6 +52,7 @@ async function harness(){const sqlite=new DatabaseSync(':memory:');for(const f o
  const alternatives=compile('../lib/plan-alternatives.ts');modules['@/lib/plan-alternatives']=alternatives;await alternatives.link(s=>modules[s]);await alternatives.evaluate();
  const display=compile('../lib/settlement-display.ts');modules['./settlement-display']=display;modules['@/lib/settlement-display']=display;await display.link(s=>s==='./ledger'?modules['@/lib/ledger']:modules[s]);await display.evaluate();
  const recording=compile('../lib/settlement-recording.ts');modules['@/lib/settlement-recording']=recording;await recording.link(s=>s==='./ledger'?modules['@/lib/ledger']:modules[s]);await recording.evaluate();
+ const legacy=compile('./fixtures/trips-v79.txt');await legacy.link(s=>modules[s]);await legacy.evaluate();
  const trips=compile('../app/api/trips/route.ts');modules['../trips/route']=trips;await trips.link(s=>modules[s]);await trips.evaluate();const view=compile('../app/api/view/route.ts');await view.link(s=>modules[s]);await view.evaluate();
  const sync=compile('../app/api/integrations/v1/me/entries/route.ts');await sync.link(s=>modules[s]);await sync.evaluate();
  const apiResponse=compile('../lib/api-response.ts');modules['@/lib/api-response']=apiResponse;await apiResponse.link(s=>modules[s]);await apiResponse.evaluate();
@@ -90,7 +91,7 @@ async function harness(){const sqlite=new DatabaseSync(':memory:');for(const f o
  const portalRead=async(group,person,email='owner@example.com',etag='')=>{const r=await memberPortal.namespace.GET(new Request('https://trip.test/api/member-portal?'+new URLSearchParams({group,person}),{headers:{...(email?{'oai-authenticated-user-id':email,'oai-authenticated-user-email':email}:{}),...(etag?{'If-None-Match':etag}:{})}}));return {status:r.status,etag:r.headers.get('ETag'),cache:r.headers.get('Cache-Control'),...(r.status===304?{}:await r.json())}};
  const conditionalGet=async(etag='',email='owner@example.com')=>{const r=await trips.namespace.GET(new Request('https://trip.test/api/trips',{headers:{'oai-authenticated-user-email':email,'oai-authenticated-user-id':email,...(etag?{'If-None-Match':etag}:{})}}));return {status:r.status,etag:r.headers.get('ETag'),requestId:r.headers.get('X-Request-ID'),...(r.status===304?{}:await r.json())}};
  const checkpointCall=async(method,body={},email='owner@example.com')=>{const query=method==='GET'?'?'+new URLSearchParams(body):'';const r=await checkpointApi.namespace[method](new Request('https://trip.test/api/checkpoints'+query,{method,headers:{'oai-authenticated-user-email':email,'oai-authenticated-user-id':email,'Content-Type':'application/json',Origin:'https://trip.test'},...(method==='POST'?{body:JSON.stringify(body)}:{})}));return {status:r.status,...await r.json()}};
- return {portalRead,checkpointCall,conditionalGet,templateRead,templateSave,preferenceRead,preferenceSave,documentRead,documentSave,notificationRead,photosRead,photosSave,workspaceRead,workspaceSave,payoutCall,post,get,getWithCookie,postWithCookie,getWithSession,postWithSession,read,syncRead,integrationEnv,sqlite};}
+ return {getLegacy:async(email)=>{const r=await legacy.namespace.GET(new Request('https://trip.test/api/trips',{headers:{'oai-authenticated-user-email':email,'oai-authenticated-user-id':email}}));return r.json()},resetQueries:()=>{queryCount=0},queries:()=>queryCount,portalRead,checkpointCall,conditionalGet,templateRead,templateSave,preferenceRead,preferenceSave,documentRead,documentSave,notificationRead,photosRead,photosSave,workspaceRead,workspaceSave,payoutCall,post,get,getWithCookie,postWithCookie,getWithSession,postWithSession,read,syncRead,integrationEnv,sqlite};}
 
 test('Personal portal authorizes the bound member, projects only their details and refreshes the same link after edits',async()=>{
  const h=await harness();try{
@@ -571,4 +572,13 @@ test('Concurrent batch confirmations have one CAS winner; failed sync rolls back
  const results=await Promise.all([h.post({action:'paymentBatch',id,revision:0,entity:batch('one')}),h.post({action:'paymentBatch',id,revision:0,entity:batch('two')})]);assert.deepEqual(results.map(r=>r.status).sort(),[200,409]);
  let record=(await h.get('owner@example.com')).trips[0];assert.equal(record.data.payments.length,2);assert.equal(record.revision,1);
  h.sqlite.exec('DROP TABLE sync_changes');const failed=await h.post({action:'paymentBatch',id,revision:1,entity:batch('rollback')});assert.equal(failed.status,503);record=(await h.get('owner@example.com')).trips[0];assert.equal(record.data.payments.length,2);assert.equal(record.revision,1);h.sqlite.close();
+});
+
+test('N+1 batched GET equals frozen v79 response for owner, collaborator, member and unauthorized accounts; <=5 header-auth queries',async()=>{
+ const h=await harness();
+ for(let i=0;i<5;i++){const e=ledger.normalize({name:'Group '+i,people:['A','B'],bills:[],payments:[]});const {id}=await h.post({action:'create',data:e});await h.post({action:'grant',id,email:'member@example.com',person:'B',permissions:[]});await h.post({action:'grant',id,email:'admin@example.com',permissions:['viewAll']});}
+ // Freeze canonical identity keys before comparing both implementations.
+ await h.get('owner@example.com');
+ for(const email of ['owner@example.com','admin@example.com','member@example.com','outsider@example.com']){const before=await h.getLegacy(email);h.resetQueries();const after=await h.get(email);assert.deepEqual(after,before);assert.ok(h.queries()<=5,`${email}: ${h.queries()}`)}
+ h.sqlite.close();
 });

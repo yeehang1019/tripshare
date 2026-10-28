@@ -19,7 +19,7 @@ import {
   Expense,
   Permission,
 } from "@/lib/ledger";
-import { linkedPeople } from "@/lib/workspace-store";
+import { linkedPeople,linkedPeopleBatch } from "@/lib/workspace-store";
 export const dynamic = "force-dynamic";
 const response = (data: unknown, status = 200) =>
   Response.json(data, {
@@ -47,11 +47,11 @@ export async function identity(r: Request, db=database()): Promise<Identity | nu
     .first();
   return row ? { user: row.user, email: row.email } : null;
 }
-export async function access(row: any, who: Identity, db=database()) {
+export async function access(row: any, who: Identity, db=database(), prefetched?:{grant:any}) {
   const owner =
     row.owner === who.user ||
     (!!row.owner_email && row.owner_email === who.email);
-  const grant: any = await db
+  const grant: any = prefetched ? prefetched.grant : await db
         .prepare("SELECT * FROM grants WHERE trip=? AND email=?")
         .bind(row.id, who.email)
         .first();
@@ -81,17 +81,19 @@ async function getTrips(r: Request,timing:RequestTimings) {
   if (!who) return response({ error: "Sign in to manage your events" }, 401);
   try {
 
-    const rows:any = await timing.stage<any>("trip_query",()=>db
+    const [rows,canCreate]:any = await Promise.all([timing.stage<any>("trip_query",()=>db
       .prepare(
         "SELECT DISTINCT t.* FROM trips t WHERE t.owner=? OR t.owner_email=? OR EXISTS(SELECT 1 FROM grants g WHERE g.trip=t.id AND g.email=?) OR EXISTS(SELECT 1 FROM members m WHERE m.trip=t.id AND m.user=?)",
       )
       .bind(who.user, who.email, who.email, who.user)
-      .all());
+      .all()),timing.stage("owner",()=>appOwner(who,db))]);
     timing.count("groupsRead",rows.results.length);
     if(timing.enabled)timing.count("sourceChars",rows.results.reduce((n:number,row:any)=>n+row.data.length,0));
-    const canCreate=await timing.stage("owner",()=>appOwner(who,db));
+    const grants:any=await timing.stage('access',()=>db.prepare('SELECT * FROM grants WHERE trip IN (SELECT value FROM json_each(?))').bind(JSON.stringify(rows.results.map((r:any)=>r.id))).all());
     const contexts:{row:any;a:Awaited<ReturnType<typeof access>>;memberKeys:Record<string,string>}[]=[];
-    for(const row of rows.results as any[]){const a=await timing.stage("access",()=>access(row,who,db));if(a.blocked||!a.owner&&!a.permissions.length&&(!a.person||!JSON.parse(row.data).people.some((p:any)=>p.id===a.person)))continue;const memberKeys=await timing.stage("links",()=>linkedPeople(db,row.id));contexts.push({row,a,memberKeys})}
+    for(const row of rows.results as any[]){const grant=grants.results.find((g:any)=>g.trip===row.id&&g.email===who.email);const a=await access(row,who,db,{grant});if(a.blocked||!a.owner&&!a.permissions.length&&(!a.person||!JSON.parse(row.data).people.some((p:any)=>p.id===a.person)))continue;contexts.push({row,a,memberKeys:{}})}
+    const bindings=await timing.stage('links',()=>linkedPeopleBatch(db,contexts.map(c=>c.row.id),grants.results));
+    for(const c of contexts)c.memberKeys=bindings.get(c.row.id)||{};
     const etag='"'+await timing.stage('etag',()=>checksum(JSON.stringify(['member-view-v1',who.user,who.email,canCreate,contexts.map(({row,a,memberKeys})=>[row.id,row.revision,a,memberKeys])])))+'"';
     if(r.headers.get('If-None-Match')===etag)return new Response(null,{status:304,headers:{ETag:etag}});
     const trips = timing.sync("projection",()=>{const trips = [];

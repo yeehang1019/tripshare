@@ -1,5 +1,7 @@
 # TripShare engineering rules
 
+- Latest explicit approval: implement and publish N+1 only, compare same-account responses, target <=6 calls including session, collect20 samples, preserve v78 rollback. No 304/lazy loading/notification/index changes.
+
 - v78 approved: summary/print/CSV/WhatsApp/Copy use only reconciled per-bill finalDue >0; no signed gross columns or repayment adjustment. Settled-offset disclosure uses one-way amount labelled each way and links to Details. Preserve v77 rollback. No N+1 until review.
 
 - Latest approved v77 scope: English settlement labels and offset explanation, offset-cleared bills collapsed by default with aggregate Offset amount, payable bills above, mobile bottom clearance >= add button + bottom navigation. Keep v76 rollback. No ledger/data/query changes; stop after release verification before N+1.
