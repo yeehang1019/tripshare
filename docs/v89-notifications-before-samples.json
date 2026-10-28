@@ -1,0 +1,482 @@
+[
+  {
+    "time": 1793178573713,
+    "requestId": "08c1e0a2-e22f-4590-a29b-5ec90f5974cb",
+    "status": 200,
+    "totalMs": 451,
+    "dbQueries": 6,
+    "stages": {
+      "identity": 0,
+      "trip_query": 172,
+      "access": 279,
+      "json_parse": 0,
+      "bills": 0,
+      "history": 0,
+      "serialize": 0
+    },
+    "counts": {
+      "groupsRead": 5,
+      "sourceChars": 370825,
+      "billsRead": 60,
+      "plansRead": 6,
+      "historyRead": 228,
+      "responseChars": 9967
+    }
+  },
+  {
+    "time": 1793178574271,
+    "requestId": "7aa1ca16-d321-46a0-9c3a-479317bb5017",
+    "status": 200,
+    "totalMs": 487,
+    "dbQueries": 6,
+    "stages": {
+      "identity": 0,
+      "trip_query": 199,
+      "access": 288,
+      "json_parse": 0,
+      "bills": 0,
+      "history": 0,
+      "serialize": 0
+    },
+    "counts": {
+      "groupsRead": 5,
+      "sourceChars": 370825,
+      "billsRead": 60,
+      "plansRead": 6,
+      "historyRead": 228,
+      "responseChars": 9967
+    }
+  },
+  {
+    "time": 1793178574768,
+    "requestId": "22fe0988-b747-4ea2-ba4a-81cc8ec1774a",
+    "status": 200,
+    "totalMs": 431,
+    "dbQueries": 6,
+    "stages": {
+      "identity": 0,
+      "trip_query": 168,
+      "access": 263,
+      "json_parse": 0,
+      "bills": 0,
+      "history": 0,
+      "serialize": 0
+    },
+    "counts": {
+      "groupsRead": 5,
+      "sourceChars": 370825,
+      "billsRead": 60,
+      "plansRead": 6,
+      "historyRead": 228,
+      "responseChars": 9967
+    }
+  },
+  {
+    "time": 1793178591562,
+    "requestId": "4241d5b5-a605-49d5-9b62-9a8f858fc4eb",
+    "status": 200,
+    "totalMs": 350,
+    "dbQueries": 6,
+    "stages": {
+      "identity": 0,
+      "trip_query": 84,
+      "access": 266,
+      "json_parse": 0,
+      "bills": 0,
+      "history": 0,
+      "serialize": 0
+    },
+    "counts": {
+      "groupsRead": 5,
+      "sourceChars": 370825,
+      "billsRead": 60,
+      "plansRead": 6,
+      "historyRead": 228,
+      "responseChars": 9967
+    }
+  },
+  {
+    "time": 1793178592078,
+    "requestId": "6134be16-534f-48f3-a67c-4c1ccbf55d60",
+    "status": 200,
+    "totalMs": 447,
+    "dbQueries": 6,
+    "stages": {
+      "identity": 0,
+      "trip_query": 183,
+      "access": 264,
+      "json_parse": 0,
+      "bills": 0,
+      "history": 0,
+      "serialize": 0
+    },
+    "counts": {
+      "groupsRead": 5,
+      "sourceChars": 370825,
+      "billsRead": 60,
+      "plansRead": 6,
+      "historyRead": 228,
+      "responseChars": 9967
+    }
+  },
+  {
+    "time": 1793178592581,
+    "requestId": "6005bd74-35ac-4541-8ed0-b59564ed585b",
+    "status": 200,
+    "totalMs": 446,
+    "dbQueries": 6,
+    "stages": {
+      "identity": 0,
+      "trip_query": 177,
+      "access": 269,
+      "json_parse": 0,
+      "bills": 0,
+      "history": 0,
+      "serialize": 0
+    },
+    "counts": {
+      "groupsRead": 5,
+      "sourceChars": 370825,
+      "billsRead": 60,
+      "plansRead": 6,
+      "historyRead": 228,
+      "responseChars": 9967
+    }
+  },
+  {
+    "time": 1793178593114,
+    "requestId": "52b5e9c7-453c-41f2-b7e8-6fdc25aa4351",
+    "status": 200,
+    "totalMs": 475,
+    "dbQueries": 6,
+    "stages": {
+      "identity": 0,
+      "trip_query": 195,
+      "access": 280,
+      "json_parse": 0,
+      "bills": 0,
+      "history": 0,
+      "serialize": 0
+    },
+    "counts": {
+      "groupsRead": 5,
+      "sourceChars": 370825,
+      "billsRead": 60,
+      "plansRead": 6,
+      "historyRead": 228,
+      "responseChars": 9967
+    }
+  },
+  {
+    "time": 1793178610037,
+    "requestId": "3f399277-8031-4087-b11c-c83f4492c083",
+    "status": 200,
+    "totalMs": 399,
+    "dbQueries": 6,
+    "stages": {
+      "identity": 0,
+      "trip_query": 125,
+      "access": 274,
+      "json_parse": 0,
+      "bills": 0,
+      "history": 0,
+      "serialize": 0
+    },
+    "counts": {
+      "groupsRead": 5,
+      "sourceChars": 370825,
+      "billsRead": 60,
+      "plansRead": 6,
+      "historyRead": 228,
+      "responseChars": 9967
+    }
+  },
+  {
+    "time": 1793178624665,
+    "requestId": "77cb9b4c-8b1a-40dc-9d61-2e3a35af349f",
+    "status": 200,
+    "totalMs": 458,
+    "dbQueries": 6,
+    "stages": {
+      "identity": 0,
+      "trip_query": 194,
+      "access": 264,
+      "json_parse": 0,
+      "bills": 0,
+      "history": 0,
+      "serialize": 0
+    },
+    "counts": {
+      "groupsRead": 5,
+      "sourceChars": 370825,
+      "billsRead": 60,
+      "plansRead": 6,
+      "historyRead": 228,
+      "responseChars": 9967
+    }
+  },
+  {
+    "time": 1793178625189,
+    "requestId": "24b69723-ea26-4441-bffb-e9683af38695",
+    "status": 200,
+    "totalMs": 474,
+    "dbQueries": 6,
+    "stages": {
+      "identity": 0,
+      "trip_query": 197,
+      "access": 277,
+      "json_parse": 0,
+      "bills": 0,
+      "history": 0,
+      "serialize": 0
+    },
+    "counts": {
+      "groupsRead": 5,
+      "sourceChars": 370825,
+      "billsRead": 60,
+      "plansRead": 6,
+      "historyRead": 228,
+      "responseChars": 9967
+    }
+  },
+  {
+    "time": 1793178625648,
+    "requestId": "642f4d97-697a-4f88-b192-c7dd985da90d",
+    "status": 200,
+    "totalMs": 394,
+    "dbQueries": 6,
+    "stages": {
+      "identity": 0,
+      "trip_query": 107,
+      "access": 287,
+      "json_parse": 0,
+      "bills": 0,
+      "history": 0,
+      "serialize": 0
+    },
+    "counts": {
+      "groupsRead": 5,
+      "sourceChars": 370825,
+      "billsRead": 60,
+      "plansRead": 6,
+      "historyRead": 228,
+      "responseChars": 9967
+    }
+  },
+  {
+    "time": 1793178626060,
+    "requestId": "3a2727fb-6f5d-4287-ba45-e04be37d3f7b",
+    "status": 200,
+    "totalMs": 352,
+    "dbQueries": 6,
+    "stages": {
+      "identity": 0,
+      "trip_query": 77,
+      "access": 275,
+      "json_parse": 0,
+      "bills": 0,
+      "history": 0,
+      "serialize": 0
+    },
+    "counts": {
+      "groupsRead": 5,
+      "sourceChars": 370825,
+      "billsRead": 60,
+      "plansRead": 6,
+      "historyRead": 228,
+      "responseChars": 9967
+    }
+  },
+  {
+    "time": 1793178626565,
+    "requestId": "3025a2e0-7dbc-48ff-b1d1-e2a8a10d08d7",
+    "status": 200,
+    "totalMs": 436,
+    "dbQueries": 6,
+    "stages": {
+      "identity": 0,
+      "trip_query": 170,
+      "access": 266,
+      "json_parse": 0,
+      "bills": 0,
+      "history": 0,
+      "serialize": 0
+    },
+    "counts": {
+      "groupsRead": 5,
+      "sourceChars": 370825,
+      "billsRead": 60,
+      "plansRead": 6,
+      "historyRead": 228,
+      "responseChars": 9967
+    }
+  },
+  {
+    "time": 1793178671361,
+    "requestId": "cdd991f6-e07f-45c3-b08d-2011254e619a",
+    "status": 200,
+    "totalMs": 477,
+    "dbQueries": 6,
+    "stages": {
+      "identity": 0,
+      "trip_query": 148,
+      "access": 329,
+      "json_parse": 0,
+      "bills": 0,
+      "history": 0,
+      "serialize": 0
+    },
+    "counts": {
+      "groupsRead": 5,
+      "sourceChars": 370825,
+      "billsRead": 60,
+      "plansRead": 6,
+      "historyRead": 228,
+      "responseChars": 9967
+    }
+  },
+  {
+    "time": 1793178672308,
+    "requestId": "1916a9aa-488c-4aa7-ae03-26acd247993f",
+    "status": 200,
+    "totalMs": 727,
+    "dbQueries": 6,
+    "stages": {
+      "identity": 0,
+      "trip_query": 439,
+      "access": 288,
+      "json_parse": 0,
+      "bills": 0,
+      "history": 0,
+      "serialize": 0
+    },
+    "counts": {
+      "groupsRead": 5,
+      "sourceChars": 370825,
+      "billsRead": 60,
+      "plansRead": 6,
+      "historyRead": 228,
+      "responseChars": 9967
+    }
+  },
+  {
+    "time": 1793178672797,
+    "requestId": "cad2d898-7028-4934-a45a-ae5c6ca9c2db",
+    "status": 200,
+    "totalMs": 417,
+    "dbQueries": 6,
+    "stages": {
+      "identity": 0,
+      "trip_query": 157,
+      "access": 260,
+      "json_parse": 0,
+      "bills": 0,
+      "history": 0,
+      "serialize": 0
+    },
+    "counts": {
+      "groupsRead": 5,
+      "sourceChars": 370825,
+      "billsRead": 60,
+      "plansRead": 6,
+      "historyRead": 228,
+      "responseChars": 9967
+    }
+  },
+  {
+    "time": 1793178673236,
+    "requestId": "7339c8e9-0a78-40c5-9358-08aa10752b7e",
+    "status": 200,
+    "totalMs": 383,
+    "dbQueries": 6,
+    "stages": {
+      "identity": 0,
+      "trip_query": 98,
+      "access": 285,
+      "json_parse": 0,
+      "bills": 0,
+      "history": 0,
+      "serialize": 0
+    },
+    "counts": {
+      "groupsRead": 5,
+      "sourceChars": 370825,
+      "billsRead": 60,
+      "plansRead": 6,
+      "historyRead": 228,
+      "responseChars": 9967
+    }
+  },
+  {
+    "time": 1793178673769,
+    "requestId": "121a5142-f593-48aa-b13b-6012d2ef37b5",
+    "status": 200,
+    "totalMs": 474,
+    "dbQueries": 6,
+    "stages": {
+      "identity": 0,
+      "trip_query": 196,
+      "access": 278,
+      "json_parse": 0,
+      "bills": 0,
+      "history": 0,
+      "serialize": 0
+    },
+    "counts": {
+      "groupsRead": 5,
+      "sourceChars": 370825,
+      "billsRead": 60,
+      "plansRead": 6,
+      "historyRead": 228,
+      "responseChars": 9967
+    }
+  },
+  {
+    "time": 1793178674286,
+    "requestId": "b10f157d-ed57-40cf-94de-2cb384d022a6",
+    "status": 200,
+    "totalMs": 449,
+    "dbQueries": 6,
+    "stages": {
+      "identity": 0,
+      "trip_query": 190,
+      "access": 259,
+      "json_parse": 0,
+      "bills": 0,
+      "history": 0,
+      "serialize": 0
+    },
+    "counts": {
+      "groupsRead": 5,
+      "sourceChars": 370825,
+      "billsRead": 60,
+      "plansRead": 6,
+      "historyRead": 228,
+      "responseChars": 9967
+    }
+  },
+  {
+    "time": 1793178695882,
+    "requestId": "77eb1f81-9bcf-4ad7-b372-860b6ec3461c",
+    "status": 200,
+    "totalMs": 442,
+    "dbQueries": 6,
+    "stages": {
+      "identity": 0,
+      "trip_query": 180,
+      "access": 262,
+      "json_parse": 0,
+      "bills": 0,
+      "history": 0,
+      "serialize": 0
+    },
+    "counts": {
+      "groupsRead": 5,
+      "sourceChars": 370825,
+      "billsRead": 60,
+      "plansRead": 6,
+      "historyRead": 228,
+      "responseChars": 9967
+    }
+  }
+]
