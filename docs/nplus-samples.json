@@ -1,0 +1,1506 @@
+{
+  "version": 80,
+  "commit": "566c09ca1516a468d9d0c9d8f41ba239d6c346fb",
+  "first": {
+    "timestamp": 1793163177021,
+    "level": "info",
+    "message": "tripshare_performance",
+    "requestId": "3ef8a5ab-423b-4321-a062-92d64b5aff9f",
+    "schema": 1,
+    "status": 200,
+    "totalMs": 347,
+    "dbQueries": 5,
+    "dbWallMs": 412,
+    "stages": {
+      "identity": 0,
+      "owner": 65,
+      "trip_query": 182,
+      "access": 54,
+      "links": 111,
+      "etag": 0,
+      "json_parse": 0,
+      "bills": 0,
+      "projection": 0,
+      "serialize": 0
+    },
+    "queries": {
+      "owner": {
+        "count": 1,
+        "wallMs": 65,
+        "engineMs": 0,
+        "rowsRead": 0,
+        "rowsWritten": 0
+      },
+      "trips": {
+        "count": 1,
+        "wallMs": 182,
+        "engineMs": 6.113,
+        "rowsRead": 5,
+        "rowsWritten": 0
+      },
+      "access_grant": {
+        "count": 1,
+        "wallMs": 54,
+        "engineMs": 0.2511,
+        "rowsRead": 19,
+        "rowsWritten": 0
+      },
+      "link_insert": {
+        "count": 1,
+        "wallMs": 56,
+        "engineMs": 0.2431,
+        "rowsRead": 4,
+        "rowsWritten": 0
+      },
+      "link_read": {
+        "count": 1,
+        "wallMs": 55,
+        "engineMs": 0.1752,
+        "rowsRead": 12,
+        "rowsWritten": 0
+      }
+    },
+    "counts": {
+      "groupsRead": 5,
+      "sourceChars": 370825,
+      "billsRead": 60,
+      "plansRead": 6,
+      "historyRead": 228,
+      "groupsReturned": 5,
+      "responseChars": 372359
+    }
+  },
+  "samples": [
+    {
+      "timestamp": 1793163203043,
+      "level": "info",
+      "message": "tripshare_performance",
+      "requestId": "f2e3fe78-4cff-4735-8066-6ed9a9766799",
+      "schema": 1,
+      "status": 200,
+      "totalMs": 361,
+      "dbQueries": 5,
+      "dbWallMs": 424,
+      "stages": {
+        "identity": 0,
+        "owner": 63,
+        "trip_query": 196,
+        "access": 56,
+        "links": 109,
+        "etag": 0,
+        "json_parse": 0,
+        "bills": 0,
+        "projection": 0,
+        "serialize": 0
+      },
+      "queries": {
+        "owner": {
+          "count": 1,
+          "wallMs": 63,
+          "engineMs": 0,
+          "rowsRead": 0,
+          "rowsWritten": 0
+        },
+        "trips": {
+          "count": 1,
+          "wallMs": 196,
+          "engineMs": 6.287,
+          "rowsRead": 5,
+          "rowsWritten": 0
+        },
+        "access_grant": {
+          "count": 1,
+          "wallMs": 56,
+          "engineMs": 0.2052,
+          "rowsRead": 19,
+          "rowsWritten": 0
+        },
+        "link_insert": {
+          "count": 1,
+          "wallMs": 56,
+          "engineMs": 0.1404,
+          "rowsRead": 4,
+          "rowsWritten": 0
+        },
+        "link_read": {
+          "count": 1,
+          "wallMs": 53,
+          "engineMs": 0.1533,
+          "rowsRead": 12,
+          "rowsWritten": 0
+        }
+      },
+      "counts": {
+        "groupsRead": 5,
+        "sourceChars": 370825,
+        "billsRead": 60,
+        "plansRead": 6,
+        "historyRead": 228,
+        "groupsReturned": 5,
+        "responseChars": 372359
+      }
+    },
+    {
+      "timestamp": 1793163203643,
+      "level": "info",
+      "message": "tripshare_performance",
+      "requestId": "d4e20c22-8f0f-4ad2-b604-eed250d21352",
+      "schema": 1,
+      "status": 200,
+      "totalMs": 354,
+      "dbQueries": 5,
+      "dbWallMs": 416,
+      "stages": {
+        "identity": 0,
+        "owner": 62,
+        "trip_query": 190,
+        "access": 58,
+        "links": 106,
+        "etag": 0,
+        "json_parse": 0,
+        "bills": 0,
+        "projection": 0,
+        "serialize": 0
+      },
+      "queries": {
+        "owner": {
+          "count": 1,
+          "wallMs": 62,
+          "engineMs": 0,
+          "rowsRead": 0,
+          "rowsWritten": 0
+        },
+        "trips": {
+          "count": 1,
+          "wallMs": 190,
+          "engineMs": 5.3358,
+          "rowsRead": 5,
+          "rowsWritten": 0
+        },
+        "access_grant": {
+          "count": 1,
+          "wallMs": 58,
+          "engineMs": 0.2577,
+          "rowsRead": 19,
+          "rowsWritten": 0
+        },
+        "link_insert": {
+          "count": 1,
+          "wallMs": 54,
+          "engineMs": 0.3205,
+          "rowsRead": 4,
+          "rowsWritten": 0
+        },
+        "link_read": {
+          "count": 1,
+          "wallMs": 52,
+          "engineMs": 0.2779,
+          "rowsRead": 12,
+          "rowsWritten": 0
+        }
+      },
+      "counts": {
+        "groupsRead": 5,
+        "sourceChars": 370825,
+        "billsRead": 60,
+        "plansRead": 6,
+        "historyRead": 228,
+        "groupsReturned": 5,
+        "responseChars": 372359
+      }
+    },
+    {
+      "timestamp": 1793163204228,
+      "level": "info",
+      "message": "tripshare_performance",
+      "requestId": "eb62ca8b-7837-4dd5-8c69-1dd0de90dd07",
+      "schema": 1,
+      "status": 200,
+      "totalMs": 350,
+      "dbQueries": 5,
+      "dbWallMs": 407,
+      "stages": {
+        "identity": 0,
+        "owner": 57,
+        "trip_query": 187,
+        "access": 55,
+        "links": 108,
+        "etag": 0,
+        "json_parse": 0,
+        "bills": 0,
+        "projection": 0,
+        "serialize": 0
+      },
+      "queries": {
+        "owner": {
+          "count": 1,
+          "wallMs": 57,
+          "engineMs": 0,
+          "rowsRead": 0,
+          "rowsWritten": 0
+        },
+        "trips": {
+          "count": 1,
+          "wallMs": 187,
+          "engineMs": 3.024,
+          "rowsRead": 5,
+          "rowsWritten": 0
+        },
+        "access_grant": {
+          "count": 1,
+          "wallMs": 55,
+          "engineMs": 0.1648,
+          "rowsRead": 19,
+          "rowsWritten": 0
+        },
+        "link_insert": {
+          "count": 1,
+          "wallMs": 54,
+          "engineMs": 0.2007,
+          "rowsRead": 4,
+          "rowsWritten": 0
+        },
+        "link_read": {
+          "count": 1,
+          "wallMs": 54,
+          "engineMs": 0.2057,
+          "rowsRead": 12,
+          "rowsWritten": 0
+        }
+      },
+      "counts": {
+        "groupsRead": 5,
+        "sourceChars": 370825,
+        "billsRead": 60,
+        "plansRead": 6,
+        "historyRead": 228,
+        "groupsReturned": 5,
+        "responseChars": 372359
+      }
+    },
+    {
+      "timestamp": 1793163204904,
+      "level": "info",
+      "message": "tripshare_performance",
+      "requestId": "98cbeafe-5c8e-4f67-8016-13a2017930fc",
+      "schema": 1,
+      "status": 200,
+      "totalMs": 361,
+      "dbQueries": 5,
+      "dbWallMs": 422,
+      "stages": {
+        "identity": 0,
+        "owner": 61,
+        "trip_query": 194,
+        "access": 54,
+        "links": 113,
+        "etag": 0,
+        "json_parse": 0,
+        "bills": 0,
+        "projection": 0,
+        "serialize": 0
+      },
+      "queries": {
+        "owner": {
+          "count": 1,
+          "wallMs": 61,
+          "engineMs": 0,
+          "rowsRead": 0,
+          "rowsWritten": 0
+        },
+        "trips": {
+          "count": 1,
+          "wallMs": 194,
+          "engineMs": 5.5888,
+          "rowsRead": 5,
+          "rowsWritten": 0
+        },
+        "access_grant": {
+          "count": 1,
+          "wallMs": 54,
+          "engineMs": 0.2283,
+          "rowsRead": 19,
+          "rowsWritten": 0
+        },
+        "link_insert": {
+          "count": 1,
+          "wallMs": 53,
+          "engineMs": 0.2332,
+          "rowsRead": 4,
+          "rowsWritten": 0
+        },
+        "link_read": {
+          "count": 1,
+          "wallMs": 60,
+          "engineMs": 0.3828,
+          "rowsRead": 12,
+          "rowsWritten": 0
+        }
+      },
+      "counts": {
+        "groupsRead": 5,
+        "sourceChars": 370825,
+        "billsRead": 60,
+        "plansRead": 6,
+        "historyRead": 228,
+        "groupsReturned": 5,
+        "responseChars": 372359
+      }
+    },
+    {
+      "timestamp": 1793163205549,
+      "level": "info",
+      "message": "tripshare_performance",
+      "requestId": "eea98a94-9f2b-4fa0-ae95-eb88e5350431",
+      "schema": 1,
+      "status": 200,
+      "totalMs": 357,
+      "dbQueries": 5,
+      "dbWallMs": 410,
+      "stages": {
+        "identity": 0,
+        "owner": 53,
+        "trip_query": 195,
+        "access": 56,
+        "links": 106,
+        "etag": 0,
+        "json_parse": 0,
+        "bills": 0,
+        "projection": 0,
+        "serialize": 0
+      },
+      "queries": {
+        "owner": {
+          "count": 1,
+          "wallMs": 53,
+          "engineMs": 0,
+          "rowsRead": 0,
+          "rowsWritten": 0
+        },
+        "trips": {
+          "count": 1,
+          "wallMs": 195,
+          "engineMs": 7.1669,
+          "rowsRead": 5,
+          "rowsWritten": 0
+        },
+        "access_grant": {
+          "count": 1,
+          "wallMs": 56,
+          "engineMs": 0.2888,
+          "rowsRead": 19,
+          "rowsWritten": 0
+        },
+        "link_insert": {
+          "count": 1,
+          "wallMs": 53,
+          "engineMs": 0.1757,
+          "rowsRead": 4,
+          "rowsWritten": 0
+        },
+        "link_read": {
+          "count": 1,
+          "wallMs": 53,
+          "engineMs": 0.1739,
+          "rowsRead": 12,
+          "rowsWritten": 0
+        }
+      },
+      "counts": {
+        "groupsRead": 5,
+        "sourceChars": 370825,
+        "billsRead": 60,
+        "plansRead": 6,
+        "historyRead": 228,
+        "groupsReturned": 5,
+        "responseChars": 372359
+      }
+    },
+    {
+      "timestamp": 1793163224067,
+      "level": "info",
+      "message": "tripshare_performance",
+      "requestId": "4bb63ffe-e793-4172-a881-038e1ddd4d97",
+      "schema": 1,
+      "status": 200,
+      "totalMs": 355,
+      "dbQueries": 5,
+      "dbWallMs": 412,
+      "stages": {
+        "identity": 0,
+        "owner": 57,
+        "trip_query": 193,
+        "access": 54,
+        "links": 108,
+        "etag": 0,
+        "json_parse": 0,
+        "bills": 0,
+        "projection": 0,
+        "serialize": 0
+      },
+      "queries": {
+        "owner": {
+          "count": 1,
+          "wallMs": 57,
+          "engineMs": 0,
+          "rowsRead": 0,
+          "rowsWritten": 0
+        },
+        "trips": {
+          "count": 1,
+          "wallMs": 193,
+          "engineMs": 4.854,
+          "rowsRead": 5,
+          "rowsWritten": 0
+        },
+        "access_grant": {
+          "count": 1,
+          "wallMs": 54,
+          "engineMs": 0.2258,
+          "rowsRead": 19,
+          "rowsWritten": 0
+        },
+        "link_insert": {
+          "count": 1,
+          "wallMs": 54,
+          "engineMs": 0.1613,
+          "rowsRead": 4,
+          "rowsWritten": 0
+        },
+        "link_read": {
+          "count": 1,
+          "wallMs": 54,
+          "engineMs": 0.1996,
+          "rowsRead": 12,
+          "rowsWritten": 0
+        }
+      },
+      "counts": {
+        "groupsRead": 5,
+        "sourceChars": 370825,
+        "billsRead": 60,
+        "plansRead": 6,
+        "historyRead": 228,
+        "groupsReturned": 5,
+        "responseChars": 372359
+      }
+    },
+    {
+      "timestamp": 1793163224528,
+      "level": "info",
+      "message": "tripshare_performance",
+      "requestId": "3a2a0a18-5a05-4974-9766-e03130c2eea3",
+      "schema": 1,
+      "status": 200,
+      "totalMs": 256,
+      "dbQueries": 5,
+      "dbWallMs": 318,
+      "stages": {
+        "identity": 0,
+        "owner": 62,
+        "trip_query": 92,
+        "access": 54,
+        "links": 110,
+        "etag": 0,
+        "json_parse": 0,
+        "bills": 0,
+        "projection": 0,
+        "serialize": 0
+      },
+      "queries": {
+        "owner": {
+          "count": 1,
+          "wallMs": 62,
+          "engineMs": 0,
+          "rowsRead": 0,
+          "rowsWritten": 0
+        },
+        "trips": {
+          "count": 1,
+          "wallMs": 92,
+          "engineMs": 7.0883,
+          "rowsRead": 5,
+          "rowsWritten": 0
+        },
+        "access_grant": {
+          "count": 1,
+          "wallMs": 54,
+          "engineMs": 0.1958,
+          "rowsRead": 19,
+          "rowsWritten": 0
+        },
+        "link_insert": {
+          "count": 1,
+          "wallMs": 53,
+          "engineMs": 0.2149,
+          "rowsRead": 4,
+          "rowsWritten": 0
+        },
+        "link_read": {
+          "count": 1,
+          "wallMs": 57,
+          "engineMs": 0.1712,
+          "rowsRead": 12,
+          "rowsWritten": 0
+        }
+      },
+      "counts": {
+        "groupsRead": 5,
+        "sourceChars": 370825,
+        "billsRead": 60,
+        "plansRead": 6,
+        "historyRead": 228,
+        "groupsReturned": 5,
+        "responseChars": 372359
+      }
+    },
+    {
+      "timestamp": 1793163225117,
+      "level": "info",
+      "message": "tripshare_performance",
+      "requestId": "409f5c67-7d0c-4167-9630-9cee9cf60605",
+      "schema": 1,
+      "status": 200,
+      "totalMs": 352,
+      "dbQueries": 5,
+      "dbWallMs": 405,
+      "stages": {
+        "identity": 0,
+        "owner": 53,
+        "trip_query": 189,
+        "access": 54,
+        "links": 109,
+        "etag": 0,
+        "json_parse": 0,
+        "bills": 0,
+        "projection": 0,
+        "serialize": 0
+      },
+      "queries": {
+        "owner": {
+          "count": 1,
+          "wallMs": 53,
+          "engineMs": 0,
+          "rowsRead": 0,
+          "rowsWritten": 0
+        },
+        "trips": {
+          "count": 1,
+          "wallMs": 189,
+          "engineMs": 4.3198,
+          "rowsRead": 5,
+          "rowsWritten": 0
+        },
+        "access_grant": {
+          "count": 1,
+          "wallMs": 54,
+          "engineMs": 0.2846,
+          "rowsRead": 19,
+          "rowsWritten": 0
+        },
+        "link_insert": {
+          "count": 1,
+          "wallMs": 55,
+          "engineMs": 0.2067,
+          "rowsRead": 4,
+          "rowsWritten": 0
+        },
+        "link_read": {
+          "count": 1,
+          "wallMs": 54,
+          "engineMs": 0.1511,
+          "rowsRead": 12,
+          "rowsWritten": 0
+        }
+      },
+      "counts": {
+        "groupsRead": 5,
+        "sourceChars": 370825,
+        "billsRead": 60,
+        "plansRead": 6,
+        "historyRead": 228,
+        "groupsReturned": 5,
+        "responseChars": 372359
+      }
+    },
+    {
+      "timestamp": 1793163225692,
+      "level": "info",
+      "message": "tripshare_performance",
+      "requestId": "be18c40b-45d5-4920-8590-0b8a79624cb7",
+      "schema": 1,
+      "status": 200,
+      "totalMs": 359,
+      "dbQueries": 5,
+      "dbWallMs": 413,
+      "stages": {
+        "identity": 0,
+        "owner": 54,
+        "trip_query": 192,
+        "access": 54,
+        "links": 113,
+        "etag": 0,
+        "json_parse": 0,
+        "bills": 0,
+        "projection": 0,
+        "serialize": 0
+      },
+      "queries": {
+        "owner": {
+          "count": 1,
+          "wallMs": 54,
+          "engineMs": 0,
+          "rowsRead": 0,
+          "rowsWritten": 0
+        },
+        "trips": {
+          "count": 1,
+          "wallMs": 192,
+          "engineMs": 6.752,
+          "rowsRead": 5,
+          "rowsWritten": 0
+        },
+        "access_grant": {
+          "count": 1,
+          "wallMs": 54,
+          "engineMs": 0.461,
+          "rowsRead": 19,
+          "rowsWritten": 0
+        },
+        "link_insert": {
+          "count": 1,
+          "wallMs": 57,
+          "engineMs": 0.1737,
+          "rowsRead": 4,
+          "rowsWritten": 0
+        },
+        "link_read": {
+          "count": 1,
+          "wallMs": 56,
+          "engineMs": 0.1822,
+          "rowsRead": 12,
+          "rowsWritten": 0
+        }
+      },
+      "counts": {
+        "groupsRead": 5,
+        "sourceChars": 370825,
+        "billsRead": 60,
+        "plansRead": 6,
+        "historyRead": 228,
+        "groupsReturned": 5,
+        "responseChars": 372359
+      }
+    },
+    {
+      "timestamp": 1793163226295,
+      "level": "info",
+      "message": "tripshare_performance",
+      "requestId": "7c374839-e943-4135-873c-b43e087b85c8",
+      "schema": 1,
+      "status": 200,
+      "totalMs": 360,
+      "dbQueries": 5,
+      "dbWallMs": 420,
+      "stages": {
+        "identity": 0,
+        "owner": 60,
+        "trip_query": 189,
+        "access": 61,
+        "links": 110,
+        "etag": 0,
+        "json_parse": 0,
+        "bills": 0,
+        "projection": 0,
+        "serialize": 0
+      },
+      "queries": {
+        "owner": {
+          "count": 1,
+          "wallMs": 60,
+          "engineMs": 0,
+          "rowsRead": 0,
+          "rowsWritten": 0
+        },
+        "trips": {
+          "count": 1,
+          "wallMs": 189,
+          "engineMs": 4.5184,
+          "rowsRead": 5,
+          "rowsWritten": 0
+        },
+        "access_grant": {
+          "count": 1,
+          "wallMs": 61,
+          "engineMs": 0.8303,
+          "rowsRead": 19,
+          "rowsWritten": 0
+        },
+        "link_insert": {
+          "count": 1,
+          "wallMs": 54,
+          "engineMs": 0.4213,
+          "rowsRead": 4,
+          "rowsWritten": 0
+        },
+        "link_read": {
+          "count": 1,
+          "wallMs": 56,
+          "engineMs": 0.2981,
+          "rowsRead": 12,
+          "rowsWritten": 0
+        }
+      },
+      "counts": {
+        "groupsRead": 5,
+        "sourceChars": 370825,
+        "billsRead": 60,
+        "plansRead": 6,
+        "historyRead": 228,
+        "groupsReturned": 5,
+        "responseChars": 372359
+      }
+    },
+    {
+      "timestamp": 1793163236293,
+      "level": "info",
+      "message": "tripshare_performance",
+      "requestId": "3f79ac2d-be00-41be-9b6b-730fd01f6549",
+      "schema": 1,
+      "status": 200,
+      "totalMs": 360,
+      "dbQueries": 5,
+      "dbWallMs": 421,
+      "stages": {
+        "identity": 0,
+        "owner": 61,
+        "trip_query": 193,
+        "access": 54,
+        "links": 113,
+        "etag": 0,
+        "json_parse": 0,
+        "bills": 0,
+        "projection": 0,
+        "serialize": 0
+      },
+      "queries": {
+        "owner": {
+          "count": 1,
+          "wallMs": 61,
+          "engineMs": 0,
+          "rowsRead": 0,
+          "rowsWritten": 0
+        },
+        "trips": {
+          "count": 1,
+          "wallMs": 193,
+          "engineMs": 5.1355,
+          "rowsRead": 5,
+          "rowsWritten": 0
+        },
+        "access_grant": {
+          "count": 1,
+          "wallMs": 54,
+          "engineMs": 0.2369,
+          "rowsRead": 19,
+          "rowsWritten": 0
+        },
+        "link_insert": {
+          "count": 1,
+          "wallMs": 58,
+          "engineMs": 0.2713,
+          "rowsRead": 4,
+          "rowsWritten": 0
+        },
+        "link_read": {
+          "count": 1,
+          "wallMs": 55,
+          "engineMs": 0.1696,
+          "rowsRead": 12,
+          "rowsWritten": 0
+        }
+      },
+      "counts": {
+        "groupsRead": 5,
+        "sourceChars": 370825,
+        "billsRead": 60,
+        "plansRead": 6,
+        "historyRead": 228,
+        "groupsReturned": 5,
+        "responseChars": 372359
+      }
+    },
+    {
+      "timestamp": 1793163236859,
+      "level": "info",
+      "message": "tripshare_performance",
+      "requestId": "4d7d6adc-4ffb-48c8-8fd6-fff02c2eef76",
+      "schema": 1,
+      "status": 200,
+      "totalMs": 356,
+      "dbQueries": 5,
+      "dbWallMs": 410,
+      "stages": {
+        "identity": 0,
+        "owner": 54,
+        "trip_query": 195,
+        "access": 53,
+        "links": 108,
+        "etag": 0,
+        "json_parse": 0,
+        "bills": 0,
+        "projection": 0,
+        "serialize": 0
+      },
+      "queries": {
+        "owner": {
+          "count": 1,
+          "wallMs": 54,
+          "engineMs": 0,
+          "rowsRead": 0,
+          "rowsWritten": 0
+        },
+        "trips": {
+          "count": 1,
+          "wallMs": 195,
+          "engineMs": 8.5113,
+          "rowsRead": 5,
+          "rowsWritten": 0
+        },
+        "access_grant": {
+          "count": 1,
+          "wallMs": 53,
+          "engineMs": 0.2174,
+          "rowsRead": 19,
+          "rowsWritten": 0
+        },
+        "link_insert": {
+          "count": 1,
+          "wallMs": 54,
+          "engineMs": 0.2768,
+          "rowsRead": 4,
+          "rowsWritten": 0
+        },
+        "link_read": {
+          "count": 1,
+          "wallMs": 54,
+          "engineMs": 0.1893,
+          "rowsRead": 12,
+          "rowsWritten": 0
+        }
+      },
+      "counts": {
+        "groupsRead": 5,
+        "sourceChars": 370825,
+        "billsRead": 60,
+        "plansRead": 6,
+        "historyRead": 228,
+        "groupsReturned": 5,
+        "responseChars": 372359
+      }
+    },
+    {
+      "timestamp": 1793163237328,
+      "level": "info",
+      "message": "tripshare_performance",
+      "requestId": "9c8d8711-eb6e-4108-a0ee-b82be1e07a2d",
+      "schema": 1,
+      "status": 200,
+      "totalMs": 263,
+      "dbQueries": 5,
+      "dbWallMs": 322,
+      "stages": {
+        "identity": 0,
+        "owner": 59,
+        "trip_query": 92,
+        "access": 60,
+        "links": 111,
+        "etag": 0,
+        "json_parse": 0,
+        "bills": 0,
+        "projection": 0,
+        "serialize": 0
+      },
+      "queries": {
+        "owner": {
+          "count": 1,
+          "wallMs": 59,
+          "engineMs": 0,
+          "rowsRead": 0,
+          "rowsWritten": 0
+        },
+        "trips": {
+          "count": 1,
+          "wallMs": 92,
+          "engineMs": 3.8521,
+          "rowsRead": 5,
+          "rowsWritten": 0
+        },
+        "access_grant": {
+          "count": 1,
+          "wallMs": 60,
+          "engineMs": 0.2192,
+          "rowsRead": 19,
+          "rowsWritten": 0
+        },
+        "link_insert": {
+          "count": 1,
+          "wallMs": 54,
+          "engineMs": 0.1827,
+          "rowsRead": 4,
+          "rowsWritten": 0
+        },
+        "link_read": {
+          "count": 1,
+          "wallMs": 57,
+          "engineMs": 0.4476,
+          "rowsRead": 12,
+          "rowsWritten": 0
+        }
+      },
+      "counts": {
+        "groupsRead": 5,
+        "sourceChars": 370825,
+        "billsRead": 60,
+        "plansRead": 6,
+        "historyRead": 228,
+        "groupsReturned": 5,
+        "responseChars": 372359
+      }
+    },
+    {
+      "timestamp": 1793163237885,
+      "level": "info",
+      "message": "tripshare_performance",
+      "requestId": "b3bdc426-7d5a-4cc6-94f1-2ece51effbce",
+      "schema": 1,
+      "status": 200,
+      "totalMs": 354,
+      "dbQueries": 5,
+      "dbWallMs": 414,
+      "stages": {
+        "identity": 0,
+        "owner": 60,
+        "trip_query": 192,
+        "access": 54,
+        "links": 108,
+        "etag": 0,
+        "json_parse": 0,
+        "bills": 0,
+        "projection": 0,
+        "serialize": 0
+      },
+      "queries": {
+        "owner": {
+          "count": 1,
+          "wallMs": 60,
+          "engineMs": 0,
+          "rowsRead": 0,
+          "rowsWritten": 0
+        },
+        "trips": {
+          "count": 1,
+          "wallMs": 192,
+          "engineMs": 5.8213,
+          "rowsRead": 5,
+          "rowsWritten": 0
+        },
+        "access_grant": {
+          "count": 1,
+          "wallMs": 54,
+          "engineMs": 0.2722,
+          "rowsRead": 19,
+          "rowsWritten": 0
+        },
+        "link_insert": {
+          "count": 1,
+          "wallMs": 54,
+          "engineMs": 0.219,
+          "rowsRead": 4,
+          "rowsWritten": 0
+        },
+        "link_read": {
+          "count": 1,
+          "wallMs": 54,
+          "engineMs": 0.2362,
+          "rowsRead": 12,
+          "rowsWritten": 0
+        }
+      },
+      "counts": {
+        "groupsRead": 5,
+        "sourceChars": 370825,
+        "billsRead": 60,
+        "plansRead": 6,
+        "historyRead": 228,
+        "groupsReturned": 5,
+        "responseChars": 372359
+      }
+    },
+    {
+      "timestamp": 1793163238462,
+      "level": "info",
+      "message": "tripshare_performance",
+      "requestId": "5a60573a-f279-4c93-9439-fbd13e7592d4",
+      "schema": 1,
+      "status": 200,
+      "totalMs": 358,
+      "dbQueries": 5,
+      "dbWallMs": 420,
+      "stages": {
+        "identity": 0,
+        "owner": 62,
+        "trip_query": 196,
+        "access": 52,
+        "links": 110,
+        "etag": 0,
+        "json_parse": 0,
+        "bills": 0,
+        "projection": 0,
+        "serialize": 0
+      },
+      "queries": {
+        "owner": {
+          "count": 1,
+          "wallMs": 62,
+          "engineMs": 0,
+          "rowsRead": 0,
+          "rowsWritten": 0
+        },
+        "trips": {
+          "count": 1,
+          "wallMs": 196,
+          "engineMs": 4.9924,
+          "rowsRead": 5,
+          "rowsWritten": 0
+        },
+        "access_grant": {
+          "count": 1,
+          "wallMs": 52,
+          "engineMs": 0.1996,
+          "rowsRead": 19,
+          "rowsWritten": 0
+        },
+        "link_insert": {
+          "count": 1,
+          "wallMs": 55,
+          "engineMs": 0.2448,
+          "rowsRead": 4,
+          "rowsWritten": 0
+        },
+        "link_read": {
+          "count": 1,
+          "wallMs": 55,
+          "engineMs": 0.4929,
+          "rowsRead": 12,
+          "rowsWritten": 0
+        }
+      },
+      "counts": {
+        "groupsRead": 5,
+        "sourceChars": 370825,
+        "billsRead": 60,
+        "plansRead": 6,
+        "historyRead": 228,
+        "groupsReturned": 5,
+        "responseChars": 372359
+      }
+    },
+    {
+      "timestamp": 1793163247246,
+      "level": "info",
+      "message": "tripshare_performance",
+      "requestId": "2a98a03a-c97e-4d1e-85fa-000a7e6d6e18",
+      "schema": 1,
+      "status": 200,
+      "totalMs": 362,
+      "dbQueries": 5,
+      "dbWallMs": 417,
+      "stages": {
+        "identity": 0,
+        "owner": 55,
+        "trip_query": 194,
+        "access": 53,
+        "links": 115,
+        "etag": 0,
+        "json_parse": 0,
+        "bills": 0,
+        "projection": 0,
+        "serialize": 0
+      },
+      "queries": {
+        "owner": {
+          "count": 1,
+          "wallMs": 55,
+          "engineMs": 0,
+          "rowsRead": 0,
+          "rowsWritten": 0
+        },
+        "trips": {
+          "count": 1,
+          "wallMs": 194,
+          "engineMs": 5.7461,
+          "rowsRead": 5,
+          "rowsWritten": 0
+        },
+        "access_grant": {
+          "count": 1,
+          "wallMs": 53,
+          "engineMs": 0.1853,
+          "rowsRead": 19,
+          "rowsWritten": 0
+        },
+        "link_insert": {
+          "count": 1,
+          "wallMs": 60,
+          "engineMs": 0.1838,
+          "rowsRead": 4,
+          "rowsWritten": 0
+        },
+        "link_read": {
+          "count": 1,
+          "wallMs": 55,
+          "engineMs": 0.2391,
+          "rowsRead": 12,
+          "rowsWritten": 0
+        }
+      },
+      "counts": {
+        "groupsRead": 5,
+        "sourceChars": 370825,
+        "billsRead": 60,
+        "plansRead": 6,
+        "historyRead": 228,
+        "groupsReturned": 5,
+        "responseChars": 372359
+      }
+    },
+    {
+      "timestamp": 1793163247766,
+      "level": "info",
+      "message": "tripshare_performance",
+      "requestId": "76a303e8-2692-428b-8c6d-fc344aa5f882",
+      "schema": 1,
+      "status": 200,
+      "totalMs": 319,
+      "dbQueries": 5,
+      "dbWallMs": 380,
+      "stages": {
+        "identity": 0,
+        "owner": 61,
+        "trip_query": 90,
+        "access": 55,
+        "links": 174,
+        "etag": 0,
+        "json_parse": 0,
+        "bills": 0,
+        "projection": 0,
+        "serialize": 0
+      },
+      "queries": {
+        "owner": {
+          "count": 1,
+          "wallMs": 61,
+          "engineMs": 0,
+          "rowsRead": 0,
+          "rowsWritten": 0
+        },
+        "trips": {
+          "count": 1,
+          "wallMs": 90,
+          "engineMs": 5.8864,
+          "rowsRead": 5,
+          "rowsWritten": 0
+        },
+        "access_grant": {
+          "count": 1,
+          "wallMs": 55,
+          "engineMs": 0.31,
+          "rowsRead": 19,
+          "rowsWritten": 0
+        },
+        "link_insert": {
+          "count": 1,
+          "wallMs": 117,
+          "engineMs": 0.2219,
+          "rowsRead": 4,
+          "rowsWritten": 0
+        },
+        "link_read": {
+          "count": 1,
+          "wallMs": 57,
+          "engineMs": 0.2401,
+          "rowsRead": 12,
+          "rowsWritten": 0
+        }
+      },
+      "counts": {
+        "groupsRead": 5,
+        "sourceChars": 370825,
+        "billsRead": 60,
+        "plansRead": 6,
+        "historyRead": 228,
+        "groupsReturned": 5,
+        "responseChars": 372359
+      }
+    },
+    {
+      "timestamp": 1793163248308,
+      "level": "info",
+      "message": "tripshare_performance",
+      "requestId": "86526c5c-814b-4f48-910d-d392163207ec",
+      "schema": 1,
+      "status": 200,
+      "totalMs": 359,
+      "dbQueries": 5,
+      "dbWallMs": 418,
+      "stages": {
+        "identity": 0,
+        "owner": 59,
+        "trip_query": 193,
+        "access": 54,
+        "links": 112,
+        "etag": 0,
+        "json_parse": 0,
+        "bills": 0,
+        "projection": 0,
+        "serialize": 0
+      },
+      "queries": {
+        "owner": {
+          "count": 1,
+          "wallMs": 59,
+          "engineMs": 0,
+          "rowsRead": 0,
+          "rowsWritten": 0
+        },
+        "trips": {
+          "count": 1,
+          "wallMs": 193,
+          "engineMs": 3.6306,
+          "rowsRead": 5,
+          "rowsWritten": 0
+        },
+        "access_grant": {
+          "count": 1,
+          "wallMs": 54,
+          "engineMs": 0.1577,
+          "rowsRead": 19,
+          "rowsWritten": 0
+        },
+        "link_insert": {
+          "count": 1,
+          "wallMs": 56,
+          "engineMs": 0.204,
+          "rowsRead": 4,
+          "rowsWritten": 0
+        },
+        "link_read": {
+          "count": 1,
+          "wallMs": 56,
+          "engineMs": 0.1844,
+          "rowsRead": 12,
+          "rowsWritten": 0
+        }
+      },
+      "counts": {
+        "groupsRead": 5,
+        "sourceChars": 370825,
+        "billsRead": 60,
+        "plansRead": 6,
+        "historyRead": 228,
+        "groupsReturned": 5,
+        "responseChars": 372359
+      }
+    },
+    {
+      "timestamp": 1793163248875,
+      "level": "info",
+      "message": "tripshare_performance",
+      "requestId": "3561f007-2c14-4cbc-b784-8289dd15010e",
+      "schema": 1,
+      "status": 200,
+      "totalMs": 354,
+      "dbQueries": 5,
+      "dbWallMs": 413,
+      "stages": {
+        "identity": 0,
+        "owner": 59,
+        "trip_query": 190,
+        "access": 55,
+        "links": 109,
+        "etag": 0,
+        "json_parse": 0,
+        "bills": 0,
+        "projection": 0,
+        "serialize": 0
+      },
+      "queries": {
+        "owner": {
+          "count": 1,
+          "wallMs": 59,
+          "engineMs": 0,
+          "rowsRead": 0,
+          "rowsWritten": 0
+        },
+        "trips": {
+          "count": 1,
+          "wallMs": 190,
+          "engineMs": 4.3306,
+          "rowsRead": 5,
+          "rowsWritten": 0
+        },
+        "access_grant": {
+          "count": 1,
+          "wallMs": 55,
+          "engineMs": 0.2627,
+          "rowsRead": 19,
+          "rowsWritten": 0
+        },
+        "link_insert": {
+          "count": 1,
+          "wallMs": 53,
+          "engineMs": 0.1814,
+          "rowsRead": 4,
+          "rowsWritten": 0
+        },
+        "link_read": {
+          "count": 1,
+          "wallMs": 56,
+          "engineMs": 0.1744,
+          "rowsRead": 12,
+          "rowsWritten": 0
+        }
+      },
+      "counts": {
+        "groupsRead": 5,
+        "sourceChars": 370825,
+        "billsRead": 60,
+        "plansRead": 6,
+        "historyRead": 228,
+        "groupsReturned": 5,
+        "responseChars": 372359
+      }
+    },
+    {
+      "timestamp": 1793163249646,
+      "level": "info",
+      "message": "tripshare_performance",
+      "requestId": "26a5782f-d0c4-45b8-a5c6-18500c815005",
+      "schema": 1,
+      "status": 200,
+      "totalMs": 564,
+      "dbQueries": 5,
+      "dbWallMs": 617,
+      "stages": {
+        "identity": 0,
+        "owner": 53,
+        "trip_query": 190,
+        "access": 54,
+        "links": 320,
+        "etag": 0,
+        "json_parse": 0,
+        "bills": 0,
+        "projection": 0,
+        "serialize": 0
+      },
+      "queries": {
+        "owner": {
+          "count": 1,
+          "wallMs": 53,
+          "engineMs": 0,
+          "rowsRead": 0,
+          "rowsWritten": 0
+        },
+        "trips": {
+          "count": 1,
+          "wallMs": 190,
+          "engineMs": 4.336,
+          "rowsRead": 5,
+          "rowsWritten": 0
+        },
+        "access_grant": {
+          "count": 1,
+          "wallMs": 54,
+          "engineMs": 0.2309,
+          "rowsRead": 19,
+          "rowsWritten": 0
+        },
+        "link_insert": {
+          "count": 1,
+          "wallMs": 267,
+          "engineMs": 0.2208,
+          "rowsRead": 4,
+          "rowsWritten": 0
+        },
+        "link_read": {
+          "count": 1,
+          "wallMs": 53,
+          "engineMs": 0.1411,
+          "rowsRead": 12,
+          "rowsWritten": 0
+        }
+      },
+      "counts": {
+        "groupsRead": 5,
+        "sourceChars": 370825,
+        "billsRead": 60,
+        "plansRead": 6,
+        "historyRead": 228,
+        "groupsReturned": 5,
+        "responseChars": 372359
+      }
+    }
+  ],
+  "stats": {
+    "n": 20,
+    "p50": 356,
+    "p95": 362,
+    "min": 256,
+    "max": 564
+  },
+  "categories": {
+    "owner": {
+      "count": 1,
+      "p50": 59
+    },
+    "trips": {
+      "count": 1,
+      "p50": 192
+    },
+    "access_grant": {
+      "count": 1,
+      "p50": 54
+    },
+    "link_insert": {
+      "count": 1,
+      "p50": 54
+    },
+    "link_read": {
+      "count": 1,
+      "p50": 55
+    }
+  },
+  "browserOperationMs": [
+    622,
+    609,
+    621,
+    656,
+    641,
+    591,
+    463,
+    586,
+    605,
+    587,
+    926,
+    574,
+    463,
+    562,
+    596,
+    577,
+    511,
+    568,
+    551,
+    784
+  ]
+}

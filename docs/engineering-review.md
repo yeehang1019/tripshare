@@ -1,3 +1,7 @@
+# v80 N+1 release
+
+See [N+1 review](nplus-review.md) and [20 production samples](nplus-samples.json).55 API tests, full response equality,5-call budget, TypeScript/build/Worker smoke passed. KEEP auth/data/projection; CHANGE NOW batching shipped; IMPROVE LATER further loading work; DO NOT ADD unrelated features. Guaranteed cold-isolate measurement remains unavailable.
+
 # v78 pending-bill summary
 
 KEEP: canonical pairwise balances, payment allocations/history, permission scope and v77 rollback. CHANGE NOW: summary uses reconciled pairSettlement finalDue only; nonpositive bills and adjustment columns excluded from UI/print/CSV/share/copy. Offset disclosure uses one-direction amount with each-way label; summary links to pair Details. IMPROVE LATER: N+1 remains separate pending review. DO NOT ADD: migrations or data edits.
