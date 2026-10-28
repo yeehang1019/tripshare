@@ -1,3 +1,4 @@
+import {compressJSON} from '../lib/response-compression';
 import {measuredResponse} from '../lib/response-metrics';
 /** Cloudflare Worker entry point for the vinext-starter template. */
 import { handleImageOptimization, DEFAULT_DEVICE_SIZES, DEFAULT_IMAGE_SIZES } from "vinext/server/image-optimization";
@@ -41,7 +42,7 @@ const worker = {
       }, allowedWidths);
     }
 
-    return measuredResponse(request,()=>handler.fetch(request, env, ctx),ctx);
+    return compressJSON(request,await measuredResponse(request,()=>handler.fetch(request, env, ctx),ctx));
   },
 };
 
