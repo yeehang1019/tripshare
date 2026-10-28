@@ -1,10 +1,11 @@
+import {timedJSON} from '@/lib/response-metrics';
 import {storageUnavailable} from '@/lib/api-response';
 import {readJSON,RequestTooLarge} from '@/lib/http-body';
 import {database} from '@/db/raw';
 import {identity} from '../trips/route';
 import {validatePlanTemplate} from '@/lib/plan-templates';
 export const dynamic='force-dynamic';
-const reply=(body:unknown,status=200)=>Response.json(body,{status,headers:{'Cache-Control':'private, no-store'}});
+const reply=(body:unknown,status=200)=>timedJSON(body,{status,headers:{'Cache-Control':'private, no-store'}});
 export async function GET(request:Request){
  let who;try{who=await identity(request)}catch(error){return storageUnavailable('plan-templates.authorization',error)}if(!who)return reply({error:'Sign in required'},401);
  try{

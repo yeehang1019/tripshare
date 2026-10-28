@@ -1,9 +1,10 @@
+import {timedJSON} from '@/lib/response-metrics';
 import {env} from 'cloudflare:workers';
 import {database} from '@/db/raw';
 import {calculate, normalize, type Event} from '@/lib/ledger';
 
 export const dynamic='force-dynamic';
-const reply=(body:unknown,status=200,extras:Record<string,string>={})=>Response.json(body,{status,headers:{'Cache-Control':'private, no-store','Referrer-Policy':'no-referrer',...extras}});
+const reply=(body:unknown,status=200,extras:Record<string,string>={})=>timedJSON(body,{status,headers:{'Cache-Control':'private, no-store','Referrer-Policy':'no-referrer',...extras}});
 type Scope={id:string;person:string;data:Event};
 type Cursor={v:1;phase:'full'|'delta';after:string;watermark:number;scope:string};
 const currencies=new Set('MYR SGD USD CNY EUR GBP JPY THB IDR HKD TWD AUD KRW'.split(' '));

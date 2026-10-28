@@ -1,8 +1,9 @@
+import {timedJSON} from '@/lib/response-metrics';
 import {database} from '@/db/raw';
 import {identity} from '../trips/route';
 import {categories,currencies,cents} from '@/lib/ledger';
 export const dynamic='force-dynamic';
-const reply=(body:unknown,status=200)=>Response.json(body,{status,headers:{'Cache-Control':'private, no-store'}});
+const reply=(body:unknown,status=200)=>timedJSON(body,{status,headers:{'Cache-Control':'private, no-store'}});
 const defaults=()=>({style:'arcade',sound:false,haptics:false,templates:[],fx:{MYR:1}});
 export async function GET(request:Request){
   const who=await identity(request);if(!who)return reply({error:'Sign in required'},401);

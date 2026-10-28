@@ -1,8 +1,9 @@
+import {timedJSON} from '@/lib/response-metrics';
 import {database} from '@/db/raw';
 import {identity,access} from '../trips/route';
 import {normalize} from '@/lib/ledger';
 export const dynamic='force-dynamic';
-const reply=(body:unknown,status=200)=>Response.json(body,{status,headers:{'Cache-Control':'private, no-store','Referrer-Policy':'no-referrer'}});
+const reply=(body:unknown,status=200)=>timedJSON(body,{status,headers:{'Cache-Control':'private, no-store','Referrer-Policy':'no-referrer'}});
 export async function POST(request:Request){
   const who=await identity(request);if(!who)return reply({error:'Sign in required'},401);
   if(request.headers.get('origin')&&request.headers.get('origin')!==new URL(request.url).origin)return reply({error:'Invalid origin'},403);

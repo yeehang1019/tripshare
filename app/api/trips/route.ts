@@ -1,3 +1,4 @@
+import {timedJSON,stringifyJSON} from '@/lib/response-metrics';
 import {env} from 'cloudflare:workers';
 import {alternativePlan} from '@/lib/plan-alternatives';
 import {recordedBatch,preparePaymentBatch,undoBatch} from '@/lib/settlement-recording';
@@ -22,7 +23,7 @@ import {
 import { linkedPeople,linkedPeopleBatch } from "@/lib/workspace-store";
 export const dynamic = "force-dynamic";
 const response = (data: unknown, status = 200) =>
-  Response.json(data, {
+  timedJSON(data, {
     status,
     headers: { "Cache-Control": "no-store", "Referrer-Policy": "no-referrer" },
   });
@@ -126,7 +127,7 @@ async function getTrips(r: Request,timing:RequestTimings) {
     }
     return trips;});
     timing.count("groupsReturned",trips.length);
-    const body=timing.sync("serialize",()=>JSON.stringify({trips,user:who.email,canCreate}));
+    const body=timing.sync("serialize",()=>stringifyJSON({trips,user:who.email,canCreate}));
     timing.count("responseChars",body.length);
     return new Response(body,{headers:{ETag:etag,"Content-Type":"application/json"}});
   } catch (e) {

@@ -1,9 +1,10 @@
+import {timedJSON} from '@/lib/response-metrics';
 import {database} from '@/db/raw';
 import {normalize} from '@/lib/ledger';
 import {collaboratorRecord,travellerContext} from '@/lib/personal';
 import {hashPin,identity,access} from '../trips/route';
 export const dynamic='force-dynamic';
-const reply=(x:unknown,status=200)=>Response.json(x,{status,headers:{'Cache-Control':'no-store','Referrer-Policy':'no-referrer'}});
+const reply=(x:unknown,status=200)=>timedJSON(x,{status,headers:{'Cache-Control':'no-store','Referrer-Policy':'no-referrer'}});
 export async function POST(r:Request){try{
   const who=await identity(r);
   if(!who)return reply({error:'Sign in to open shared events'},401);

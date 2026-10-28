@@ -1,8 +1,9 @@
+import {timedJSON} from '@/lib/response-metrics';
 import {env} from 'cloudflare:workers';
 import {database} from '@/db/raw';
 import {identity,access} from '../trips/route';
 export const dynamic='force-dynamic';
-const reply=(body:unknown,status=200)=>Response.json(body,{status,headers:{'Cache-Control':'private, no-store'}});
+const reply=(body:unknown,status=200)=>timedJSON(body,{status,headers:{'Cache-Control':'private, no-store'}});
 async function authorize(request:Request,group:string,write=false){
   const who=await identity(request);if(!who)return null;
   const row:any=await database().prepare('SELECT * FROM trips WHERE id=?').bind(group).first();if(!row)return null;

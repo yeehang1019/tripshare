@@ -1,3 +1,4 @@
+import {timedJSON} from '@/lib/response-metrics';
 import { createTripShareSession } from "@/app/session";
 
 export const dynamic = "force-dynamic";
@@ -11,7 +12,7 @@ export async function GET(request: Request) {
   const user = request.headers.get("oai-authenticated-user-id");
   const email = (request.headers.get("oai-authenticated-user-email") || "").toLowerCase();
   if (!user || !email) {
-    return Response.json({ error: "Sign in to continue" }, { status: 401 });
+    return timedJSON({ error: "Sign in to continue" }, { status: 401 });
   }
 
   const token = await createTripShareSession(user, email);

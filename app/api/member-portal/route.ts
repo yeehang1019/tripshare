@@ -1,3 +1,4 @@
+import {timedJSON} from '@/lib/response-metrics';
 import {database} from '@/db/raw';
 import {normalize} from '@/lib/ledger';
 import {checksum} from '@/lib/checkpoints';
@@ -8,7 +9,7 @@ import {identity,access} from '../trips/route';
 
 export const dynamic='force-dynamic';
 const headers={'Cache-Control':'private, no-store','Referrer-Policy':'no-referrer'};
-const reply=(body:unknown,status=200)=>Response.json(body,{status,headers});
+const reply=(body:unknown,status=200)=>timedJSON(body,{status,headers});
 export async function GET(request:Request){return trackedRequest(request,()=>load(request))}
 async function load(request:Request){
  try{
@@ -24,6 +25,6 @@ async function load(request:Request){
   // Authorization is checked on every request, including conditional refreshes.
   const etag='"'+await checksum(JSON.stringify(['member-portal-v1',group,row.revision,person,who.user,who.email]))+'"';
   if(request.headers.get('If-None-Match')===etag)return new Response(null,{status:304,headers:{...headers,ETag:etag}});
-  return Response.json({snapshot:memberPortalSnapshot(group,row.revision,event,person)},{headers:{...headers,ETag:etag}});
+  return timedJSON({snapshot:memberPortalSnapshot(group,row.revision,event,person)},{headers:{...headers,ETag:etag}});
  }catch(error){return storageUnavailable('member-portal.GET',error)}
 }

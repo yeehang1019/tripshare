@@ -1,8 +1,9 @@
+import {timedJSON} from '@/lib/response-metrics';
 import { database } from "@/db/raw";
 
 export const dynamic = "force-dynamic";
 
-const response = (data: unknown, status = 200) => Response.json(data, {
+const response = (data: unknown, status = 200) => timedJSON(data, {
   status,
   headers: { "Cache-Control": "no-store", "Referrer-Policy": "no-referrer" },
 });

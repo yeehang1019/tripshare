@@ -1,3 +1,4 @@
+import {timedJSON,stringifyJSON} from '@/lib/response-metrics';
 import {env} from 'cloudflare:workers';
 import {RequestTimings,timedDatabase,trackedRequest} from '@/lib/request-observability';
 import {database} from '@/db/raw';
@@ -8,7 +9,7 @@ export const dynamic='force-dynamic';
 export async function GET(request:Request){const timing=new RequestTimings((env as any).TRIPSHARE_PERFORMANCE_TIMING!=='0' && new URL(request.url).searchParams.get('timing')!=='off');return timing.finish(await trackedRequest(request,()=>getNotifications(request,timing)))}
 async function getNotifications(request:Request,timing:RequestTimings){
  const db=timedDatabase(database(),timing);
- const who=await timing.stage("identity",()=>identity(request,db));if(!who)return Response.json({error:'Sign in required'},{status:401});
+ const who=await timing.stage("identity",()=>identity(request,db));if(!who)return timedJSON({error:'Sign in required'},{status:401});
  const rows:any=await timing.stage<any>('trip_query',()=>db.prepare('SELECT DISTINCT t.* FROM trips t WHERE t.owner=? OR t.owner_email=? OR EXISTS(SELECT 1 FROM grants g WHERE g.trip=t.id AND g.email=?)').bind(who.user,who.email,who.email).all());
  timing.count("groupsRead",rows.results.length);
  if(timing.enabled)timing.count("sourceChars",rows.results.reduce((n:number,row:any)=>n+row.data.length,0));
@@ -23,7 +24,7 @@ async function getNotifications(request:Request,timing:RequestTimings){
   }
   });
  }
- const body=timing.sync('serialize',()=>JSON.stringify({notifications:notifications.sort((a,b)=>b.date.localeCompare(a.date)).slice(0,100)}));
+ const body=timing.sync('serialize',()=>stringifyJSON({notifications:notifications.sort((a,b)=>b.date.localeCompare(a.date)).slice(0,100)}));
  timing.count('responseChars',body.length);
  return new Response(body,{headers:{'Content-Type':'application/json','Cache-Control':'private, no-store'}});
 }
