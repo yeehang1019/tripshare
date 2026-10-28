@@ -1,5 +1,7 @@
 # TripShare engineering rules
 
+- Latest user approval: ship URL-group/directory parallelism, account-isolated localStorage data+ETag stale-while-revalidate, then count-only notification polling with lazy list and batched authorization. Each publish and measure separately; previous accepted version rollback. Do not change user records/schema. Stop after three steps. HTML4870/app236ms is recorded platform delay.
+
 - Latest approval v84–v86: no binding writes on GET trips; seed on join/binding/login, scoped first group with memory cache and deferred cross-group views, then early metadata304 invalidated by ledger/grant/member/key changes. Each phase publish/sample20 separately. Preserve previous versions. Notification work deferred. Record platform ingress delay and ineffective end-to-end gzip as limitations; do not spend more on compression.
 
 - Latest approval: v81 universal request timing only; v82 reuse valid session and move expired cleanup off foreground; v83 JSON compression. Publish and measure separately, each prior version rollback. Do not add group lazy loading/304/notification changes.

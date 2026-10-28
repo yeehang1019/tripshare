@@ -1,6 +1,7 @@
 "use client";
 import {directoryEvent} from '@/lib/group-directory';
 import {primeGroupRequest} from '@/lib/group-request';
+import {groupCache} from '@/lib/group-cache';
 import {outstandingSummary,outstandingText} from '@/lib/settlement-outstanding';
 import {finalDueLines} from '@/lib/settlement-display';
 import { useEffect, useState, useRef, useMemo } from "react";
@@ -145,7 +146,7 @@ const newEvent = (): TripEvent => ({
   audit: [],
   budget: 0,
 });
-export default function TripApp({ shared = false, authenticatedEmail = "", authenticatedSession = "" }: { shared?: boolean; authenticatedEmail?: string; authenticatedSession?: string }) {
+export default function TripApp({ shared = false, authenticatedEmail = "", authenticatedAccount = "", authenticatedSession = "" }: { shared?: boolean; authenticatedEmail?: string; authenticatedAccount?:string; authenticatedSession?: string }) {
   const [records, setRecords] = useState<RecordT[]>([]),
     [id, setId] = useState(""),
     [me, setMe] = useState(""),
@@ -191,6 +192,7 @@ export default function TripApp({ shared = false, authenticatedEmail = "", authe
       run: () => void;
     } | null>(null);
   const groupDirectory=useRef<RecordT[]>([]),groupMemory=useRef(new Map<string,{record:RecordT;etag:string}>());
+  const diskCache=useRef<ReturnType<typeof groupCache>|null>(null),cachePending=useRef(false);
   const [allGroupsLoaded,setAllGroupsLoaded]=useState(false),[allGroupsBusy,setAllGroupsBusy]=useState(false);
   const responseCache=useRef<{etag:string;snapshot:any;session:string}|null>(null);
   const loading=useRef<Promise<any>|null>(null);
@@ -244,10 +246,15 @@ export default function TripApp({ shared = false, authenticatedEmail = "", authe
   async function performLoad(groupOverride?:string) {
     try {
       let r,selectedGroup=groupOverride||id||(typeof window!=='undefined'?new URLSearchParams(window.location.search).get('group')||'':'');
+      if(!shared&&!diskCache.current&&authenticatedAccount){try{diskCache.current=groupCache(localStorage,authenticatedAccount+':'+authenticatedEmail.toLowerCase())}catch{}}
+      if(!shared&&selectedGroup&&!groupMemory.current.has(selectedGroup)){
+        const saved=diskCache.current?.read<RecordT>(selectedGroup,(x:unknown):x is RecordT=>{const v=x as RecordT;return !!v&&v.id===selectedGroup&&Number.isInteger(v.revision)&&typeof v.owner==='boolean'&&Array.isArray(v.permissions)&&!v.directoryOnly&&v.data?.schema===2&&['people','expenses','payments','groups','activities','audit'].every(k=>Array.isArray((v.data as any)[k]))});
+        if(saved){groupMemory.current.set(selectedGroup,saved);cachePending.current=true;setRecords([saved.record]);setLoaded(true);setLastSync(new Date(saved.savedAt).toISOString());setSyncState('refreshing')}
+      }
       const initialGroup=selectedGroup;
       const readGroup=(group:string)=>{const saved=groupMemory.current.get(group);return fetch('/api/trips?group='+encodeURIComponent(group),{signal:AbortSignal.timeout(20000),headers:{...(authenticatedSession?{'X-TripShare-Session':authenticatedSession}:{}),...(saved?.etag?{'If-None-Match':saved.etag}:{})}})};
       const primed=!shared&&!groupDirectory.current.length?primeGroupRequest(selectedGroup,readGroup):null;
-      if(!shared&&!groupDirectory.current.length){const d=await fetch('/api/trips?directory=1',{signal:AbortSignal.timeout(20000),headers:authenticatedSession?{'X-TripShare-Session':authenticatedSession}:{}});const j:any=await d.json();if(!d.ok)throw Error(j.error||'Could not load groups');groupDirectory.current=j.groups.map((g:any)=>({id:g.id,revision:g.revision,owner:g.owner,permissions:g.permissions,person:g.person,directoryOnly:true,data:directoryEvent(g.name,g.kind),...(g.kind==='trip'&&!g.owner?{planning:directoryEvent(g.name,'trip')}:{})}));if(!selectedGroup||!groupDirectory.current.some(g=>g.id===selectedGroup)){const requested=new URLSearchParams(window.location.search).get('space');selectedGroup=(requested==='trip'?groupDirectory.current.find(g=>g.data.kind==='trip'):groupDirectory.current[0])?.id||''}setCanCreateEvents(Boolean(j.canCreate));if(!selectedGroup){setRecords([]);setLoaded(true);return {trips:[],user:j.user,canCreate:j.canCreate}}}
+      if(!shared&&!groupDirectory.current.length){const d=await fetch('/api/trips?directory=1',{signal:AbortSignal.timeout(20000),headers:authenticatedSession?{'X-TripShare-Session':authenticatedSession}:{}});const j:any=await d.json();if(!d.ok){if(d.status===401||d.status===403){diskCache.current?.clear();groupMemory.current.clear();setRecords([])}throw Error(j.error||'Could not load groups')}groupDirectory.current=j.groups.map((g:any)=>({id:g.id,revision:g.revision,owner:g.owner,permissions:g.permissions,person:g.person,directoryOnly:true,data:directoryEvent(g.name,g.kind),...(g.kind==='trip'&&!g.owner?{planning:directoryEvent(g.name,'trip')}:{})}));if(!selectedGroup||!groupDirectory.current.some(g=>g.id===selectedGroup)){const requested=new URLSearchParams(window.location.search).get('space');selectedGroup=(requested==='trip'?groupDirectory.current.find(g=>g.data.kind==='trip'):groupDirectory.current[0])?.id||''}for(const key of [...groupMemory.current.keys()])if(!groupDirectory.current.some(g=>g.id===key)){groupMemory.current.delete(key);diskCache.current?.remove(key);setRecords(old=>old.filter(g=>g.id!==key))}setCanCreateEvents(Boolean(j.canCreate));if(!selectedGroup){cachePending.current=false;setRecords([]);setLoaded(true);return {trips:[],user:j.user,canCreate:j.canCreate}}}
       const cached=groupMemory.current.get(selectedGroup);
       if (shared) {
         token.current =
@@ -259,7 +266,7 @@ export default function TripApp({ shared = false, authenticatedEmail = "", authe
           body: JSON.stringify({ token: token.current, pin: pinRef.current }),
         });
       } else if(primed&&initialGroup===selectedGroup){const result=await primed;if(result.error)throw result.error;r=result.response!}else r=await readGroup(selectedGroup);
-      if(r.status===304&&cached){setRecords(old=>[cached.record,...old.filter(x=>x.id!==cached.record.id)]);setLastSync(new Date().toISOString());setSyncState("loaded");setError("");return {trips:[cached.record]}}
+      if(r.status===304&&cached){cachePending.current=false;diskCache.current?.write(selectedGroup,cached.record,cached.etag);setRecords(groupDirectory.current.map(d=>groupMemory.current.get(d.id)?.record||d));setLoaded(true);setLastSync(new Date().toISOString());setSyncState("loaded");setError("");return {trips:[cached.record]}}
       const j:any = await r.json();
       if(!r.ok&&j.requestId)setProblemId(j.requestId);
       if (j.needsPin) {
@@ -268,13 +275,16 @@ export default function TripApp({ shared = false, authenticatedEmail = "", authe
         return;
       }
       if (r.status === 401 && !shared) {
+        diskCache.current?.clear();groupMemory.current.clear();setRecords([]);
         window.location.assign("/signin-with-chatgpt?return_to=%2F");
         return;
       }
+      if(!shared&&(r.status===403||r.status===404)){diskCache.current?.remove(selectedGroup);groupMemory.current.delete(selectedGroup);setRecords([])}
       if (!r.ok) throw Error((j.error || "Could not load")+(j.requestId?" · Reference "+j.requestId:""));
+      cachePending.current=false;
       setNeedsPin(false);
       if(!shared)responseCache.current={etag:r.headers.get("ETag")||"",snapshot:j,session:authenticatedSession};
-      if(shared)setRecords([j.trip]);else{if(!j.trips.length){groupMemory.current.clear();groupDirectory.current=[];setRecords([]);throw Error('This group is no longer accessible. Refresh your groups.')}for(const record of j.trips){if(cached&&cached.record.revision!==record.revision)setAllGroupsLoaded(false);groupMemory.current.set(record.id,{record,etag:r.headers.get('ETag')||''})}setRecords([...groupDirectory.current.map(d=>groupMemory.current.get(d.id)?.record||d)]);}
+      if(shared)setRecords([j.trip]);else{if(!j.trips.length){diskCache.current?.clear();groupMemory.current.clear();groupDirectory.current=[];setRecords([]);throw Error('This group is no longer accessible. Refresh your groups.')}for(const record of j.trips){if(cached&&cached.record.revision!==record.revision)setAllGroupsLoaded(false);groupMemory.current.set(record.id,{record,etag:r.headers.get('ETag')||''});diskCache.current?.write(record.id,record,r.headers.get('ETag')||'')}setRecords([...groupDirectory.current.map(d=>groupMemory.current.get(d.id)?.record||d)]);}
 
       if (j.user) setUser(j.user);
       if (!shared) setCanCreateEvents(Boolean(j.canCreate));
@@ -424,10 +434,11 @@ setPlannerDirty(false);setTemplateDirty(false);
     setDraftRevision(latest.revision);setNotice('Latest plan loaded. Review your changes and their impact before saving again.');return true;
   }
   async function send(action: string, extra: any = {}, refresh = true) {
+    if(cachePending.current){setError('Cached data is being checked. Refresh successfully before saving changes.');return null}
     if(sending.current)return null;sending.current=true;
     const changesData=!["history","accessInfo"].includes(action);
     setBusy(true);
-    if(changesData){setSyncState("saving");setAllGroupsLoaded(false)}
+    if(changesData){diskCache.current?.clear();setSyncState("saving");setAllGroupsLoaded(false)}
     setError("");
     try {
       const r = await fetch("/api/trips", {

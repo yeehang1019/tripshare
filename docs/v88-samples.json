@@ -1,0 +1,302 @@
+[
+  {
+    "time": 1793178210735,
+    "requestId": "6b2604b2-ea2b-4e6e-a0b4-4d7a17de98a8",
+    "status": 200,
+    "totalMs": 390,
+    "dbQueries": 1,
+    "stages": {
+      "identity": 0,
+      "trip_query": 390,
+      "json_parse": 0,
+      "bills": 0,
+      "projection": 0,
+      "serialize": 0
+    }
+  },
+  {
+    "time": 1793178210980,
+    "requestId": "e417e4d0-b721-4b46-aff0-7db15a6bd312",
+    "status": 200,
+    "totalMs": 97,
+    "dbQueries": 1,
+    "stages": {
+      "identity": 0,
+      "trip_query": 97,
+      "json_parse": 0,
+      "bills": 0,
+      "projection": 0,
+      "serialize": 0
+    }
+  },
+  {
+    "time": 1793178211205,
+    "requestId": "70024765-8649-4f32-8ac8-a240b96c0699",
+    "status": 200,
+    "totalMs": 91,
+    "dbQueries": 1,
+    "stages": {
+      "identity": 0,
+      "trip_query": 91,
+      "json_parse": 0,
+      "bills": 0,
+      "projection": 0,
+      "serialize": 0
+    }
+  },
+  {
+    "time": 1793178211706,
+    "requestId": "714f909c-763f-478b-8d1c-9d4bcea67dde",
+    "status": 200,
+    "totalMs": 382,
+    "dbQueries": 1,
+    "stages": {
+      "identity": 0,
+      "trip_query": 382,
+      "json_parse": 0,
+      "bills": 0,
+      "projection": 0,
+      "serialize": 0
+    }
+  },
+  {
+    "time": 1793178211963,
+    "requestId": "64991d69-524e-4f17-bd0a-86aa49dc2164",
+    "status": 200,
+    "totalMs": 144,
+    "dbQueries": 1,
+    "stages": {
+      "identity": 0,
+      "trip_query": 144,
+      "json_parse": 0,
+      "bills": 0,
+      "projection": 0,
+      "serialize": 0
+    }
+  },
+  {
+    "time": 1793178225058,
+    "requestId": "f39cda65-510f-45be-b894-760ccc50e5f5",
+    "status": 200,
+    "totalMs": 384,
+    "dbQueries": 1,
+    "stages": {
+      "identity": 0,
+      "trip_query": 384,
+      "json_parse": 0,
+      "bills": 0,
+      "projection": 0,
+      "serialize": 0
+    }
+  },
+  {
+    "time": 1793178225301,
+    "requestId": "98719507-2eb2-4329-9dc5-f5cba525fa52",
+    "status": 200,
+    "totalMs": 99,
+    "dbQueries": 1,
+    "stages": {
+      "identity": 0,
+      "trip_query": 99,
+      "json_parse": 0,
+      "bills": 0,
+      "projection": 0,
+      "serialize": 0
+    }
+  },
+  {
+    "time": 1793178225827,
+    "requestId": "e3fe8918-afbc-4511-85a0-5cbd68f18b5b",
+    "status": 200,
+    "totalMs": 379,
+    "dbQueries": 1,
+    "stages": {
+      "identity": 0,
+      "trip_query": 379,
+      "json_parse": 0,
+      "bills": 0,
+      "projection": 0,
+      "serialize": 0
+    }
+  },
+  {
+    "time": 1793178226098,
+    "requestId": "a2b0c9a9-e918-4e28-9262-1cad5149f803",
+    "status": 200,
+    "totalMs": 105,
+    "dbQueries": 1,
+    "stages": {
+      "identity": 0,
+      "trip_query": 105,
+      "json_parse": 0,
+      "bills": 0,
+      "projection": 0,
+      "serialize": 0
+    }
+  },
+  {
+    "time": 1793178226647,
+    "requestId": "f4ac6ac2-1870-4143-b5a9-b28eee2137d6",
+    "status": 200,
+    "totalMs": 355,
+    "dbQueries": 1,
+    "stages": {
+      "identity": 0,
+      "trip_query": 355,
+      "json_parse": 0,
+      "bills": 0,
+      "projection": 0,
+      "serialize": 0
+    }
+  },
+  {
+    "time": 1793178226906,
+    "requestId": "8d1c49aa-fd0e-4674-b92e-d70de18a94f7",
+    "status": 200,
+    "totalMs": 117,
+    "dbQueries": 1,
+    "stages": {
+      "identity": 0,
+      "trip_query": 117,
+      "json_parse": 0,
+      "bills": 0,
+      "projection": 0,
+      "serialize": 0
+    }
+  },
+  {
+    "time": 1793178227198,
+    "requestId": "ffb43bb7-8342-4019-b926-6db4947cfc34",
+    "status": 200,
+    "totalMs": 136,
+    "dbQueries": 1,
+    "stages": {
+      "identity": 0,
+      "trip_query": 136,
+      "json_parse": 0,
+      "bills": 0,
+      "projection": 0,
+      "serialize": 0
+    }
+  },
+  {
+    "time": 1793178239212,
+    "requestId": "8596c66d-f68f-49a7-9d3a-9b457013ba30",
+    "status": 200,
+    "totalMs": 470,
+    "dbQueries": 1,
+    "stages": {
+      "identity": 0,
+      "trip_query": 470,
+      "json_parse": 0,
+      "bills": 0,
+      "projection": 0,
+      "serialize": 0
+    }
+  },
+  {
+    "time": 1793178239495,
+    "requestId": "d214e540-3ad6-477a-906d-2f9a445e8227",
+    "status": 200,
+    "totalMs": 152,
+    "dbQueries": 1,
+    "stages": {
+      "identity": 0,
+      "trip_query": 152,
+      "json_parse": 0,
+      "bills": 0,
+      "projection": 0,
+      "serialize": 0
+    }
+  },
+  {
+    "time": 1793178240027,
+    "requestId": "29a2c6e7-848a-4f27-83f3-6fd4dd789cdc",
+    "status": 200,
+    "totalMs": 391,
+    "dbQueries": 1,
+    "stages": {
+      "identity": 0,
+      "trip_query": 391,
+      "json_parse": 0,
+      "bills": 0,
+      "projection": 0,
+      "serialize": 0
+    }
+  },
+  {
+    "time": 1793178240589,
+    "requestId": "3dcd43f2-bdb5-4176-9ec8-8a1fddb1c8ae",
+    "status": 200,
+    "totalMs": 419,
+    "dbQueries": 1,
+    "stages": {
+      "identity": 0,
+      "trip_query": 419,
+      "json_parse": 0,
+      "bills": 0,
+      "projection": 0,
+      "serialize": 0
+    }
+  },
+  {
+    "time": 1793178240903,
+    "requestId": "9c094cae-8923-493a-87c7-45f4e235bba8",
+    "status": 200,
+    "totalMs": 143,
+    "dbQueries": 1,
+    "stages": {
+      "identity": 0,
+      "trip_query": 143,
+      "json_parse": 0,
+      "bills": 0,
+      "projection": 0,
+      "serialize": 0
+    }
+  },
+  {
+    "time": 1793178241426,
+    "requestId": "9611c7f0-7578-4568-b8b3-49512f25c011",
+    "status": 200,
+    "totalMs": 243,
+    "dbQueries": 1,
+    "stages": {
+      "identity": 0,
+      "trip_query": 243,
+      "json_parse": 0,
+      "bills": 0,
+      "projection": 0,
+      "serialize": 0
+    }
+  },
+  {
+    "time": 1793178241647,
+    "requestId": "aad39313-9c8e-4695-9c44-a7faba62eb66",
+    "status": 200,
+    "totalMs": 65,
+    "dbQueries": 1,
+    "stages": {
+      "identity": 0,
+      "trip_query": 65,
+      "json_parse": 0,
+      "bills": 0,
+      "projection": 0,
+      "serialize": 0
+    }
+  },
+  {
+    "time": 1793178241835,
+    "requestId": "2b88d12a-7f3b-4e13-91ac-a29dedd92448",
+    "status": 200,
+    "totalMs": 63,
+    "dbQueries": 1,
+    "stages": {
+      "identity": 0,
+      "trip_query": 63,
+      "json_parse": 0,
+      "bills": 0,
+      "projection": 0,
+      "serialize": 0
+    }
+  }
+]
