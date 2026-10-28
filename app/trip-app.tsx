@@ -1,5 +1,6 @@
-import {directoryEvent} from '@/lib/group-directory';
 "use client";
+import {directoryEvent} from '@/lib/group-directory';
+import {primeGroupRequest} from '@/lib/group-request';
 import {outstandingSummary,outstandingText} from '@/lib/settlement-outstanding';
 import {finalDueLines} from '@/lib/settlement-display';
 import { useEffect, useState, useRef, useMemo } from "react";
@@ -243,6 +244,9 @@ export default function TripApp({ shared = false, authenticatedEmail = "", authe
   async function performLoad(groupOverride?:string) {
     try {
       let r,selectedGroup=groupOverride||id||(typeof window!=='undefined'?new URLSearchParams(window.location.search).get('group')||'':'');
+      const initialGroup=selectedGroup;
+      const readGroup=(group:string)=>{const saved=groupMemory.current.get(group);return fetch('/api/trips?group='+encodeURIComponent(group),{signal:AbortSignal.timeout(20000),headers:{...(authenticatedSession?{'X-TripShare-Session':authenticatedSession}:{}),...(saved?.etag?{'If-None-Match':saved.etag}:{})}})};
+      const primed=!shared&&!groupDirectory.current.length?primeGroupRequest(selectedGroup,readGroup):null;
       if(!shared&&!groupDirectory.current.length){const d=await fetch('/api/trips?directory=1',{signal:AbortSignal.timeout(20000),headers:authenticatedSession?{'X-TripShare-Session':authenticatedSession}:{}});const j:any=await d.json();if(!d.ok)throw Error(j.error||'Could not load groups');groupDirectory.current=j.groups.map((g:any)=>({id:g.id,revision:g.revision,owner:g.owner,permissions:g.permissions,person:g.person,directoryOnly:true,data:directoryEvent(g.name,g.kind),...(g.kind==='trip'&&!g.owner?{planning:directoryEvent(g.name,'trip')}:{})}));if(!selectedGroup||!groupDirectory.current.some(g=>g.id===selectedGroup)){const requested=new URLSearchParams(window.location.search).get('space');selectedGroup=(requested==='trip'?groupDirectory.current.find(g=>g.data.kind==='trip'):groupDirectory.current[0])?.id||''}setCanCreateEvents(Boolean(j.canCreate));if(!selectedGroup){setRecords([]);setLoaded(true);return {trips:[],user:j.user,canCreate:j.canCreate}}}
       const cached=groupMemory.current.get(selectedGroup);
       if (shared) {
@@ -254,10 +258,7 @@ export default function TripApp({ shared = false, authenticatedEmail = "", authe
           headers: { "Content-Type": "application/json",...(authenticatedSession ? {"X-TripShare-Session":authenticatedSession} : {}) },
           body: JSON.stringify({ token: token.current, pin: pinRef.current }),
         });
-      } else r = await fetch("/api/trips?group="+encodeURIComponent(selectedGroup), {
-        signal:AbortSignal.timeout(20000),
-        headers: {...(authenticatedSession ? { "X-TripShare-Session": authenticatedSession } : {}),...(cached?.etag?{"If-None-Match":cached.etag}:{})},
-      });
+      } else if(primed&&initialGroup===selectedGroup){const result=await primed;if(result.error)throw result.error;r=result.response!}else r=await readGroup(selectedGroup);
       if(r.status===304&&cached){setRecords(old=>[cached.record,...old.filter(x=>x.id!==cached.record.id)]);setLastSync(new Date().toISOString());setSyncState("loaded");setError("");return {trips:[cached.record]}}
       const j:any = await r.json();
       if(!r.ok&&j.requestId)setProblemId(j.requestId);
