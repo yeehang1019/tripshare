@@ -9,3 +9,7 @@ v82: reuse valid identity-matching, unexpired session cookie; new cookie is Http
 v83: streaming gzip for successful JSON when Accept-Encoding permits it. Preserve existing encoding, HTML/error/HEAD responses, tracing/timing, Vary. CompressionStream bytes use encodeBody manual to prevent Worker runtime double compression; platform may still decode/reencode. Tests verify gzip decompression equals original, negotiation q=0, skip cases, no double encoding. Browser Content-Encoding/encodedBodySize verification pending availability of network inspection; do not infer wire compression merely from Worker code or decoded JSON. Rollback v82 saved. v80 and v78 remain available.
 
 KEEP: auth, balances, private data boundaries and all features. CHANGE NOW: instrumentation/session path/compression only. IMPROVE LATER: current-group loading,304 and notifications require next approval. DO NOT ADD: placement changes or migrations.
+
+
+## Browser follow-up (user verified)
+Same-request HTML TTFB4739ms vs app226ms (~4513ms outside app); another304ms vs169ms. Treat intermittent ingress/auth/dispatch/startup delay as platform boundary, not fixed by session optimization. Exact internal platform component remains unobservable. Browser gzip encodedBodySize=decodedBodySize=372623: end-to-end compression ineffective on Sites. Worker gzip code retained; no further compression work. Cannot establish which gateway hop removed encoding with exposed tools.

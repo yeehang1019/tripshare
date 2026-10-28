@@ -11,7 +11,7 @@ test('Request-local timing preserves bindings/results and logs only numeric aggr
  timing.count('groupsRead',1);
  const response=timing.finish(new Response('{"ok":true}',{headers:{ETag:'"same"','X-Request-ID':'test-id'}}));
  assert.equal(await response.text(),'{"ok":true}');assert.equal(response.headers.get('ETag'),'"same"');
- assert.match(response.headers.get('Server-Timing'),/db_queries;desc="1"/);
+ assert.match(response.headers.get('Server-Timing'),/db_queries;dur=1;desc="1 calls; count not ms"/);
  const report=logs[0][1];assert.equal(report.queries.trips.count,1);assert.equal(report.queries.trips.engineMs,3);assert.equal(report.queries.trips.rowsRead,2);assert.equal(report.requestId,'test-id');
  assert.equal(calls[0].args[0],'private@example.com');assert(!JSON.stringify(logs).includes('private'));assert(!JSON.stringify(logs).includes('SELECT'));
  const other=new RequestTimings();other.finish(new Response(null,{status:304}));assert.equal(logs[1][1].dbQueries,0);

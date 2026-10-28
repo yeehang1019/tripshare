@@ -20,7 +20,7 @@ import {
   Expense,
   Permission,
 } from "@/lib/ledger";
-import { linkedPeople,linkedPeopleBatch } from "@/lib/workspace-store";
+import { linkedPeople,linkedPeopleBatch,identitySeed } from "@/lib/workspace-store";
 export const dynamic = "force-dynamic";
 const response = (data: unknown, status = 200) =>
   timedJSON(data, {
@@ -196,9 +196,10 @@ async function postTrip(r: Request,context:RequestContext) {
       const id=invite.trip+':'+actor;
       const results=await db.batch([
         db.prepare("INSERT OR IGNORE INTO grants(id,trip,email,permissions,person) SELECT ?,?,?,?,? WHERE NOT EXISTS(SELECT 1 FROM grants WHERE trip=? AND person=? AND email<>?) AND EXISTS(SELECT 1 FROM member_invitations WHERE token=? AND expires_at>? AND (accepted_email IS NULL OR accepted_email=?))").bind(id,invite.trip,actor,'[]',invite.person,invite.trip,invite.person,actor,b.token,Date.now(),actor),
+        identitySeed(db,actor),
         db.prepare('UPDATE member_invitations SET accepted_email=? WHERE token=? AND EXISTS(SELECT 1 FROM grants WHERE id=? AND person=?)').bind(actor,b.token,id,invite.person)
       ]);
-      if(!results[1].meta.changes)return response({error:'This member is already bound. Ask the owner to review it.'},409);
+      if(!results[2].meta.changes)return response({error:'This member is already bound. Ask the owner to review it.'},409);
       return response({ok:true,id:invite.trip});
     }
     const row: any = await db
@@ -280,6 +281,7 @@ async function postTrip(r: Request,context:RequestContext) {
           )
           .run();
         if(!savedGrant.meta.changes)return response({error:'Member binding changed. Refresh and review before saving.'},409);
+        if(person)await identitySeed(db,target).run();
         return response({ ok: true });
       }
       if (b.action === "revoke") {

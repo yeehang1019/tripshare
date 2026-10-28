@@ -5,7 +5,7 @@ test('Response timing adds safe headers and measures batch once without changing
  const logs=[],old=console.info;console.info=(...x)=>logs.push(x);try{
  const raw={prepare(sql){return {bind(){return this},async run(){return {meta:{served_by_region:'ENAM'}}}}},async batch(s){return Promise.all(s.map(x=>x.run()))}};
  const r=await measuredResponse(new Request('https://trip.test/'),async()=>{const db=measuredDatabase(raw);await db.batch([db.prepare('DELETE FROM sessions'),db.prepare('INSERT INTO sessions')]);return timedJSON({ok:true})});
- assert.deepEqual(await r.json(),{ok:true});assert.equal(r.headers.get('Timing-Allow-Origin'),'https://trip.test');assert.ok(r.headers.get('X-Request-ID'));assert.match(r.headers.get('Server-Timing'),/db_calls;desc="1"/);assert.deepEqual(logs[0][1].dbRegions,['ENAM']);
+ assert.deepEqual(await r.json(),{ok:true});assert.equal(r.headers.get('Timing-Allow-Origin'),'https://trip.test');assert.ok(r.headers.get('X-Request-ID'));assert.match(r.headers.get('Server-Timing'),/db_calls;dur=1;desc="1 calls; count not ms"/);assert.deepEqual(logs[0][1].dbRegions,['ENAM']);
  }finally{console.info=old}
 });
 test('Concurrent request metrics and IDs remain isolated',async()=>{

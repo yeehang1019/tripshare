@@ -19,7 +19,7 @@ export class RequestTimings {
   if(!this.enabled)return response;
   const totalMs=Date.now()-this.start,dbQueries=Object.values(this.queries).reduce((n,q)=>n+q.count,0),dbWallMs=Object.values(this.queries).reduce((n,q)=>n+q.wallMs,0);
   console.info('tripshare_performance',{schema:1,requestId:response.headers.get('X-Request-ID'),status:response.status,totalMs,dbQueries,dbWallMs,stages:this.stages,queries:this.queries,counts:this.counts});
-  const headers=new Headers(response.headers);headers.set('Server-Timing',[`total;dur=${totalMs}`,`db;dur=${dbWallMs}`,`db_queries;desc="${dbQueries}"`,...Object.entries(this.stages).map(([name,ms])=>`${name};dur=${ms}`)].join(', '));
+  const headers=new Headers(response.headers);headers.set('Server-Timing',[`total;dur=${totalMs}`,`db;dur=${dbWallMs}`,`db_queries;dur=${dbQueries};desc="${dbQueries} calls; count not ms"`,...Object.entries(this.stages).map(([name,ms])=>`${name};dur=${ms}`)].join(', '));
   return new Response(response.body,{status:response.status,headers});
  }
 }

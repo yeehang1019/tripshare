@@ -575,11 +575,11 @@ test('Concurrent batch confirmations have one CAS winner; failed sync rolls back
  h.sqlite.exec('DROP TABLE sync_changes');const failed=await h.post({action:'paymentBatch',id,revision:1,entity:batch('rollback')});assert.equal(failed.status,503);record=(await h.get('owner@example.com')).trips[0];assert.equal(record.data.payments.length,2);assert.equal(record.revision,1);h.sqlite.close();
 });
 
-test('N+1 batched GET equals frozen v79 response for owner, collaborator, member and unauthorized accounts; <=5 header-auth queries',async()=>{
+test('N+1 batched GET equals frozen v79 response for owner, collaborator, member and unauthorized accounts; <=4 header-auth queries',async()=>{
  const h=await harness();
  for(let i=0;i<5;i++){const e=ledger.normalize({name:'Group '+i,people:['A','B'],bills:[],payments:[]});const {id}=await h.post({action:'create',data:e});await h.post({action:'grant',id,email:'member@example.com',person:'B',permissions:[]});await h.post({action:'grant',id,email:'admin@example.com',permissions:['viewAll']});}
  // Freeze canonical identity keys before comparing both implementations.
  await h.get('owner@example.com');
- for(const email of ['owner@example.com','admin@example.com','member@example.com','outsider@example.com']){const before=await h.getLegacy(email);h.resetQueries();const after=await h.get(email);assert.deepEqual(after,before);assert.ok(h.queries()<=5,`${email}: ${h.queries()}`)}
+ for(const email of ['owner@example.com','admin@example.com','member@example.com','outsider@example.com']){const before=await h.getLegacy(email);h.resetQueries();const changes=h.sqlite.prepare('SELECT total_changes() AS n').get().n;const after=await h.get(email);assert.equal(h.sqlite.prepare('SELECT total_changes() AS n').get().n,changes);assert.deepEqual(after,before);assert.ok(h.queries()<=4,`${email}: ${h.queries()}`)}
  h.sqlite.close();
 });
