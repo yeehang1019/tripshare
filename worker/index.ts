@@ -41,7 +41,7 @@ const worker = {
       }, allowedWidths);
     }
 
-    return measuredResponse(request,()=>handler.fetch(request, env, ctx));
+    return measuredResponse(request,()=>handler.fetch(request, env, ctx),ctx);
   },
 };
 
