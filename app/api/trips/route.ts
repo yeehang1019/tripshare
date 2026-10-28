@@ -87,23 +87,30 @@ async function getTrips(r: Request,timing:RequestTimings) {
       const result:any=await timing.stage('directory',()=>db.prepare(`SELECT t.id,t.revision,t.owner,t.owner_email,json_object('name',json_extract(t.data,'$.name'),'kind',json_extract(t.data,'$.kind'),'people',json(json_extract(t.data,'$.people'))) AS data,g.permissions AS grant_permissions,g.person AS grant_person,EXISTS(SELECT 1 FROM app_owner WHERE id='primary' AND (user=? OR email=?)) AS can_create FROM trips t LEFT JOIN grants g ON g.trip=t.id AND g.email=? WHERE t.owner=? OR t.owner_email=? OR g.id IS NOT NULL OR EXISTS(SELECT 1 FROM members m WHERE m.trip=t.id AND m.user=?)`).bind(who.user,who.email,who.email,who.user,who.email,who.user).all());
       const groups=[];for(const row of result.results){const a=await access(row,who,db,{grant:row.grant_permissions!==null?{permissions:row.grant_permissions,person:row.grant_person}:null});if(a.blocked||!a.owner&&!a.permissions.length&&!a.person)continue;const data=JSON.parse(row.data);groups.push({id:row.id,revision:row.revision,name:data.name,kind:data.kind||'daily',...a})}return response({groups,user:who.email,canCreate:result.results.some((r:any)=>r.can_create)||(!result.results.length?await appOwner(who,db):false)})
     }
-    const columns=directory?"t.id,t.revision,t.owner,t.owner_email,json_object('name',json_extract(t.data,'$.name'),'kind',json_extract(t.data,'$.kind'),'people',json(json_extract(t.data,'$.people'))) AS data":'t.*';
-    const [rows,canCreate]:any = await Promise.all([timing.stage<any>("trip_query",()=>db
-      .prepare(
-        `SELECT DISTINCT ${columns} FROM trips t WHERE (t.owner=? OR t.owner_email=? OR EXISTS(SELECT 1 FROM grants g WHERE g.trip=t.id AND g.email=?) OR EXISTS(SELECT 1 FROM members m WHERE m.trip=t.id AND m.user=?))${group?' AND t.id=?':''}`,
-      )
-      .bind(who.user, who.email, who.email, who.user,...(group?[group]:[]))
-      .all()),timing.stage("owner",()=>appOwner(who,db))]);
-    timing.count("groupsRead",rows.results.length);
-    if(timing.enabled)timing.count("sourceChars",rows.results.reduce((n:number,row:any)=>n+row.data.length,0));
-    const grants:any=await timing.stage('access',()=>db.prepare('SELECT * FROM grants WHERE trip IN (SELECT value FROM json_each(?))').bind(JSON.stringify(rows.results.map((r:any)=>r.id))).all());
+    const snapshotIdentity=who;
+    async function snapshot(metadataOnly:boolean){
+      const who=snapshotIdentity;
+      const result:any=await db.prepare(`SELECT t.id,t.revision,t.owner,t.owner_email,json_extract(t.data,'$.people') AS people_json,(SELECT json_group_array(json_object('email',g.email,'permissions',g.permissions,'person',g.person,'identity_key',l.identity_key)) FROM (SELECT * FROM grants WHERE trip=t.id ORDER BY id) g LEFT JOIN account_links l ON l.email=g.email) AS grants_json,EXISTS(SELECT 1 FROM app_owner WHERE id='primary' AND (user=? OR email=?)) AS can_create${metadataOnly?'':',t.data'} FROM trips t WHERE (t.owner=? OR t.owner_email=? OR EXISTS(SELECT 1 FROM grants g WHERE g.trip=t.id AND g.email=?) OR EXISTS(SELECT 1 FROM members m WHERE m.trip=t.id AND m.user=?))${group?' AND t.id=?':''}`).bind(who.user,who.email,who.user,who.email,who.email,who.user,...(group?[group]:[])).all();
+      const canCreate=result.results.length?result.results.some((r:any)=>r.can_create):await appOwner(who,db);
+      const visible=[];for(const row of result.results){const grants=JSON.parse(row.grants_json||'[]'),grant=grants.find((g:any)=>g.email===who.email),check=metadataOnly?{...row,data:JSON.stringify({people:JSON.parse(row.people_json||'[]')})}:row,a=await access(check,who,db,{grant});if(a.blocked||!a.owner&&!a.permissions.length&&(!a.person||!JSON.parse(check.data).people.some((p:any)=>p.id===a.person)))continue;visible.push(row)}result.results=visible;
+      const version=result.results.map((r:any)=>[r.id,r.revision,r.owner,r.owner_email,r.people_json,r.grants_json]).sort((a:any,b:any)=>a[0].localeCompare(b[0]));
+      const etag='"'+await checksum(JSON.stringify(['trip-snapshot-v2',who.user,who.email,group,canCreate,version]))+'"';
+      return {rows:result,canCreate,etag};
+    }
+    const conditional=r.headers.get('If-None-Match');
+    if(conditional){const meta=await timing.stage('version_query',()=>snapshot(true));if(conditional.split(',').some(tag=>tag.trim().replace(/^W\//,'')===meta.etag||tag.trim()==='*'))return new Response(null,{status:304,headers:{ETag:meta.etag}})}
+    // Fresh full snapshot repeats authorization/bindings in the same SELECT as data.
+    // A mutation between version read and data read cannot reuse stale permissions.
+    const {rows,canCreate,etag}=await timing.stage('trip_query',()=>snapshot(false));
+    timing.count('groupsRead',rows.results.length);if(timing.enabled)timing.count('sourceChars',rows.results.reduce((n:number,row:any)=>n+row.data.length,0));
     const contexts:{row:any;a:Awaited<ReturnType<typeof access>>;memberKeys:Record<string,string>}[]=[];
-    for(const row of rows.results as any[]){const grant=grants.results.find((g:any)=>g.trip===row.id&&g.email===who.email);const a=await access(row,who,db,{grant});if(a.blocked||!a.owner&&!a.permissions.length&&(!a.person||!JSON.parse(row.data).people.some((p:any)=>p.id===a.person)))continue;contexts.push({row,a,memberKeys:{}})}
-    if(directory){const groups=contexts.map(({row,a})=>{const data=JSON.parse(row.data);return {id:row.id,revision:row.revision,name:data.name,kind:data.kind||'daily',...a}});return response({groups,user:who.email,canCreate})}
-    const bindings=await timing.stage('links',()=>linkedPeopleBatch(db,contexts.map(c=>c.row.id),grants.results));
-    for(const c of contexts)c.memberKeys=bindings.get(c.row.id)||{};
-    const etag='"'+await timing.stage('etag',()=>checksum(JSON.stringify(['member-view-v1',who.user,who.email,canCreate,contexts.map(({row,a,memberKeys})=>[row.id,row.revision,a,memberKeys])])))+'"';
-    if(r.headers.get('If-None-Match')===etag)return new Response(null,{status:304,headers:{ETag:etag}});
+    for(const row of rows.results){
+      const grants=JSON.parse(row.grants_json||'[]'),grant=grants.find((g:any)=>g.email===who.email),a=await access(row,who,db,{grant});
+      if(a.blocked||!a.owner&&!a.permissions.length&&(!a.person||!JSON.parse(row.data).people.some((p:any)=>p.id===a.person)))continue;
+      const byPerson=new Map<string,any[]>();for(const g of grants)if(g.person){const list=byPerson.get(g.person)||[];list.push(g);byPerson.set(g.person,list)}
+      const memberKeys:Record<string,string>={};for(const [person,list] of byPerson)if(list.length===1&&list[0].identity_key)memberKeys[person]=list[0].identity_key;
+      contexts.push({row,a,memberKeys});
+    }
     const trips = timing.sync("projection",()=>{const trips = [];
     for (const {row,a,memberKeys} of contexts) {
       const raw=timing.sync("json_parse",()=>JSON.parse(row.data));

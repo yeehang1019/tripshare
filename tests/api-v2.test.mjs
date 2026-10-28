@@ -591,3 +591,12 @@ test('Scoped group and lightweight directory preserve permissions without exposi
  const directory=await h.getQuery('directory=1');assert.equal(directory.groups.length,3);assert.doesNotMatch(JSON.stringify(directory),/PRIVATE_BILL|expenses|payments|audit|identity_key/);
  const personal=await h.getQuery('directory=1','member@example.com');assert.deepEqual(personal.groups.map(g=>g.id),[ids[0]]);assert.equal((await h.getQuery('group='+ids[1],'member@example.com')).trips.length,0);h.sqlite.close();
 });
+
+test('Early304 uses one metadata read; cash, permissions, active member and binding key changes invalidate it',async()=>{
+ const h=await harness(),e=ledger.normalize({name:'ETag',people:['A','B'],bills:[],payments:[]}),{id}=await h.post({action:'create',data:e});await h.post({action:'grant',id,email:'member@example.com',person:'B',permissions:[]});
+ let before=await h.conditionalGet();h.resetQueries();assert.equal((await h.conditionalGet(before.etag)).status,304);assert.equal(h.queries(),1);
+ h.sqlite.prepare('UPDATE account_links SET identity_key=? WHERE email=?').run('changed-key','member@example.com');let next=await h.conditionalGet(before.etag);assert.equal(next.status,200);assert.notEqual(next.etag,before.etag);
+ const b=ledger.blankExpense(e,'A');b.merchant='Food';b.items[0].amount=1000;const saved=await h.post({action:'expense',id,revision:0,entity:b});assert.equal(saved.status,200,JSON.stringify(saved));assert.equal((await h.conditionalGet(next.etag)).status,200);
+ const beforeCash=await h.conditionalGet();const cash=await h.post({action:'payment',id,revision:1,entity:{id:'paid',from:'B',to:'A',amount:500,date:ledger.today(),note:''}});assert.equal(cash.status,200,JSON.stringify(cash));assert.equal((await h.conditionalGet(beforeCash.etag)).status,200);
+ const member=await h.conditionalGet('','member@example.com');await h.post({action:'revoke',id,grant:id+':member@example.com'});const removed=await h.conditionalGet(member.etag,'member@example.com');assert.equal(removed.status,200);assert.equal(removed.trips.length,0);h.sqlite.close();
+});
