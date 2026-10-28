@@ -1,0 +1,2 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {directoryEvent} from '../lib/group-directory.ts';import {normalize,ledger} from '../lib/ledger.ts';
+test('Directory placeholder has complete schema2 arrays and preserves Daily/Trip without financial data',()=>{for(const kind of ['daily','trip']){const d=directoryEvent('Metadata',kind);assert.equal(d.kind,kind);assert.equal(normalize(d).kind,kind);assert.doesNotThrow(()=>ledger(d));assert.deepEqual(d.expenses,[]);assert.deepEqual(d.activities,[]);assert.deepEqual(d.people,[])}});

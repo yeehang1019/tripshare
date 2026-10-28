@@ -1,0 +1,15 @@
+# Read-path follow-up
+
+v84: GET trips no longer seeds account links; identity keys are seeded on binding changes, accepted invitations and first session creation. Existing key values retained. Browser Server-Timing counts now use numeric dur fields as well as descriptions: db_calls/app_db_queries values are counts, not milliseconds. GET regression verifies SQLite total_changes does not increase.62 focused/API tests passed.
+
+v85: lightweight authorized directory, scoped group response, session-local group memory and per-group ETags. Initial dashboard uses Group snapshot; My overview loads all groups on explicit request, Across my groups loads when opened, search loads its full authorized scope on demand. Existing unscoped API retained for these deferred views/compatibility. Failed/removed group clears cached display. Writes invalidate cross-group readiness. No false zero cross-group totals displayed before loading. 56 API tests/types/build/Worker smoke passed. Browser checked single-group171627-byte response, switching Jb and full overview receive16.40.
+
+v86: metadata-first conditional GET includes revisions, ownership, current grants, active people, canonical account-link keys and creation permission. Unchanged request returns304 before full data retrieval/ledger replay/serialization. Full200 query rechecks all access/binding information with data in one SQL snapshot, avoiding stale preflight permissions.57 API tests passed including binding key, expense, payment, permission and inactive-member invalidation, same-account equivalence and a one-call304 budget.
+
+Production UI QA caught incomplete schema2 directory placeholders in v86. Immediately rolled back to saved v85. v87 replaces placeholder normalization with a dedicated complete empty Event constructor. Regression test covers both Daily/Trip kinds and safe ledger consumption. v87 carries the v86 API change; version86 is not the final approved deployment. Previous saved versions and archives retained; rollback target for v87 is v85 because v86 is known bad.
+
+Platform boundary: user matched HTML TTFB4739ms vs app226ms (~4513ms outside application); another304ms vs169ms. Application cannot remove intermittent pre-handler gateway/auth/dispatch/startup delay. Which platform component is responsible remains unobservable. Compression ineffective end-to-end: browser encodedBodySize=decodedBodySize372623 despite Worker gzip. Code retained; no further compression attempts or claims that a specific hop is confirmed stripping it.
+
+Measurements (cloud-browser path,20 successful samples each): v84 total/db p50142ms p95383ms,4 calls. v85 scoped KL total/db p50119ms p95381ms,4 calls. Session/render/serialize clock readings0: header auth avoids session query, synchronous CPU unresolved. These do not promise identical Malaysia TTFB. v87 measurements pending production QA.
+
+KEEP: financial data, authorization, ledger and full functions. CHANGE NOW: read-only binding lookup/scoped load/early304 and placeholder correctness. IMPROVE LATER: notifications only after user approval. DO NOT ADD: schema migrations or further compression work.
