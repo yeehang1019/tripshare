@@ -5,8 +5,8 @@ import {calculate,money,type Event} from '@/lib/ledger';
 import type {RecordT} from './trip-app';
 export type Space='trip'|'money';
 export const tripSections=['Simple itinerary','Trip Plan','Itinerary','Checklist'];
-export function destinationLabel(destination:string,adminTrip=false){return destination==='Trip Plan'?'Overview':destination==='Simple itinerary'&&adminTrip?'Preview member view':destination}
-export const isTripSection=(tab:string)=>tripSections.includes(tab);
+export function destinationLabel(destination:string,adminTrip=false){return destination==='Trip More'?'More':destination==='Trip Plan'?'Overview':destination==='Simple itinerary'&&adminTrip?'Preview member view':destination}
+export const isTripSection=(tab:string)=>[...tripSections,'Trip More','Trip tools'].includes(tab);
 export function tripRecords(records:RecordT[]){return records.filter(r=>r.data.kind==='trip'&&(!!r.planning||!r.personal&&(r.owner||r.permissions.length>0)))}
 export function spaceDestinations(record:RecordT|undefined,space:Space,shared=false){
   if(space==='trip')return record&&(record.owner||record.permissions.includes('plan'))?tripSections:['Simple itinerary'];

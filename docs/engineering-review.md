@@ -1,3 +1,7 @@
+# v92 Trip outer navigation
+
+Approved Trip five-entry navigation and permission-filtered More. Same-group Money destinations; no API, ledger, role or schema edits. TypeScript and full244 tests pass. Fixed snapshot food1640/toll0/offset32974eachway/ET→YH1640 remains unchanged. v91 saved version/archive retained for rollback. Actual live browser verification follows publication; exact viewport resizing unavailable. See phase3a-trip-v92.md. System lighting deferred3b; header<=160px deferred3c; copy table review before3b. KEEP existing data/roles/calculation; CHANGE NOW approved Trip navigation; IMPROVE LATER assigned later phases; DO NOT ADD unrelated features.
+
 # Phase3a Money navigation — v91
 
 See [review](phase3a-review.md) and [full242-test output](phase3a-tests.txt). Money outer navigation only, Dashboard5inner tabs retained.242tests/types/build pass. Live URL/back/tools checks pass. v90 rollback retained. Live revision108 contains a pre-deployment RM31.64 repayment, so ET→YH is now0 and YC→YH51.70; v90/v91 full ledger outputs on identical revision108 data are deep-equal. Historical1640sen fixture still passes. Real light/dark screenshots1348×926 only; exact375×812/1280×800 acceptance remains unverified due browser resize limitations. Trip proposal awaits confirmation. KEEP data/arithmetic/permissions; CHANGE NOW Money navigation; IMPROVE LATER exact viewport verification and separately approved Trip/copy work; DO NOT ADD3b/3c or migrate data.
