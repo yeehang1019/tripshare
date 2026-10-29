@@ -32,3 +32,15 @@ KEEP: canonical accounting/data and server authorization; existing financial UI 
 CHANGE NOW: preserve Trip context and expose desktop secondary links directly.
 IMPROVE LATER: System theme3b; header<=160px3c; separate copy-table review before3b. Existing monolithic TripApp warrants gradual extraction, not an incidental rewrite in this release.
 DO NOT ADD: duplicate ledger, schema migration, new roles, unrelated redesign.
+
+## Live publication and comparison
+
+Published v93 successfully29Oct2026 17:01MYT; saved version `appgprj_6a9f7a8cbf54819181bcd927d63bc32d~appgver_9e5975b5a338819180256576806960e3`, production source `4a3db16c86092068854ae3e96d9f09218bb11355`.
+
+Same-account, same Thailand Trip, same YH selection: Money settlement page text was captured before deployment; v93 Money matches it exactly. v93 Trip Settlement page text also matches it exactly (YH→FZ RM482.93). Trip and Money Expenses overviews match exactly (5records,RM5312.00); every currently rendered RM amount, including list totals and selected bill splits, matches in order. No balance edits, recordings, reminders or messages were made.
+
+Trip sidebar Expenses and Settle up now retain `space=trip&tab=expenses/settle` with the same group ID. Both routes preserve Trip on refresh. Back/forward Expenses↔Settlement stays in Trip. Trip bottom-nav DOM retains all five entries with correct aria-current on Settle up; actual mobile viewport not emulated, so not claimed as mobile rendering verification. Desktop sidebar is240px, all11 permitted entries exist directly, no More wrapper; Money has eight direct entries. No horizontal document overflow observed. Sidebar scroll preserves access to Settings on shorter viewports. App-origin console error query returned[] (browser extension metadata errors are not app failures).
+
+Real screenshots saved as v93-trip-settle-live.jpg and v93-trip-expenses-live.jpg; actual dimensions1348×926. No375×812 or1280×800 screenshot fabricated. User independently verified v92 at those sizes; v93 exact-size manual acceptance remains unperformed by this tool.
+
+Completed and stopped. No3b/3c implementation; global copy rewrite table must be submitted separately before3b.
