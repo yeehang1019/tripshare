@@ -1,5 +1,7 @@
 # TripShare engineering rules
 
+- Latest v93 approval supersedes v92 financial jumps: Trip Expenses/Settlement render same financial components and record while keeping space=trip, five-item mobile navigation and tab=expenses/settle. Desktop Trip sidebar expands all permitted secondary entries below divider; Money desktop must also have direct entries. Publish after tests; retain v92 rollback. No accounting/data changes. Stop after v93; copy table before3b.
+
 - Latest v92 approval: Trip outer navigation Overview / Itinerary / Expenses / Settle up / More; secondary Checklist, Trip tools, member preview and permitted management in More. Money links use same group. Publish after tests; preserve v91 rollback. System lighting belongs to 3b; compact mobile header <=160px belongs to 3c. Stop after v92; submit copy table separately before 3b. No amount/data/schema changes.
 
 - Latest approved phase3a (spec v1.1 section10.7): Money outer navigation only:4-item mobile nav, More,240px desktop sidebar and tab/view URL with refresh/back/dirty guard/auth-return. Keep Dashboard inner5tabs, all ledger/display arithmetic and roles. Trip5-item proposal requires confirmation before implementation. Preserve saved v90 rollback. Full suite and section10.8 regressions required; screenshot dimensions must be honest. Do not start3b/3c; copy table requires separate review.

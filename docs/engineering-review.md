@@ -1,3 +1,7 @@
+# v93 — Trip finance stays in Trip
+
+Separate workspace context from shared financial tab IDs; canonical financial data/rendering reused. Trip desktop secondary links expanded, Money direct links verified. 246tests + TypeScript + production build pass. v92 rollback retained, no ledger/API/schema edits. See v93-trip-finance-context.md for verification and KEEP/CHANGE NOW/IMPROVE LATER/DO NOT ADD verdict. Stop after this release; copy table before3b.
+
 # v92 Trip outer navigation
 
 Approved Trip five-entry navigation and permission-filtered More. Same-group Money destinations; no API, ledger, role or schema edits. TypeScript and full244 tests pass. Fixed snapshot food1640/toll0/offset32974eachway/ET→YH1640 remains unchanged. v91 saved version/archive retained for rollback. Actual live browser verification follows publication; exact viewport resizing unavailable. See phase3a-trip-v92.md. System lighting deferred3b; header<=160px deferred3c; copy table review before3b. KEEP existing data/roles/calculation; CHANGE NOW approved Trip navigation; IMPROVE LATER assigned later phases; DO NOT ADD unrelated features.
