@@ -33,3 +33,15 @@ KEEP: original roles, personal isolation, shared links, editor recovery, account
 CHANGE NOW: approved Trip outer destinations and More grouping.
 IMPROVE LATER: System lighting and header changes in their assigned phases; copy approval before3b.
 DO NOT ADD: schema migrations, duplicated Money bills, new permissions, financial logic changes or unrelated redesign.
+
+## Published and live checks
+
+v92 published successfully 29Oct2026 15:46MYT. Saved version `appgprj_6a9f7a8cbf54819181bcd927d63bc32d~appgver_7ea8018110f88191b7872a4eeb225f48`; source `a369146013ef86109064714bb11e781f3e0b86e5`. v91 rollback saved version `appgprj_6a9f7a8cbf54819181bcd927d63bc32d~appgver_5eba7159aa38819189d9004d270af993`, archive `/workspace/tripshare-v91-3a.tar.gz` retained.
+
+Final full suite244passed,0failed,0skipped. TypeScript and production build passed. Monetary/API files have no diff from v91.
+
+Actual production browser: five sidebar entries, permission-scoped More, Checklist and Trip tools open, member preview renders, Itinerary retains Daily itinerary/Booking list. Refresh with `tab=itinerary` returns Itinerary. Back from Money Expenses and Settle up returns original Trip Tools. Both Money links retain exact group ID. More selection uses `tab=more`; checklist/tools/preview use view fields; legacy simple remains compatible. 240px sidebar, no horizontal document overflow at observed DOM viewport1363×936. Captured JPEGs are1348×926 due browser screenshot surface; these are actual images, not simulated target viewports. No requested375×812 or1280×800 screenshot captured; that acceptance remains incomplete. No app-origin console errors observed; extension metadata errors remain unrelated.
+
+Lighting was temporarily changed through existing settings to capture dark screenshot and restored to original Daylight. No bills/payments/member data or messages changed. Role-specific More filtering covered by unit/SSR tests, not a second live member login. Existing dirty guard retained; no live financial editor write performed.
+
+Stop here. 3b and3c not started; global copy table requires separate review before3b.
