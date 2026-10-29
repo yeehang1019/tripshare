@@ -4,6 +4,8 @@ import {Palette,ArrowUpRight,Orbit,Layers,MapPinned,Users,Sparkles,Search,Layout
 import {Dialog,DialogContent,DialogTitle,DialogDescription} from '@/components/ui/dialog';
 import {type useWorkspace} from './experience';
 import type {RecordT} from './trip-app';
+import {moneyIcons} from './money-navigation';
+import {moneyLabel} from '@/lib/money-navigation';
 import {destinationLabel} from './space-navigation';
 import {searchIndex,searchRecords,type SearchHit} from '@/lib/workspace-search';
 import {calculate,money,type Event} from '@/lib/ledger';
@@ -30,16 +32,18 @@ export function recentVisibleExpenses(record?:RecordT){
 }
 export function WorkspaceChrome({records,selected,onGroup,onAppearance,style,palette,event,member,destinations=[],onNavigate,onSearch,tab,railOpen=false,onRailClose,space="money",spaceSwitch}:{records:RecordT[];selected:string;onGroup:(id:string)=>void;onAppearance:()=>void;style:string;palette:string;event?:Event;member:boolean}&NavigationProps){
   const [query,setQuery]=useState('');
+  const moneyChrome=space==='money'&&destinations.includes('More');
   const styles:Record<string,string>={glass:'Cloud Crème',arcade:'Neon Odyssey',cosmic:'Apex GT'};
   const matches=records.filter(r=>r.data.name.toLowerCase().includes(query.trim().toLowerCase()));
   const recent=useMemo(()=>railOpen&&space!=="trip"?recentVisibleExpenses(records.find(r=>r.id===selected)):[],[railOpen,records,selected,space]);
   return <>
     <aside className="workspace-sidebar" aria-label="Your groups">
       <div className="sidebar-insignia"><Orbit size={27}/><span>YOUR SHARED<br/><b>UNIVERSE</b></span></div>
+      {moneyChrome&&<label className="money-sidebar-group"><span>Current group</span><select aria-label="Choose Money group" value={selected} onChange={e=>onGroup(e.target.value)}>{records.map(r=><option key={r.id} value={r.id}>{r.data.name}</option>)}</select></label>}
       {spaceSwitch}
       <div className="sidebar-workspace-label">{space==='trip'?'TRIP / JOURNEY PLANNING':'MONEY / SHARED EXPENSES'}</div>
       {onSearch&&<button className="sidebar-search" onClick={onSearch}><Search size={15}/> Quick jump <kbd>⌘K</kbd></button>}
-      <nav className="sidebar-navigation" aria-label="Workspace sections">{destinations.map(item=>{const Icon=navigationIcons[item]||Layers;return <button key={item} aria-current={item===tab?'page':undefined} onClick={()=>onNavigate?.(item)}><Icon size={17}/>{destinationLabel(item,destinations.includes('Trip Plan'))}</button>})}</nav>
+      <nav className="sidebar-navigation" aria-label="Workspace sections">{(moneyChrome?['Dashboard','Expenses','Settlement','My spending','People & Access','History','Settings','Tools'].filter(t=>destinations.includes(t)):destinations).map(item=>{const Icon=(moneyChrome?moneyIcons[item]:navigationIcons[item])||Layers;return <button className={moneyChrome&&['My spending','Tools'].includes(item)?'money-nav-divider':undefined} key={item} aria-current={item===tab?'page':undefined} onClick={()=>onNavigate?.(item)}><Icon size={17}/>{moneyChrome?(item==='Tools'?'Money tools':moneyLabel(item)):destinationLabel(item,destinations.includes('Trip Plan'))}</button>})}</nav>
       <div className="sidebar-section">{space==='trip'?'YOUR TRIPS':'MONEY GROUPS'} <small>{records.length}</small></div>
       {records.length>5&&<input className="group-filter" aria-label="Filter groups" placeholder="Find a group…" value={query} onChange={e=>setQuery(e.target.value)}/>}
       <div className="sidebar-groups">{matches.map((r,i)=><button key={r.id} aria-current={r.id===selected?'true':undefined} onClick={()=>onGroup(r.id)}><span className={'group-orbit orbit-'+i%3}>{r.data.kind==='trip'?<MapPinned size={18}/>:<Users size={18}/>}</span><span><b>{r.data.name}</b><small>{r.data.kind==='trip'?'Trip space':'Daily circle'}</small></span><ArrowUpRight size={14}/></button>)}{!matches.length&&<p className="sidebar-empty">{records.length?'No matching groups.':'Your groups will appear here.'}</p>}</div>

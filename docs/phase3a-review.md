@@ -1,0 +1,19 @@
+# Phase3a — Money outer navigation
+
+Scope: spec v1.1 section10.7 only. Money Home/Expenses/Settle up/More; secondary My spending/People & Access/History/Settings/Tools;240px desktop sidebar with group selector;64px+safe-area bottom nav below1024px,4 equal columns, pending-payment dot, content bottom clearance. All new navigation colours derive from active theme variables. Dashboard inner5tabs retained. No ledger, settlement display arithmetic, permissions, schema, notification or data changes. Ordinary member personal view, /member and /view remain personal; legacy/shared sidebar path is preserved.
+
+Files: app/money-navigation.tsx, lib/money-navigation.ts, app/workspace-design.tsx, app/trip-app.tsx, app/money-tools.tsx, app/page.tsx, app/globals.css, tests/money-navigation.test.mjs. MoneyTools supports route-controlled opening while retaining original operations. Authentication return allowlist now retains tab/view alongside space/group/simple/activity.
+
+URL mapping: home→Dashboard,expenses→Expenses,settle→Settlement,more→More; secondary view=spending|people|history|settings|tools. Push entries retain a local index. popstate restores the destination, loads unloaded groups if needed and checks current destination permissions. On dirty Back, restore history position first; Cancel retains editor, Confirm traverses to intended destination; drafts remain recoverable. beforeunload protects departure from the document. Legacy Trip simple/activity links remain supported; Trip navigation has not been reorganized.
+
+Validation: final production build and TypeScript passed. Full tests/*.test.mjs run serially with NODE_OPTIONS=--experimental-vm-modules:242 passed,0failed/skip,44.9seconds. Existing old-sidebar compatibility test initially caught labels leaking into the legacy path; code was narrowed to the new Money navigation and the entire suite rerun, without weakening that test. New tests cover URL round trips, denied/invalid route fallback, active secondary navigation,4primary buttons, accessible pending dot, member management isolation and auth-return parameters. All financial modules/API files unchanged.
+
+Section10.8 exact fixture regressions passed: food20/10 Still to pay1640sen; toll25/09 final0; offset32974sen each way; ET→YH net1640sen. Existing display/summary/print/CSV/share tests unchanged.
+
+Browser QA used a temporary read-only fictitious KL pair transport: initial settle URL, switching Expenses, Back returning to settle, dirty editor Cancel preserving text and Confirm returning, and Tools URL/open/close were observed. No production bill/payment writes. HTTP-only preview lacks crypto.randomUUID; fixture data was generated in Node and the temporary fixture supplied test IDs. All fixture files removed before final build/package.
+
+Verification limit: current cloud browser exposes no viewport-resize/device-emulation capability. Do not call native-viewport screenshots375×812 or1280×800, and do not substitute crops/previews for live screenshots. Exact-size mobile/desktop light/dark acceptance remains unverified. Console and live4amount verification will be recorded after publication. Native saved v90 and /workspace/tripshare-v90.tar.gz retained as rollback. Do not begin3b/3c.
+
+Trip proposal (awaiting selection): Overview / Itinerary / Expenses / Settle up / More. Itinerary contains Daily itinerary/Booking list. More retains Checklist, Trip tools, member preview and permission-filtered management. Expense/settlement open the same group's Money routes, without copying bills. Ordinary members remain personal, never Everyone/admin management.
+
+KEEP: original functionality, data, arithmetic and role boundaries. CHANGE NOW: Money outer navigation and route persistence. IMPROVE LATER: Trip proposal after approval; copy rewrite table separately before3b. DO NOT ADD: Home/form redesign, new fields, migrations or fabricated screenshot evidence.

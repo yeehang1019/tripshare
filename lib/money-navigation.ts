@@ -1,0 +1,6 @@
+export const moneyRoutes:Record<string,{tab:string;view?:string}>={Dashboard:{tab:'home'},Expenses:{tab:'expenses'},Settlement:{tab:'settle'},More:{tab:'more'},'My spending':{tab:'more',view:'spending'},'People & Access':{tab:'more',view:'people'},History:{tab:'more',view:'history'},Settings:{tab:'more',view:'settings'},Tools:{tab:'more',view:'tools'}};
+export const moneyLabel=(name:string)=>name==='Dashboard'?'Home':name==='Settlement'?'Settle up':name;
+export function moneyDestinations(existing:string[],tools=false){return [...existing,'More',...(tools?['Tools']:[])]}
+export function readMoneyRoute(params:URLSearchParams,allowed:string[]){const match=Object.entries(moneyRoutes).find(([,r])=>r.tab===params.get('tab')&&(r.view||'')===(params.get('view')||''))?.[0];return match&&allowed.includes(match)?match:allowed.includes('Dashboard')?'Dashboard':allowed.includes('My spending')?'My spending':allowed[0]||'Dashboard'}
+export function writeMoneyRoute(url:URL,tab:string){const route=moneyRoutes[tab]||moneyRoutes.Dashboard;url.searchParams.set('tab',route.tab);if(route.view)url.searchParams.set('view',route.view);else url.searchParams.delete('view');return url}
+export function moneyPrimary(tab:string){return ['Dashboard','Expenses','Settlement'].includes(tab)?tab:'More'}

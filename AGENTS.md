@@ -1,5 +1,7 @@
 # TripShare engineering rules
 
+- Latest approved phase3a (spec v1.1 section10.7): Money outer navigation only:4-item mobile nav, More,240px desktop sidebar and tab/view URL with refresh/back/dirty guard/auth-return. Keep Dashboard inner5tabs, all ledger/display arithmetic and roles. Trip5-item proposal requires confirmation before implementation. Preserve saved v90 rollback. Full suite and section10.8 regressions required; screenshot dimensions must be honest. Do not start3b/3c; copy table requires separate review.
+
 - Latest user approval: ship URL-group/directory parallelism, account-isolated localStorage data+ETag stale-while-revalidate, then count-only notification polling with lazy list and batched authorization. Each publish and measure separately; previous accepted version rollback. Do not change user records/schema. Stop after three steps. HTML4870/app236ms is recorded platform delay.
 
 - Latest approval v84–v86: no binding writes on GET trips; seed on join/binding/login, scoped first group with memory cache and deferred cross-group views, then early metadata304 invalidated by ledger/grant/member/key changes. Each phase publish/sample20 separately. Preserve previous versions. Notification work deferred. Record platform ingress delay and ineffective end-to-end gzip as limitations; do not spend more on compression.
