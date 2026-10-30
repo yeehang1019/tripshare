@@ -548,3 +548,23 @@ KEEP: ledger, original payees, permission/CAS/idempotency enforcement. CHANGE NO
 ### 3b production smoke and final copy correction
 Published v94 and verified the live Add expense control opens exactly one editor, focus starts at Amount, clean Escape closes, dirty Escape opens Discard, Keep editing retains entered amount, Discard removes only browser draft and focus returns to Add expense. Tested Dark→night and Match device→current OS light; restored prior manual Light. No expense/payment writes. KL House YC→YH remains RM51.70 and history39. Browser errors observed are extension metadata messages, not application errors. Actual OS appearance transitions are covered by subscription tests; no physical-device switch or target viewport claim.
 Final patch pluralizes the dynamic per-payee payment count, simplifies payment-status help and derives new-expense Undo eligibility using the authenticated creator (server permission checks remain authoritative). Final version follows v94; v93 remains baseline rollback.
+
+
+## Phase 3c release (2026-10-30)
+
+Scope: Money Home now scrolls current-space balances, five recent expenses, monthly snapshot and collapsed charts. You owe and You're owed sum existing directed final transfers independently. Trip Overview integrates the same balance cards, real plan/readiness metrics, budget versus incurred actual consumption, coming-up/attention cards, recent expenses and collapsed charts; editable Trip details remain in a closed disclosure. Personal Money stays on the original My spending-only destinations and renderer. Owner-only upfront chart restored; non-owner uses category.
+
+Recent expense headline and This month both use calculate(bill, settlement).total, the canonical incurred-consumption amount in settlement currency, not cashTotal. This excludes unused prepayments and includes consumed postpaid bills. Personal "You" amounts remain consumed[person]. No ledger, pair allocation, API writes, permissions, schema, migrations or stored bills/payments changed.
+
+Settlement retains existing source selection, revision CAS, uncertain-result retry, actual-payment confirmation, export and history; each directed pair is a card with actual open-bill count and status badge. Batch actions are disclosed via ellipsis. Details and cancelled-out bills expand; Info is a click-driven dialog/bottom sheet. Linked Trip funding remains available after Money Home.
+
+Notifications use existing authorized recent-100 audit events, one query, explicit action-derived kind and local Malaysia day. Actual IDs are deduplicated, then grouped by space/day/kind. Individual copy is the approved three messages; combined title is "{n} updates in {space name}". Empty Needs you is hidden: no new request/invitation data is fabricated. No actor/email is newly exposed. Mark all as read keeps its existing revision-isolated operation.
+
+Validation: final production build via npm test, all262 tests passed (0failed/skipped), and npx tsc --noEmit passed. Tests cover owner/private upfront render gating, unchanged personal navigation/authorization, separate simultaneous owe/owed, incurred-consumption consistency including pre/postpaid/FX, recent-five limit, Trip Overview order/disclosures, skeleton shape, notification grouping/count/visibility and all existing integer/source-bound settlement regressions. Existing UI tests updated for explicitly approved card/Info/Overview behavior.
+
+Mobile header CSS budgets owner normal state at160px to first balance card:44px top row,44px space switch,50px full-width Viewing row,18px metadata,4px separation. Selected names and dropdown contents wrap instead of ellipsizing; normal sync text shares metadata row. Offline/save failure/recovery warnings intentionally remain visible and may add necessary content. No /layout-check route is included. Screenshots delegated to user per latest instruction. Exact375 browser/device height and touch interaction are not claimed from CSS/SSR tests. Preview daemon reports running but browser URL returns Not Found; release browser smoke is performed on normal live viewport separately.
+
+KEEP: canonical ledger and server-enforced personal scope, source-bound payments, v96 rollback, existing appearance and dirty guards.
+CHANGE NOW: scope/role regressions and mixed consumption/cash headline fixed before release; no known arithmetic blocker.
+IMPROVE LATER: actual375/1280 user retest and long-name layout confirmation; large legacy trip-app/globals files; notification recent100 window remains bounded as before.
+DO NOT ADD: expanded member navigation, synthetic notification requests/counts, screenshot-only production routes, accounting/schema/data migrations.

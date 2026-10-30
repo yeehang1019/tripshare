@@ -143,7 +143,7 @@ test('Hybrid planner keeps the default overview short and displays only one deta
  const e=normalize({name:'Thailand',people:['A'],bills:[],payments:[]});e.start='2026-12-20';e.end='2026-12-24';
  e.activities=Array.from({length:12},(_,i)=>({id:'hotel-'+i,name:'Hotel '+i,type:'Hotel',status:'Booked',date:e.start,endDate:e.end,time:'14:00',location:'Bangkok',url:'',notes:'',budget:10000,category:'Accommodation',people:['A']}));
  const props={event:e,busy:false,canPlan:true,canExpense:true,draft:null,setDraft(){},onBegin(){},onSave:async()=>true,onAction:async()=>true,onDelete(){},onExpense(){},onShare(){},onDirty(){}};
- const overview=renderToStaticMarkup(React.createElement(TripPlanner,{...props,section:'Overview'}));assert.match(overview,/Coming up/);assert.doesNotMatch(overview,/Trip essentials|Trip money at a glance|Start with what you know/);
+ const overview=renderToStaticMarkup(React.createElement(TripPlanner,{...props,section:'Overview'}));assert.match(overview,/Coming up/);assert.match(overview,/<details class="panel trip-overview-details"><summary>Trip details/);assert.doesNotMatch(overview,/Trip money at a glance|Start with what you know|role="tablist"/);
  const bookings=renderToStaticMarkup(React.createElement(TripPlanner,{...props,section:'Bookings'}));assert.equal((bookings.match(/class="plan-entry /g)||[]).length,1);assert.match(bookings,/12 records/);assert.equal((bookings.match(/class="workbench-row"/g)||[]).length,6);
 });
 
@@ -259,10 +259,10 @@ test('Trip tools are collapsed with task descriptions and preserve authorization
 
 test('New Trip creation is above trip context, separate from plan additions, and guarded against unsaved input',()=>{
  const source=readFileSync(new URL('../app/trip-app.tsx',import.meta.url),'utf8');
- const creation=source.indexOf('className="workspace-create-bar"');assert.ok(creation>0);assert.ok(creation<source.indexOf('className="mobile-space-switch"',creation));assert.ok(creation<source.indexOf('className="topline"',creation));
+ const creation=source.indexOf('className={"workspace-create-bar"');assert.ok(creation>0);assert.ok(creation<source.indexOf('className="mobile-space-switch"',creation));assert.ok(creation<source.indexOf('className="topline"',creation));
  assert.equal((source.match(/onClick=\{\(\)=>startNewEvent\('trip'\)\}/g)||[]).length,1);
  const picker=source.slice(source.indexOf('<div className="event-switch">'),source.indexOf('{e && destinations.length>1'));assert.doesNotMatch(picker,/New Trip|startNewEvent|New Daily/);
- assert.match(source,/if\(editing.current\)setConfirm\(\{title:'Create a new space\?'/);assert.match(source,/!shared&&loaded&&canCreateEvents&&<div className="workspace-create-bar"/);
+ assert.match(source,/if\(editing.current\)setConfirm\(\{title:'Create a new space\?'/);assert.match(source,/!shared&&loaded&&canCreateEvents&&<div className=\{\"workspace-create-bar\"/);
 });
 
 test('Responsive Trip rules use viewport width, safe areas and readable controls from 320 through 480 CSS pixels',()=>{

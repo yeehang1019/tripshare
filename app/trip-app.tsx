@@ -1,4 +1,6 @@
 "use client";
+import HomeCharts from "./home-charts";
+import MoneyHome,{HomeSkeleton} from "./money-home";
 import {CopyAudience,CopyError} from "./copy-feedback";
 import {watchLighting} from '@/lib/appearance';
 import {userError} from '@/lib/ui-copy';
@@ -940,6 +942,8 @@ setPlannerDirty(false);setTemplateDirty(false);
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>);
+  function homeCharts(){return <HomeCharts owner={!!rec.owner} category={donut(false)} daily={bars('date',false)} categoryBars={bars('category',false)} upfront={()=><div className="bars">{Object.entries(sum!.people).map(([id,p])=><p className="split-row" key={id}><span>{name(id)}</span><b>{fmt(p.paid)}</b></p>)}</div>}/>}
+
   const notificationBell=!shared?<NotificationBell session={authenticatedSession} workspace={workspace} onGroup={choose}/>:null;
   const chrome=<WorkspaceChrome records={spaceRecords} selected={rec?.id||""} onGroup={choose} onAppearance={()=>setAppearanceOpen(true)} onSearch={()=>setQuickOpen(true)} onNavigate={navigate} destinations={destinations} tab={tab} style={workspace.data.style} palette={paletteLabels[palette]} event={e} member={!!rec?.personal} railOpen={railOpen} onRailClose={toggleRail} space={space} spaceSwitch={switcher}/>;
   const appearance=<AppearancePanel open={appearanceOpen} onOpenChange={setAppearanceOpen} workspace={workspace} palette={palette} labels={paletteLabels} mode={theme} motion={motionMode} onChange={(p,m,v,changed)=>saveAppearance(p as PaletteName,m as ThemeMode,v as MotionMode,changed)} shared={shared}/>;
@@ -974,7 +978,7 @@ setPlannerDirty(false);setTemplateDirty(false);
 <button className="secondary" onClick={()=>{const [a,b]=monthBounds();setStart(a);setEnd(b)}}>This month</button><button className="secondary" onClick={()=>{setStart("");setEnd("")}}>All time</button></div><DetailWorkbench key={rec.id+jumpEpoch} revealSelected={!!focusExpense} selected={focusExpense||undefined} onSelect={id=>{if(focusExpense)setFocusExpense(id)}} label="My expenses" rows={monthExpenses.map(b=>({id:b.id,title:b.title,subtitle:b.date+' · '+b.category+' · '+(b.paymentStatus||'paid'),meta:fmt(b.consumed),icon:<Receipt size={17}/>}))} renderDetail={id=>{const b=monthExpenses.find(b=>b.id===id)!;return <><h3>{b.title}</h3><p className="muted">{b.date} · {b.category}</p><div className="plan-money"><span>My consumption <b>{fmt(b.consumed)}</b></span><span>I paid <b>{fmt(b.paid)}</b></span></div><h3>My items</h3>{b.items.map((item,i)=><p className="split-row" key={i}><span>{item.name}</span><b>{fmt(item.amount)}</b></p>)}</>}}/></section>
       </>},{id:'settlement',label:'My settlement',render:()=> <><section className="panel"><h2>My settlement</h2>{view.transfers.map(t=><div key={t.from+':'+t.to} className="expense-row"><strong>{t.fromName} → {t.toName}: {fmt(t.amount)}</strong><SettlementCalculation calculation={view.calculations?.find(c=>c.from===t.from&&c.to===t.to||c.from===t.to&&c.to===t.from)} currency={e.settlement}/>{t.to!==rec.person&&<PayoutDetails group={rec.id} person={t.to} event={payoutEvent} session={authenticatedSession} editable={false}/>}</div>)}{!view.transfers.length&&<p>{view.calculations?.some(c=>c.unappliedForward||c.unappliedReverse)?"Review recorded repayments below.":"You're all settled."}</p>}{view.calculations?.filter(c=>c.unappliedForward||c.unappliedReverse).map(c=><SettlementCalculation key={JSON.stringify([c.from,c.to])} calculation={c} currency={e.settlement}/>)}<PayoutDetails group={rec.id} person={rec.person} event={payoutEvent} session={authenticatedSession} editable/><h3>Repayment history</h3>{view.payments.map(p=><p key={p.id}>{p.date} · {p.fromName} → {p.toName} · {fmt(p.amount)}</p>)}</section><SettlementExport event={payoutEvent} transfers={view.transfers} personal={view}/></>},...(rec.ownEntries?.length?[{id:'submitted',label:'My submitted bills',render:()=> <>{!!rec.ownEntries?.length&&<section className="panel"><h2>My submitted bills</h2><p>You can edit bills you created. This does not reveal other people’s full ledger.</p>{rec.ownEntries.filter(b=>!b.deleted).map(b=><div className="split-row" key={b.id}><span>{b.merchant}<small>{b.date} · {b.currency}</small></span><span className="checks">{calculate(b,rec.data.settlement).effectivePaymentStatus==='postpaid'&&<button className="primary" disabled={busy} onClick={()=>openSupplierPayment(b)}>Record business payment</button>}<button className="secondary" onClick={()=>{if(editing.current)setConfirm({title:"Replace your unsaved changes?",description:"Your unsaved changes will be discarded.",run:()=>{clearUnsavedInput();edit(b)}});else edit(b)}}>Edit my bill</button></span></div>)}</section>}</>}]:[]),{id:'history',label:'History',render:()=> <><ChangeHistory key={rec.id} record={rec} onAction={send} user={user}/></>} ]}/>}{space==='trip'?<TripBottomNav tab={tab} allowed={destinations} onNavigate={navigate}/>:<MoneyBottomNav tab={tab} allowed={destinations} onNavigate={navigate} pending={view.transfers.length}/>}<button className="mobile-quick-add primary" hidden={!can('addExpense')||!!bill} onClick={requestAdd} aria-label="Add expense"><Plus size={23}/></button></main></div></CopyAudience>;
   }
-  return <CopyAudience owner={!!rec?.owner}><div data-space={space} className={"app workspace-app"+(!shared?" money-nav-shell":"")+(space==='trip'?' trip-entry-workspace':'')+(railOpen?" rail-open":"")}>
+  return <CopyAudience owner={!!rec?.owner}><div data-space={space} className={"app workspace-app phase3c"+(!shared?" money-nav-shell":"")+(space==='trip'?' trip-entry-workspace':'')+(railOpen?" rail-open":"")}>
       <MotionLayer scene={`${rec?.id || "empty"}-${tab}-${workspace.data.style}-${palette}`} mode={motionMode} style={workspace.data.style} palette={completeThemes.find(t=>t.style===workspace.data.style)!.palette} celebrate={celebrate} />
       {chrome}{appearance}{quickNavigator}{moneyReviews}
       <header>
@@ -983,7 +987,7 @@ setPlannerDirty(false);setTemplateDirty(false);
             <Wallet size={22} />
           </span>
           tripshare<span className="brand-dot">.</span>
-        </a><span className="space-header-label">{space==='trip'?'Trip':'Money'}</span>
+        </a><label className="compact-space-picker"><span className="sr-only">Current space</span><select aria-label={space==='trip'?'Choose a trip':'Choose a Money space'} value={rec?.id||""} onChange={event=>choose(event.target.value)}>{spaceRecords.map(r=><option key={r.id} value={r.id}>{r.data.name}</option>)}</select></label><span className="space-header-label">{space==='trip'?'Trip':'Money'}</span>
         <div className="header-right">
           {notificationBell}
           <button className="quick-launch" onClick={()=>setQuickOpen(true)} aria-label="Search expenses, plans and spaces"><Search size={16}/><span>Search…</span><kbd>⌘ / Ctrl K</kbd></button>
@@ -1017,7 +1021,7 @@ setPlannerDirty(false);setTemplateDirty(false);
             {!shared && <span className="sync-email"> · {user || "signed in"}</span>}
           </span>
           {e && rec.owner && (
-            <Pick
+            <div className="desktop-viewing"><Pick
               label="Viewing"
               value={me}
               options={e.people}
@@ -1025,7 +1029,7 @@ setPlannerDirty(false);setTemplateDirty(false);
                 setMe(p);
                 localStorage.setItem("tripshare-person-" + rec.id, p);
               }}
-            />
+            /></div>
           )}
           {e && !rec.owner && !shared && rec.person && (
             <span className="pill" title="You're viewing the name linked to your sign-in.">
@@ -1048,8 +1052,9 @@ setPlannerDirty(false);setTemplateDirty(false);
         </AlertDialogContent>
       </AlertDialog>
       <main>
-        {!shared&&loaded&&canCreateEvents&&<div className="workspace-create-bar" aria-label="Create a new workspace"><span>Workspace</span><div><button className="secondary" disabled={busy} onClick={()=>startNewEvent('trip')}><Plus size={16}/> New Trip</button>{space==='money'&&<button className="secondary" disabled={busy} onClick={()=>startNewEvent('daily')}><Plus size={16}/> Money</button>}</div></div>}
-        <div className="mobile-space-switch">{switcher}</div>
+        {!shared&&loaded&&canCreateEvents&&<div className={"workspace-create-bar"+(["More","Trip More","Settings"].includes(tab)?" workspace-create-visible":"")} aria-label="Create a new workspace"><span>Workspace</span><div><button className="secondary" disabled={busy} onClick={()=>startNewEvent('trip')}><Plus size={16}/> New Trip</button>{space==='money'&&<button className="secondary" disabled={busy} onClick={()=>startNewEvent('daily')}><Plus size={16}/> Money</button>}</div></div>}
+        <div className="mobile-context-row"><div className="mobile-space-switch">{switcher}</div>
+        {e&&rec.owner&&<div className="mobile-viewing"><label htmlFor="mobile-viewing-member">Viewing</label><Pick id="mobile-viewing-member" label="Viewing member" value={me} onChange={person=>{setMe(person);localStorage.setItem("tripshare-person-"+rec.id,person)}} options={e.people}/></div>}</div>
         {recoveryUI}
 
         {invitePrompt&&<section className="panel invitation-prompt"><h2>Join your friends</h2><p>Join using the name selected for you. You'll see your own spending and payments.</p><button className="primary" disabled={busy} onClick={async()=>{if(await send("acceptInvite",{token:inviteToken})){setInvitePrompt(false);setInviteToken("");setNotice("Joined.")}}}>Accept as {user}</button><button className="secondary" onClick={()=>{setInvitePrompt(false);setInviteToken("")}}>Dismiss</button></section>}
@@ -1086,7 +1091,7 @@ setPlannerDirty(false);setTemplateDirty(false);
           </section>
         )}
         {!loaded && !needsPin && (
-          <section className="panel">Loading your events…</section>
+          <HomeSkeleton/>
         )}
         {loaded && (
           <>
@@ -1101,11 +1106,11 @@ setPlannerDirty(false);setTemplateDirty(false);
                       : "YOUR SHARED ADVENTURE"}
                 </p>}
                 <h1>{space==="trip"&&(e?.kind!=="trip"||rec?.personal)?"Your trips":e?.name || (space==="trip"?"Your trips":"Your shared money")}</h1>
-                <p className="muted">
+                <p className="muted"><span className="context-desktop">
                   {space==='trip'&&(e?.kind!=='trip'||rec?.personal&&!rec.planning)?"Plan your trip here. View the same expenses in Trip or Money.":e
                     ? `${e.people.length} people · ${e.kind === "daily" ? "Money" : [e.start, e.end].filter(Boolean).join(" — ") || "Trip"} · Settle in ${e.settlement}`
                     : "Your Trip plans and Money expenses, together."}
-                </p>
+                </span>{e&&<span className="context-mobile">{e.people.length} people · {e.settlement}</span>}</p>
               </div>
               <div className="top-actions">
                 {can("addExpense") && !bill && (
@@ -1165,10 +1170,10 @@ setPlannerDirty(false);setTemplateDirty(false);
               </Tabs>
             )}
             {space==="trip"&&(e?.kind!=="trip"||rec?.personal&&!rec.planning)&&<TripLanding records={records} onChoose={choose}/>}
-            {space==="money"&&e?.kind==="trip"&&canViewGroup&&!creating&&!settings&&<SpaceBridge event={e} space="money" onOpen={()=>switchSpace('trip')}/>}
+            {space==="money"&&tab!=="Dashboard"&&e?.kind==="trip"&&canViewGroup&&!creating&&!settings&&<SpaceBridge event={e} space="money" onOpen={()=>switchSpace('trip')}/>}
             {space==="money"&&["More","Tools"].includes(tab)&&<MoneyMore allowed={destinations} onNavigate={navigate}/>}{tab==="People & Access"&&rec?.owner&&<PeopleAccess key={rec.id} record={rec} onAction={send}/>}
             {tab==="History"&&rec&&<ChangeHistory key={rec.id} record={rec} onAction={send} user={user} initialOpen/>}
-            {space==="money"&&tab==="Dashboard"&&e?.kind==="trip"&&canViewGroup&&<details className="money-funding-summary"><summary><Wallet size={17}/> Trip funding · linked plan estimates</summary><TravelFunding event={e}/></details>}
+
             {tab === "My spending" && <details className="focus-analytics"><summary>Across Trip and Money</summary>{spendingOverview()}</details>}
 
             {!shared && ((canCreateEvents && (!e || creating)) || (rec?.owner && !!settings)) && (
@@ -1366,115 +1371,9 @@ setPlannerDirty(false);setTemplateDirty(false);
             )}
             {e && !creating && !settings && (
               <>
-                {tab === "Dashboard" && canViewGroup && <FocusSections locked={templateDirty} key={rec.id} label="Money dashboard sections" initial='group' sections={[
-                  ...(!shared?[{id:'overview',label:'My overview',render:()=>spendingOverview()}]:[]),
-                  {id:'group',label:'Space snapshot',render:()=> <>                    {hasPersonalAccess ? <section className="stats">
-                      <article className="stat featured">
-                        <span><Receipt size={17}/>{name(me)} · Total consumed</span>
-                        <strong>{fmt(personal?.consumed || 0)}</strong>
-                        <small>
-                          Your final consumption, including treats received
-                        </small>
-                      </article>
-                      <article className="stat">
-                        <span><Wallet size={17}/>Actually paid</span>
-                        <strong>{fmt(personal?.paid || 0)}</strong>
-                        <small>
-                          Cash / card payments, excluding repayments
-                        </small>
-                      </article>
-                      <article className="stat">
-                        <span><HandCoins size={17}/>Need to pay</span>
-                        <strong>
-                          {fmt(sum!.transfers.filter(t=>t.from===me).reduce((s,t)=>s+t.amount,0))}
-                        </strong>
-                        <small>Total outstanding to each person</small>
-                      </article>
-                      <article className="stat">
-                        <span><UserRound size={17}/>Need to receive</span>
-                        <strong>
-                          {fmt(sum!.transfers.filter(t=>t.to===me).reduce((s,t)=>s+t.amount,0))}
-                        </strong>
-                        <small>After actual repayments</small>
-                      </article>
-                    </section> : <section className="stats">
-                      <article className="stat featured"><span><Receipt size={17}/>Shared spending</span><strong>{fmt(sum!.total)}</strong><small>Expenses saved here</small></article>
-                      <article className="stat"><span><ReceiptText size={17}/>Expenses</span><strong>{e.expenses.filter((x) => !x.deleted).length}</strong><small>Saved expenses</small></article>
-                      <article className="stat"><span><UsersRound size={17}/>Members</span><strong>{e.people.filter((p) => p.active).length}</strong><small>People taking part</small></article>
-                      <article className="stat"><span><HandCoins size={17}/>Payments remaining</span><strong>{sum!.transfers.length}</strong><small>Open Settlement for details</small></article>
-                    </section>}
-                    <section className="two-col home-grid">
-                      <div className="panel">
-                        <div className="section-title">
-                          <h2>
-                            <Sparkles size={20}/> Quick entry
-                          </h2>
-                        </div>
-                        <div className="split-row">
-                          <span>Total spending</span>
-                          <b>{fmt(sum!.total)}</b>
-                        </div>
-                        {e.budget > 0 && (
-                          <>
-                            <div className="budget-track">
-                              <i
-                                style={{
-                                  width:
-                                    Math.min(
-                                      100,
-                                      (sum!.total / e.budget) * 100,
-                                    ) + "%",
-                                }}
-                              />
-                            </div>
-                            <p className="muted">
-                              {Math.round((sum!.total / e.budget) * 100)}% of{" "}
-                              {fmt(e.budget)} budget ·{" "}
-                              {sum!.total > e.budget
-                                ? "Over by " + fmt(sum!.total - e.budget)
-                                : fmt(e.budget - sum!.total) + " remaining"}
-                            </p>
-                          </>
-                        )}
-                      </div>
-                      <div className="panel">
-                        <h2 className="card-title"><ChartPie size={20}/>{hasPersonalAccess ? "Where your money goes" : "Spending by category"}</h2>
-                        {donut(hasPersonalAccess)}
-                      </div>
-                    </section>
-</>},
-                  {id:'recent',label:'Recent expenses',render:()=> <>                    <section className="panel">
-                      <div className="section-title">
-                        <h2><Clock3 size={20}/>Recent expenses</h2>
-                        <button
-                          className="text-button"
-                          onClick={() => setTab("Expenses")}
-                        >
-                          View all
-                        </button>
-                      </div>
-<DetailWorkbench label="Recent expenses" rows={e.expenses.filter(b=>!b.deleted).slice().sort((a,b)=>b.date.localeCompare(a.date)).map(b=>({id:b.id,title:b.merchant,subtitle:b.date+' · '+b.category,meta:money(billCalc(b).cashTotal,b.currency),icon:<Receipt size={17}/>}))} renderDetail={id=>expenseRows(e.expenses.filter(b=>b.id===id),false,true)}/></section></>},
-                  {id:'charts',label:'Charts',render:()=> <>                    <section className="dashboard-charts">
-                      <div className="panel">
-                        <div className="section-title"><h2><ChartColumn size={20}/>Daily spending</h2><span className="pill">Shared spending</span></div>
-                        {bars("date", false)}
-                      </div>
-                      {rec.owner ? <div className="panel">
-                        <div className="section-title"><h2><UsersRound size={20}/>Who paid upfront</h2><span className="pill">OWNER VIEW</span></div>
-                        <div className="bars">
-                          {Object.entries(sum!.people).sort((a,b)=>b[1].paid-a[1].paid).map(([person,value],index) => {
-                            const maximum = Math.max(1,...Object.values(sum!.people).map(x=>x.paid));
-                            return <div className="bar-row static-bar" key={person}><span>{name(person)}</span><b>{fmt(value.paid)}</b><div><i style={{width:`${Math.max(1,value.paid/maximum*100)}%`,background:["var(--chart-1)","var(--chart-2)","var(--chart-3)","var(--chart-4)"][index%4]}}/></div></div>;
-                          })}
-                        </div>
-                      </div> : <div className="panel">
-                        <div className="section-title"><h2><ChartPie size={20}/>Spending by category</h2><span className="pill">Shared spending</span></div>
-                        {bars("category", false)}
-                      </div>}
-                    </section>
-</>},
-
-                ]}/>}
+                {tab === "Dashboard" && canViewGroup && <MoneyHome key={rec.id} event={e} person={hasPersonalAccess?me:undefined} onNavigate={navigate} onExpense={expense=>{setFocusExpense(expense);navigate('Expenses')}} charts={homeCharts()}/>}
+                {tab==='Dashboard'&&canViewGroup&&e.kind==='trip'&&<SpaceBridge event={e} space="money" onOpen={()=>switchSpace('trip')}/>}
+                {tab==='Dashboard'&&canViewGroup&&e.kind==='trip'&&<details className="money-funding-summary"><summary>Trip funding · linked plan estimates</summary><TravelFunding event={e}/></details>}
                 {bill && (
                   <Dialog open onOpenChange={v=>{if(!v)requestCloseBill()}}><DialogContent className="workspace-editor-sheet" showCloseButton={false} onCloseAutoFocus={event=>{event.preventDefault();requestAnimationFrame(()=>{const control=[...document.querySelectorAll<HTMLButtonElement>('.mobile-quick-add,.desktop-add-expense')].find(node=>node.getClientRects().length>0);control?.focus()})}} onEscapeKeyDown={event=>{event.preventDefault();requestCloseBill()}} onOpenAutoFocus={event=>{event.preventDefault();requestAnimationFrame(()=>document.querySelector<HTMLInputElement>('.expense-editor [data-primary-amount]')?.focus())}} onInteractOutside={v=>v.preventDefault()}><DialogTitle className="sr-only">Expense editor</DialogTitle><DialogDescription className="sr-only">Record or edit one expense, then return to your selected record.</DialogDescription>{error&&<p role="alert" className="message error"><CopyError value={error} owner={!!rec?.owner}/></p>}{bill.activity&&<div className="space-link-note editor-origin"><MapPinned size={18}/><div><b>{space==='trip'?"Record trip expense":"Money · linked to your trip"}</b><p>{e.activities.find(a=>a.id===bill.activity)?.name||'Trip plan'} · {bill.date}. {e.expenses.some(b=>b.id===bill.id)?"Update this bill; it will not create a second expense.":"Saved once and shared with Money."}</p></div>{space==='money'&&<button className="text-button" onClick={()=>switchSpace('trip',bill.activity)}>Return to Trip</button>}</div>}<ExpenseEditor onDirty={dirty=>{billDirty.current=dirty}} stickyActions draftScope={localScope} draftRevision={draftRevision}
                     key={bill.id+editorEpoch}
@@ -1487,7 +1386,7 @@ setPlannerDirty(false);setTemplateDirty(false);
                 )}
                 {isTripSection(tab) && canViewTrip && e.kind === "trip" && (
                   <>{tab==='Simple itinerary'&&<SimpleItinerary key={rec.id} group={rec.id} event={e} initialDay={plannerSelection.day} onDayChange={day=>setPlannerSelection(s=>({...s,day}))} canCopyLink={rec.owner||can('plan')}/ >}{tab==='Trip More'&&!shared&&<TripMore allowed={destinations} onNavigate={navigate}/ >}{tab==='Trip tools'&&!shared&&can('plan')&&<TripTools key={rec.id+':'+toolsEpoch} group={rec.id} event={e} revision={rec.revision} session={authenticatedSession} canPlan={can('plan')} canPreferences={rec.owner||!!rec.person} busy={busy} disabled={!!(bill||activity||plannerDirty)} onDirty={setToolsDirty} onBegin={()=>setError('')} saveError={error} onRefresh={()=>load(true).then(Boolean)} onBulk={(entity,revision)=>send('planBulk',{entity,revision:revision??rec.revision}).then(Boolean)} onApply={async(activities,revision)=>!!(await send('planBatch',{entity:{activities},revision}))}/ >}{['Trip Plan','Itinerary','Checklist'].includes(tab)&&can('plan')&&<TripPlanner section={tab==='Trip Plan'?'Overview':tab} onDayChange={day=>setPlannerSelection(s=>({...s,day}))} initialDay={plannerSelection.day} initialType={plannerSelection.type} initialMode={plannerSelection.mode} onSectionChange={(v,day,type)=>{setPlannerSelection({day:day||'',type:type||'All',mode:v==='Bookings'?'bookings':'day'});navigate(v==='Overview'?'Trip Plan':v==='Bookings'?'Itinerary':v)}} key={rec.id+tab+jumpEpoch} event={e} busy={busy} canPlan={can("plan")} canExpense={can("addExpense")} draft={activity} setDraft={value=>{if(!value&&localScope&&activity)removeDraft(localScope,"plan",activity.id);setActivity(value)}} onDirty={setPlannerDirty}
-                    saveError={error} onReviewLatest={reviewLatestPlan} showFinancial={!rec.personal} onBegin={()=>{setError("");setDraftRevision(rec.revision)}}
+                    saveError={error} onReviewLatest={reviewLatestPlan} overviewPerson={hasPersonalAccess?me:undefined} overviewCharts={rec.personal?undefined:homeCharts()} onOverviewNavigate={navigate} onOverviewExpense={expense=>{setFocusExpense(expense);navigate("Expenses")}} showFinancial={!rec.personal} onBegin={()=>{setError("");setDraftRevision(rec.revision)}}
                     onSave={async entity=>!!(await send("activity",{entity,revision:draftRevision}))}
                     onAction={(action,entity)=>send(action,{entity})}
                     onDelete={id=>ask("Remove this plan?","Linked expenses remain in your ledger.","deleteActivity",id)}
@@ -1604,9 +1503,7 @@ setPlannerDirty(false);setTemplateDirty(false);
                       <div className="section-title">
                         <h2><HandCoins size={20}/>{settlementScope === "mine" ? `${name(me)}'s payments` : "Payments to make"}</h2>
                       </div>
-                      <p className="muted">
-                        What you owe each other cancels out, oldest bills first. Recorded payments stay with their original bills.
-                      </p>
+
                       <SettlementPayments owner={rec.owner} key={rec.id+settlementScope} event={e} group={rec.id} revision={rec.revision} session={authenticatedSession} transfers={visibleTransfers} claims={sum!.claims} calculations={sum!.calculations} canRecord={can('settle')} disabled={busy} onRemind={(t,b)=>whatsapp(`${e.name}${b?' · '+b.title:''}\n${finalDueLines([t],name,fmt)}\nPlease check the shared event for the current balance.`)} onRefresh={()=>load(true)} payout={to=>!shared?<PayoutDetails group={rec.id} person={to} event={e} session={authenticatedSession} editable={to===rec.person}/>:null}/>
 
                     </div>

@@ -614,7 +614,7 @@ test('Notification count/list use one read, match original visibility and recent
    for(const who of Object.keys(expected)){if(who==='stranger@example.com')continue;const full=who!=='b@example.com',person=who==='b@example.com'?'B':'A';for(const log of e.audit.slice(-100)){
     const travel=travelActions.includes(log.restoredAction||log.action),involved=v=>v&&(v.from===person||v.to===person||v.items?.some(i=>i.people?.includes(person))||v.payers?.some(p=>p.person===person));
     if(log.actor===who||!(full||travel&&e.kind==='trip'||involved(log.before)||involved(log.after)))continue;
-    expected[who].push({id:id+':'+log.id,group:id,groupName:e.name,date:log.date,title:travel?'Trip plan updated':log.action.includes('ayment')?'A related repayment changed':'An expense or group record relevant to you changed'});
+    expected[who].push({id:id+':'+log.id,group:id,groupName:e.name,date:log.date,kind:travel?'plan':log.action.includes('ayment')?'payment':['expense','deleteExpense','supplierPayment'].includes(log.restoredAction||log.action)?'expense':'record',title:travel?'Your trip plans changed.':log.action.includes('ayment')?'A payment involving you changed.':'Details in your Trip or Money space changed.'});
    }}
   }
   for(const who of Object.keys(expected)){expected[who].sort((a,b)=>b.date.localeCompare(a.date));expected[who]=expected[who].slice(0,100);h.resetQueries();const list=await h.notificationRead(who);assert.equal(list.status,200);assert.equal(h.queries(),1);assert.deepEqual(list.notifications,expected[who]);h.resetQueries();const count=await h.notificationRead(who,true);assert.equal(h.queries(),1);assert.deepEqual(count,{status:200,unread:expected[who].length});assert.equal('notifications' in count,false);}

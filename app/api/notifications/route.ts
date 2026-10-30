@@ -26,11 +26,11 @@ async function getNotifications(request:Request,timing:RequestTimings){
  SELECT s.*,j.value AS entry FROM scope s,json_each(s.audit) j WHERE CAST(j.key AS INTEGER)>=max(json_array_length(s.audit)-100,0)
  ),visible AS (
  SELECT id||':'||json_extract(entry,'$.id') AS id,id AS group_id,name, json_extract(entry,'$.date') AS date,
- CASE WHEN coalesce(nullif(json_extract(entry,'$.restoredAction'),''),json_extract(entry,'$.action')) IN ('activity','deleteActivity','planBasics','planChecklist','planOrder','travelKit') THEN 'Trip plan updated' WHEN instr(json_extract(entry,'$.action'),'ayment')>0 THEN 'A related repayment changed' ELSE 'An expense or group record relevant to you changed' END AS title,read_at
+ CASE WHEN coalesce(nullif(json_extract(entry,'$.restoredAction'),''),json_extract(entry,'$.action')) IN ('activity','deleteActivity','planBasics','planChecklist','planOrder','travelKit') THEN 'Your trip plans changed.' WHEN instr(json_extract(entry,'$.action'),'ayment')>0 THEN 'A payment involving you changed.' ELSE 'Details in your Trip or Money space changed.' END AS title,CASE WHEN coalesce(nullif(json_extract(entry,'$.restoredAction'),''),json_extract(entry,'$.action')) IN ('activity','deleteActivity','planBasics','planChecklist','planOrder','travelKit') THEN 'plan' WHEN instr(json_extract(entry,'$.action'),'ayment')>0 THEN 'payment' WHEN coalesce(nullif(json_extract(entry,'$.restoredAction'),''),json_extract(entry,'$.action')) IN ('expense','deleteExpense','supplierPayment') THEN 'expense' ELSE 'record' END AS kind,read_at
  FROM logs CROSS JOIN viewer v WHERE coalesce(json_extract(entry,'$.actor'),'')<>v.email
  AND (full OR (kind='trip' AND coalesce(nullif(json_extract(entry,'$.restoredAction'),''),json_extract(entry,'$.action')) IN ('activity','deleteActivity','planBasics','planChecklist','planOrder','travelKit')) OR (person<>'' AND (${involved})))
  ORDER BY date DESC LIMIT 100
- ) ${countOnly?"SELECT count(*) AS unread FROM visible WHERE date>read_at":"SELECT id,group_id AS \"group\",name AS groupName,date,title,CASE WHEN date>read_at THEN 1 ELSE 0 END AS unread FROM visible ORDER BY date DESC"}`;
+ ) ${countOnly?"SELECT count(*) AS unread FROM visible WHERE date>read_at":"SELECT id,group_id AS \"group\",name AS groupName,date,title,kind,CASE WHEN date>read_at THEN 1 ELSE 0 END AS unread FROM visible ORDER BY date DESC"}`;
  const result:any=await timing.stage(countOnly?'unread_query':'notification_query',()=>db.prepare(sql).bind(who.user,who.email).all());
  const notifications=countOnly?[]:result.results.map(({unread,...item}:any)=>item);
  const unread=countOnly?Number(result.results[0]?.unread||0):result.results.filter((n:any)=>n.unread).length;

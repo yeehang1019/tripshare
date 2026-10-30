@@ -42,7 +42,7 @@ test('Payment workspace groups by payee, filters bill choices to visible obligat
 test('KL House UI separates net/cash/offset, explains dynamic ordering, and personal Who pays whom retains RM16.40',async()=>{
  const {default:Payments}=await vite.ssrLoadModule('/app/settlement-payments.tsx');const e=klHousePair(),s=ledger(e);
  const html=renderToStaticMarkup(React.createElement(Payments,{event:e,group:'g',revision:1,session:'',transfers:s.transfers,claims:s.claims,calculations:s.calculations,canRecord:true,onRefresh:async()=>true,payout:()=>null}));
- assert.match(html,/Still to pay between you two/);assert.match(html,/Left after payments/);assert.match(html,/Still to pay/);assert.match(html,/Cancelled out/);assert.match(html,/Changes to bills or payments/);assert.doesNotMatch(html,/Paid \(net\)|Applied[^<]*-RM|Applied[^<]*RM -/);
+ assert.match(html,/class="transfer payment-card"/);assert.match(html,/Left after payments/);assert.match(html,/Still to pay/);assert.match(html,/Cancelled out/);assert.match(html,/aria-label="How amounts cancel out"/);assert.doesNotMatch(html,/Paid \(net\)|Applied[^<]*-RM|Applied[^<]*RM -/);
  assert.doesNotMatch(html.replaceAll("电费去",""),/[\p{Script=Han}]/u);
  assert.match(html,/<details class="offset-settled-bills"><summary><span>Cancelled out · 14 bills<\/span><b>RM\s*329.74 each way<\/b><\/summary>/);
  assert.ok(html.indexOf('20/10/2026')<html.indexOf('class="offset-settled-bills"'));
