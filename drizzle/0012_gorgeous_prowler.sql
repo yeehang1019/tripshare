@@ -1,0 +1,1 @@
+ALTER TABLE `user_preferences` ADD `lighting_explicit` integer DEFAULT 0 NOT NULL;

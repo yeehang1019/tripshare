@@ -1,7 +1,7 @@
 "use client";
 import {CopyError} from "./copy-feedback";
 import {userError} from '@/lib/ui-copy';
-import { useState,useMemo,useEffect } from "react";
+import { useState,useMemo,useEffect,useId } from "react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Event,
@@ -48,6 +48,7 @@ export default function ExpenseEditor({
   quickPicks?:React.ReactNode;
   onPreset?:(expense:Expense)=>void;
 }) {
+  const chargeId=useId();
   const [b, set] = useState(initial),
     [confirmed, setConfirmed] = useState(false);
   const localStatus=useDraftSave(draftScope,'expense',b,draftRevision,e.expenses.find(x=>x.id===initial.id)||null);
@@ -56,6 +57,7 @@ export default function ExpenseEditor({
   const update = (patch: Partial<Expense>) => {
     const next={...b,...patch};
     if(patch.paymentStatus&&patch.paymentStatus!=='paid')delete next.paidOn;
+    onDirty?.(JSON.stringify(next)!==JSON.stringify(initial));
     set(next);
     setConfirmed(false);
   };
@@ -106,7 +108,7 @@ export default function ExpenseEditor({
             (b.mode === "itemized" && b.receipt === null) ||
             (edit && !confirmed);
   return (
-    <div className="entry-grid">
+    <div className="entry-grid" onKeyDownCapture={event=>{if(event.key==="Escape"&&!event.defaultPrevented&&!event.nativeEvent.isComposing){event.preventDefault();event.stopPropagation();onCancel()}}}>
       <section className={`panel expense-editor ${b.mode}`}>
         <div className="section-title">
           <h2>{edit ? "Edit expense" : "Add expense"}</h2>{stickyActions&&<button className="primary" disabled={saveDisabled} onClick={()=>onSave(b)}>{busy?"Saving…":"Save"}</button>}
@@ -436,8 +438,8 @@ export default function ExpenseEditor({
         <details>
           <summary>Charges, discount & voucher</summary>
           <div className="fields">
-            <Field label="Tax %">
-              <input
+            <label className="field" htmlFor={chargeId+"-tax"}><span>Tax (%)</span>
+              <input id={chargeId+"-tax"}
                 type="number"
                 value={b.tax || ""}
                 placeholder="0"
@@ -445,9 +447,9 @@ export default function ExpenseEditor({
                 max="100"
                 onChange={(v) => update({ tax: Number(v.target.value) })}
               />
-            </Field>
-            <Field label="Service %">
-              <input
+            </label>
+            <label className="field" htmlFor={chargeId+"-service"}><span>Service charge (%)</span>
+              <input id={chargeId+"-service"}
                 type="number"
                 value={b.service || ""}
                 placeholder="0"
@@ -455,7 +457,7 @@ export default function ExpenseEditor({
                 max="100"
                 onChange={(v) => update({ service: Number(v.target.value) })}
               />
-            </Field>
+            </label>
             <Field label="Bill discount">
               <Amount
                 value={b.discount}

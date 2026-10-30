@@ -23,6 +23,7 @@ export default function SettlementPayments({event:e,group,revision,session,trans
  const sources=useMemo(()=>payableSourceIndex(e,claims,calculations),[e,claims,calculations]);
  const bills=useMemo(()=>[...new Map(transfers.flatMap(t=>sources.get(pairKey(t))||[]).map(b=>[b.id,b])).values()],[sources,transfers]);
  const visible=transfers.filter(t=>!filter||sources.get(pairKey(t))?.some(b=>b.id===filter));
+ const recipientBills=(to:string)=>new Set(visible.filter(t=>t.to===to).flatMap(t=>(sources.get(pairKey(t))||[]).filter(b=>!filter||b.id===filter).map(b=>b.id))).size;
  const recipients=[...new Set(visible.map(t=>t.to))];
  const choices=(t:Transfer)=>(sources.get(pairKey(t))||[]).filter(b=>!filter||b.id===filter);
  const chosen=visible.filter(t=>selected.includes(pairKey(t)));
@@ -76,7 +77,7 @@ export default function SettlementPayments({event:e,group,revision,session,trans
   {error&&!draft&&!receipt&&<p role="alert"><CopyError value={error}/></p>}
   {copyText&&<div role="status" className="settlement-copy-result">{copyText==='Copied.'?copyText:<textarea readOnly aria-label="Copy payment list" value={copyText} onFocus={v=>v.target.select()}/>}</div>}
   {recipients.map(to=><details open className="settlement-recipient" key={to}>
-   <summary>Pay {name(to)} · {visible.filter(t=>t.to===to).length} payment{visible.filter(t=>t.to===to).length===1?"":"s"}</summary><div className="checks settlement-recipient-actions">{canRecord&&<button className="text-button" onClick={()=>{const keys=visible.filter(t=>t.to===to).map(pairKey);setSelected(v=>keys.every(k=>v.includes(k))?v.filter(k=>!keys.includes(k)):[...new Set([...v,...keys])])}}>Select / clear all</button>}<button className="text-button" onClick={()=>copy(to)}>Copy payment list</button></div>
+   <summary>Pay {name(to)} · {recipientBills(to)} bill{recipientBills(to)===1?"":"s"}</summary><div className="checks settlement-recipient-actions">{canRecord&&<button className="text-button" onClick={()=>{const keys=visible.filter(t=>t.to===to).map(pairKey);setSelected(v=>keys.every(k=>v.includes(k))?v.filter(k=>!keys.includes(k)):[...new Set([...v,...keys])])}}>Select / clear all</button>}<button className="text-button" onClick={()=>copy(to)}>Copy payment list</button></div>
    {payout(to)}
    {visible.filter(t=>t.to===to).map(t=>{const key=pairKey(t),c=calculations.find(c=>c.from===t.from&&c.to===t.to||c.from===t.to&&c.to===t.from),amount=selectedFinalDue(t,choices(t));return <div className="transfer" key={key}>
     <div>{canRecord&&<input type="checkbox" aria-label={'Select '+name(t.from)+' to '+name(t.to)} checked={selected.includes(key)} onChange={()=>toggle(key)}/>}<span className="pair-net-label">Still to pay between you two</span><b>{name(t.from)}</b><span>→</span><b>{name(t.to)}</b><strong>{fmt(t.amount)}</strong></div>

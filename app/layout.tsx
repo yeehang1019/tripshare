@@ -37,7 +37,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{__html:`try{var m=localStorage.getItem('tripshare-theme');document.documentElement.dataset.theme=m==='light'||m==='night'?m:matchMedia('(prefers-color-scheme: dark)').matches?'night':'light'}catch{document.documentElement.dataset.theme=matchMedia('(prefers-color-scheme: dark)').matches?'night':'light'}`}}/>
+        <script dangerouslySetInnerHTML={{__html:`try{var m=localStorage.getItem('tripshare-theme');document.documentElement.dataset.theme=localStorage.getItem('tripshare-lighting-explicit')==='1'&&(m==='light'||m==='night')?m:matchMedia('(prefers-color-scheme: dark)').matches?'night':'light'}catch{document.documentElement.dataset.theme=matchMedia('(prefers-color-scheme: dark)').matches?'night':'light'}`}}/>
         <link rel="manifest" href="/manifest.webmanifest" />
         <link rel="apple-touch-icon" href="/app-icon-180.png" />
         <meta name="mobile-web-app-capable" content="yes" />

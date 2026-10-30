@@ -1,5 +1,7 @@
 # TripShare engineering rules
 
+- Latest v95 retest fixes: new-expense discard has no saved-bill description; Keep editing primary and destructive actions negative outline; one Close and focused-input Escape; native visible Tax/Service labels; recipient source bill count. Migrate unmarked legacy lighting to effective system without overwriting raw legacy value on read; record explicit lighting changes separately and preserve them across style/motion saves. Additive preference-only migration; no ledger writes; retain v95 rollback; 3c paused.
+
 - Latest approved phase3b: apply approved English A/B/C copy with final user corrections; one mobile FAB/desktop top-right add entry and canonical ExpenseEditor (Quick picks, presets, Repeat last inside it), visible linked field labels, dirty-only Discard on Escape/close, default Match device lighting with live OS changes and manual override. Preserve all accounting algorithms and v93 rollback; no 3c header/Home/notification regrouping. Publish after passing checks, then stop for user retest.
 
 - Latest v93 approval supersedes v92 financial jumps: Trip Expenses/Settlement render same financial components and record while keeping space=trip, five-item mobile navigation and tab=expenses/settle. Desktop Trip sidebar expands all permitted secondary entries below divider; Money desktop must also have direct entries. Publish after tests; retain v92 rollback. No accounting/data changes. Stop after v93; copy table before3b.

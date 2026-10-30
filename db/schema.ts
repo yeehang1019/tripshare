@@ -10,6 +10,7 @@ export const userPreferences=sqliteTable('user_preferences',{
   email:text('email').notNull(),
   palette:text('palette').notNull().default('neon'),
   mode:text('mode').notNull().default('light'),
+  lightingExplicit:integer('lighting_explicit').notNull().default(0),
   motion:text('motion').notNull().default('smooth'),
   updatedAt:integer('updated_at').notNull(),
 },t=>[index('user_preferences_email').on(t.email)]);

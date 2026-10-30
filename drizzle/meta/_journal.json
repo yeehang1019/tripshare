@@ -85,6 +85,13 @@
       "when": 1792402128525,
       "tag": "0011_chubby_guardian",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1793342862994,
+      "tag": "0012_gorgeous_prowler",
+      "breakpoints": true
     }
   ]
 }

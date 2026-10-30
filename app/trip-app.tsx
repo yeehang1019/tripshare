@@ -217,6 +217,7 @@ export default function TripApp({ shared = false, authenticatedEmail = "", authe
   useEffect(()=>{if(!undoExpense)return;const timer=setTimeout(()=>{setUndoExpense(null);setNotice("")},5000);return()=>clearTimeout(timer)},[undoExpense]);
   const appearanceSaveQueue=useRef(Promise.resolve());
   useEffect(()=>{if(!notice||notice.length>70)return;const timer=setTimeout(()=>setNotice(""),5000);return()=>clearTimeout(timer)},[notice]);
+  const lightingTouched=useRef(false);
   const appearanceTouched=useRef(false);
   const billDirty = useRef(false);
   const [editorEpoch,setEditorEpoch]=useState(0),[templateEpoch,setTemplateEpoch]=useState(0);
@@ -325,7 +326,7 @@ export default function TripApp({ shared = false, authenticatedEmail = "", authe
     const savedMotion = localStorage.getItem("tripshare-motion");
     const upgradedMotion=localStorage.getItem("tripshare-motion-upgraded")==="yes";
     localStorage.setItem("tripshare-motion-upgraded","yes");
-    setTheme(savedTheme === "light" || savedTheme === "night" ? savedTheme : "system");
+    setTheme(localStorage.getItem("tripshare-lighting-explicit")==="1"&&(savedTheme === "light" || savedTheme === "night") ? savedTheme : "system");
     const restoredPalette = resolvePalette(savedPalette);
     if (restoredPalette) setPalette(restoredPalette);
     if (["full", "smooth", "battery"].includes(savedMotion || "") && (upgradedMotion||savedMotion==="battery")) setMotionMode(savedMotion as MotionMode);
@@ -333,10 +334,10 @@ export default function TripApp({ shared = false, authenticatedEmail = "", authe
       fetch("/api/preferences", { headers: { "X-TripShare-Session": authenticatedSession } })
         .then((response) => response.ok ? response.json() : null)
         .then((preference:any) => {
-          if (!preference || appearanceTouched.current) return;
+          if (!preference) return;
           const syncedPalette = resolvePalette(preference.palette);
-          if (syncedPalette) setPalette(syncedPalette);
-          if (["system", "light", "night"].includes(preference.mode)) setTheme(preference.mode);
+          if (syncedPalette&&!appearanceTouched.current) setPalette(syncedPalette);
+          if (!lightingTouched.current&&["system", "light", "night"].includes(preference.mode)){localStorage.setItem("tripshare-lighting-explicit",preference.lightingExplicit?"1":"0");setTheme(preference.mode);}
           if (["full", "smooth", "battery"].includes(preference.motion) && (upgradedMotion||preference.motion==="battery")) setMotionMode(preference.motion);
         })
         .catch(() => {});
@@ -374,7 +375,8 @@ export default function TripApp({ shared = false, authenticatedEmail = "", authe
     localStorage.setItem("tripshare-motion", motionMode);
     return stopLighting;
   }, [motionMode, palette, theme,workspace.data.style]);
-  function saveAppearance(nextPalette: PaletteName, nextTheme: ThemeMode, nextMotion: MotionMode) {
+  function saveAppearance(nextPalette: PaletteName, nextTheme: ThemeMode, nextMotion: MotionMode, lightingChanged=false) {
+    if(lightingChanged){lightingTouched.current=true;localStorage.setItem("tripshare-lighting-explicit","1")}
     appearanceTouched.current=true;
     setPalette(nextPalette);
     setTheme(nextTheme);
@@ -383,7 +385,7 @@ export default function TripApp({ shared = false, authenticatedEmail = "", authe
       appearanceSaveQueue.current=appearanceSaveQueue.current.catch(()=>{}).then(()=>fetch("/api/preferences", {
         method: "POST",
         headers: { "Content-Type": "application/json", "X-TripShare-Session": authenticatedSession },
-        body: JSON.stringify({ palette: nextPalette, mode: nextTheme, motion: nextMotion }),
+        body: JSON.stringify({ palette: nextPalette, mode: nextTheme, motion: nextMotion, lightingChanged }),
       })).then(response=>{if(!response.ok)throw Error("Appearance save failed")}).catch(()=>{setError("We couldn't save your appearance settings. Your choice still applies on this device.")});
     }
   }
@@ -885,7 +887,7 @@ setPlannerDirty(false);setTemplateDirty(false);
     const run=()=>{clearUnsavedInput();setFocusExpense('');setActivityFilter('');setFocusActivity('');setTab(next)};
     if(editing.current)setConfirm({title:'Leave unsaved input?',description:'Open editors will close. Expense and plan drafts remain recoverable on this browser.',run});else run();
   }
-  function requestCloseBill(){if(busy)return;if(!billDirty.current&&!templateDirty){if(localScope&&bill)removeDraft(localScope,"expense",bill.id);setBill(null);setTemplateSource(null);return}setConfirm({title:"Discard this expense?",description:"Your saved bill will stay unchanged. This draft will be deleted.",run:()=>{if(localScope&&bill)removeDraft(localScope,"expense",bill.id);setBill(null);setTemplateSource(null);setTemplateDirty(false)}})}
+  function requestCloseBill(){if(busy)return;if(!billDirty.current&&!templateDirty){if(localScope&&bill)removeDraft(localScope,"expense",bill.id);setBill(null);setTemplateSource(null);return}setConfirm({title:"Discard this expense?",description:(rec.personal?rec.ownEntries||[]:e?.expenses||[]).some(saved=>saved.id===bill?.id)?"Your saved bill will stay unchanged.":"",run:()=>{if(localScope&&bill)removeDraft(localScope,"expense",bill.id);setBill(null);setTemplateSource(null);setTemplateDirty(false)}})}
   async function saveExpense(entity:Expense){
     const existing=(rec.personal?rec.ownEntries||[]:e?.expenses||[]).some(saved=>saved.id===entity.id);
     if(!await send('expense',{entity,revision:draftRevision}))return false;
@@ -919,30 +921,28 @@ setPlannerDirty(false);setTemplateDirty(false);
           if (!v) setConfirm(null);
         }}
       >
-        <AlertDialogContent>
+        <AlertDialogContent aria-describedby={confirm?.description?"workspace-confirm-description":undefined}>
           <AlertDialogHeader>
             <AlertDialogTitle>{confirm?.title}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {confirm?.description}
-            </AlertDialogDescription>
+            {confirm?.description&&<AlertDialogDescription id="workspace-confirm-description">{confirm.description}</AlertDialogDescription>}
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>{confirm?.title.startsWith("Discard")?"Keep editing":"Cancel"}</AlertDialogCancel>
-            <AlertDialogAction
+            <AlertDialogCancel variant={/^(Discard|Undo|Reverse)/.test(confirm?.title||"")?"default":"outline"}>{confirm?.title.startsWith("Discard")?"Keep editing":/^(Undo|Reverse)/.test(confirm?.title||"")?"Keep payment":"Cancel"}</AlertDialogCancel>
+            <AlertDialogAction variant={/^(Discard|Undo|Reverse)/.test(confirm?.title||"")?"outline":"default"} className={/^(Discard|Undo|Reverse)/.test(confirm?.title||"")?"negative-confirm":undefined}
               onClick={() => {
                 const run = confirm?.run;
                 setConfirm(null);
                 run?.();
               }}
             >
-              {confirm?.title.startsWith("Discard")?"Discard":"Confirm"}
+              {confirm?.title==="Discard this expense?"?"Discard expense":confirm?.title.startsWith("Discard")?"Discard changes":/^(Undo|Reverse)/.test(confirm?.title||"")?"Undo payment":"Confirm"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>);
   const notificationBell=!shared?<NotificationBell session={authenticatedSession} workspace={workspace} onGroup={choose}/>:null;
   const chrome=<WorkspaceChrome records={spaceRecords} selected={rec?.id||""} onGroup={choose} onAppearance={()=>setAppearanceOpen(true)} onSearch={()=>setQuickOpen(true)} onNavigate={navigate} destinations={destinations} tab={tab} style={workspace.data.style} palette={paletteLabels[palette]} event={e} member={!!rec?.personal} railOpen={railOpen} onRailClose={toggleRail} space={space} spaceSwitch={switcher}/>;
-  const appearance=<AppearancePanel open={appearanceOpen} onOpenChange={setAppearanceOpen} workspace={workspace} palette={palette} labels={paletteLabels} mode={theme} motion={motionMode} onChange={(p,m,v)=>saveAppearance(p as PaletteName,m as ThemeMode,v as MotionMode)} shared={shared}/>;
+  const appearance=<AppearancePanel open={appearanceOpen} onOpenChange={setAppearanceOpen} workspace={workspace} palette={palette} labels={paletteLabels} mode={theme} motion={motionMode} onChange={(p,m,v,changed)=>saveAppearance(p as PaletteName,m as ThemeMode,v as MotionMode,changed)} shared={shared}/>;
   const moneyReviews=<>
     {supplierBill&&<SupplierPayment key={supplierBill.expense.id} expense={supplierBill.expense} event={rec.entryContext||e!} busy={busy} onCancel={()=>setSupplierBill(null)} onSave={async entity=>{if(await send('expense',{entity,revision:supplierBill.revision})){setNotice('Payment saved.');celebrateSave();return true}return false}}/>}
     {expenseConflict&&<ExpenseConflict key={expenseConflict.record.revision+expenseConflict.mine.id} base={expenseConflict.base} mine={expenseConflict.mine} latest={expenseConflict.latest} event={expenseConflict.record.entryContext||expenseConflict.record.data} onCancel={()=>setExpenseConflict(null)} onApply={entity=>{
@@ -967,7 +967,7 @@ setPlannerDirty(false);setTemplateDirty(false);
     const owe=view.transfers.filter(t=>t.from===rec.person).reduce((n,t)=>n+t.amount,0);
     const receive=view.transfers.filter(t=>t.to===rec.person).reduce((n,t)=>n+t.amount,0);
     return <CopyAudience owner={!!rec?.owner}><div data-space={space} className={"app member-view workspace-app money-nav-shell"+(railOpen?" rail-open":"")}>{chrome}{appearance}{quickNavigator}{moneyReviews}{confirmationDialog}<MotionLayer scene={rec.id} mode={motionMode} style={workspace.data.style} palette={completeThemes.find(t=>t.style===workspace.data.style)!.palette}/><header><a className="brand" href="/">tripshare<span className="brand-dot">.</span></a><strong>{view.name} · {e?.kind==='trip'?'Trip':'Money'}</strong><div className="header-right">{notificationBell}<button className="quick-launch" aria-label="Search expenses, plans and spaces" onClick={()=>setQuickOpen(true)}><Search size={17}/></button><button className="icon-button rail-toggle" aria-label="Show or hide space details" aria-expanded={railOpen} onClick={toggleRail}><PanelRight size={18}/></button><button className="icon-button mobile-appearance" aria-label="Appearance" onClick={()=>setAppearanceOpen(true)}><Palette size={18}/></button></div></header>
-      <main><div className="mobile-space-switch">{switcher}</div>{notice&&<p role="status">{notice}{undoExpense&&<button className="text-button" disabled={busy} onClick={async()=>{if(await send("deleteExpense",{entity:undoExpense.id})){setUndoExpense(null);setNotice("Expense undone.")}}}>Undo</button>}</p>}{recoveryUI}{invitePrompt&&<section className="panel"><h2>New invitation</h2><button className="primary" disabled={busy} onClick={async()=>{if(await send("acceptInvite",{token:inviteToken})){setInvitePrompt(false);setInviteToken("")}}}>Accept as {user}</button><button className="secondary" onClick={()=>setInvitePrompt(false)}>Dismiss</button></section>}{error&&<p className="message error" role="alert"><CopyError value={error} owner={!!rec?.owner}/></p>}{can("addExpense")&&!bill&&<button className="primary desktop-add-expense" onClick={requestAdd}><Plus size={18}/> Add expense</button>}{bill&&<Dialog open onOpenChange={v=>{if(!v)requestCloseBill()}}><DialogContent className="workspace-editor-sheet" onCloseAutoFocus={event=>{event.preventDefault();requestAnimationFrame(()=>{const control=[...document.querySelectorAll<HTMLButtonElement>('.mobile-quick-add,.desktop-add-expense')].find(node=>node.getClientRects().length>0);control?.focus()})}} onEscapeKeyDown={event=>{event.preventDefault();requestCloseBill()}} onOpenAutoFocus={event=>{event.preventDefault();requestAnimationFrame(()=>document.querySelector<HTMLInputElement>('.expense-editor [data-primary-amount]')?.focus())}} onInteractOutside={v=>v.preventDefault()}><DialogTitle className="sr-only">My expense editor</DialogTitle><DialogDescription className="sr-only">Edit your submitted bill.</DialogDescription>{error&&<p role="alert" className="message error"><CopyError value={error} owner={!!rec?.owner}/></p>}<ExpenseEditor onDirty={dirty=>{billDirty.current=dirty}} stickyActions draftScope={localScope} draftRevision={draftRevision} key={bill.id+editorEpoch} event={{...(rec.entryContext||rec.planning||e!),expenses:rec.ownEntries||[]}} initial={bill} onPreset={openPreparedExpense} quickPicks={<TemplateShelf compact workspace={workspace} event={rec.entryContext||e!} group={rec.id} canAdd busy={busy} source={templateSource} onDirty={setTemplateDirty} onSaved={()=>setTemplateSource(null)} onRecord={async entity=>{openPreparedExpense(entity);return true}}/>} busy={busy} onCancel={requestCloseBill} onSave={saveExpense}/></DialogContent></Dialog>}{["More","Tools"].includes(tab)?<MoneyMore allowed={destinations} onNavigate={navigate}/>:<FocusSections locked={templateDirty} key={rec.id+jumpEpoch} initial={focusExpense?'expenses':undefined} label="My Money sections" sections={[{id:'overview',label:'My overview',render:()=>spendingOverview()},{id:'expenses',label:'My expenses',render:()=> <><section className="panel"><h1>{e?.name}</h1><p>Your own spending and outstanding payments</p>
+      <main><div className="mobile-space-switch">{switcher}</div>{notice&&<p role="status">{notice}{undoExpense&&<button className="text-button" disabled={busy} onClick={async()=>{if(await send("deleteExpense",{entity:undoExpense.id})){setUndoExpense(null);setNotice("Expense undone.")}}}>Undo</button>}</p>}{recoveryUI}{invitePrompt&&<section className="panel"><h2>New invitation</h2><button className="primary" disabled={busy} onClick={async()=>{if(await send("acceptInvite",{token:inviteToken})){setInvitePrompt(false);setInviteToken("")}}}>Accept as {user}</button><button className="secondary" onClick={()=>setInvitePrompt(false)}>Dismiss</button></section>}{error&&<p className="message error" role="alert"><CopyError value={error} owner={!!rec?.owner}/></p>}{can("addExpense")&&!bill&&<button className="primary desktop-add-expense" onClick={requestAdd}><Plus size={18}/> Add expense</button>}{bill&&<Dialog open onOpenChange={v=>{if(!v)requestCloseBill()}}><DialogContent className="workspace-editor-sheet" showCloseButton={false} onCloseAutoFocus={event=>{event.preventDefault();requestAnimationFrame(()=>{const control=[...document.querySelectorAll<HTMLButtonElement>('.mobile-quick-add,.desktop-add-expense')].find(node=>node.getClientRects().length>0);control?.focus()})}} onEscapeKeyDown={event=>{event.preventDefault();requestCloseBill()}} onOpenAutoFocus={event=>{event.preventDefault();requestAnimationFrame(()=>document.querySelector<HTMLInputElement>('.expense-editor [data-primary-amount]')?.focus())}} onInteractOutside={v=>v.preventDefault()}><DialogTitle className="sr-only">My expense editor</DialogTitle><DialogDescription className="sr-only">Edit your submitted bill.</DialogDescription>{error&&<p role="alert" className="message error"><CopyError value={error} owner={!!rec?.owner}/></p>}<ExpenseEditor onDirty={dirty=>{billDirty.current=dirty}} stickyActions draftScope={localScope} draftRevision={draftRevision} key={bill.id+editorEpoch} event={{...(rec.entryContext||rec.planning||e!),expenses:rec.ownEntries||[]}} initial={bill} onPreset={openPreparedExpense} quickPicks={<TemplateShelf compact workspace={workspace} event={rec.entryContext||e!} group={rec.id} canAdd busy={busy} source={templateSource} onDirty={setTemplateDirty} onSaved={()=>setTemplateSource(null)} onRecord={async entity=>{openPreparedExpense(entity);return true}}/>} busy={busy} onCancel={requestCloseBill} onSave={saveExpense}/></DialogContent></Dialog>}{["More","Tools"].includes(tab)?<MoneyMore allowed={destinations} onNavigate={navigate}/>:<FocusSections locked={templateDirty} key={rec.id+jumpEpoch} initial={focusExpense?'expenses':undefined} label="My Money sections" sections={[{id:'overview',label:'My overview',render:()=>spendingOverview()},{id:'expenses',label:'My expenses',render:()=> <><section className="panel"><h1>{e?.name}</h1><p>Your own spending and outstanding payments</p>
         <select aria-label="Choose a Money space" value={rec.id} onChange={x=>choose(x.target.value)}>{records.map(x=><option value={x.id} key={x.id}>{x.data.name}</option>)}</select>
         <div className="stats personal-stats"><div className="stat featured"><span>Consumed · selected dates</span><strong>{fmt(monthExpenses.reduce((n,b)=>n+b.consumed,0))}</strong></div><div className="stat"><span>Paid · selected dates</span><strong>{fmt(monthExpenses.reduce((n,b)=>n+b.paid,0))}</strong></div><div className="stat"><span>Need to pay · all time</span><strong>{fmt(owe)}</strong></div><div className="stat"><span>Need to receive · all time</span><strong>{fmt(receive)}</strong></div></div>
       </section><section className="panel"><h2>My expenses</h2><div className="checks"><Field label="From"><input type="date" value={start} onChange={x=>setStart(x.target.value)}/></Field><Field label="Until"><input type="date" value={end} onChange={x=>setEnd(x.target.value)}/></Field><Field label="Description"><input value={merchant} onChange={x=>setMerchant(x.target.value)}/></Field><Pick label="Category" value={cat} options={['All',...categories]} onChange={setCat}/><Pick label="Payment timing" value={statusFilter} options={['All','paid','prepaid','postpaid']} onChange={setStatusFilter}/><Pick label="Cash payer" value={payerFilter} options={[{id:'',name:'Any payer'},{id:rec.person||'mine',name:'I paid'}]} onChange={setPayerFilter}/>
@@ -1035,7 +1035,7 @@ setPlannerDirty(false);setTemplateDirty(false);
         </div>
       </header>
       <AlertDialog open={installHelp} onOpenChange={setInstallHelp}>
-        <AlertDialogContent>
+        <AlertDialogContent aria-describedby={confirm?.description?"workspace-confirm-description":undefined}>
           <AlertDialogHeader>
             <AlertDialogTitle>Install TripShare</AlertDialogTitle>
             <AlertDialogDescription>
@@ -1476,7 +1476,7 @@ setPlannerDirty(false);setTemplateDirty(false);
 
                 ]}/>}
                 {bill && (
-                  <Dialog open onOpenChange={v=>{if(!v)requestCloseBill()}}><DialogContent className="workspace-editor-sheet" onCloseAutoFocus={event=>{event.preventDefault();requestAnimationFrame(()=>{const control=[...document.querySelectorAll<HTMLButtonElement>('.mobile-quick-add,.desktop-add-expense')].find(node=>node.getClientRects().length>0);control?.focus()})}} onEscapeKeyDown={event=>{event.preventDefault();requestCloseBill()}} onOpenAutoFocus={event=>{event.preventDefault();requestAnimationFrame(()=>document.querySelector<HTMLInputElement>('.expense-editor [data-primary-amount]')?.focus())}} onInteractOutside={v=>v.preventDefault()}><DialogTitle className="sr-only">Expense editor</DialogTitle><DialogDescription className="sr-only">Record or edit one expense, then return to your selected record.</DialogDescription>{error&&<p role="alert" className="message error"><CopyError value={error} owner={!!rec?.owner}/></p>}{bill.activity&&<div className="space-link-note editor-origin"><MapPinned size={18}/><div><b>{space==='trip'?"Record trip expense":"Money · linked to your trip"}</b><p>{e.activities.find(a=>a.id===bill.activity)?.name||'Trip plan'} · {bill.date}. {e.expenses.some(b=>b.id===bill.id)?"Update this bill; it will not create a second expense.":"Saved once and shared with Money."}</p></div>{space==='money'&&<button className="text-button" onClick={()=>switchSpace('trip',bill.activity)}>Return to Trip</button>}</div>}<ExpenseEditor onDirty={dirty=>{billDirty.current=dirty}} stickyActions draftScope={localScope} draftRevision={draftRevision}
+                  <Dialog open onOpenChange={v=>{if(!v)requestCloseBill()}}><DialogContent className="workspace-editor-sheet" showCloseButton={false} onCloseAutoFocus={event=>{event.preventDefault();requestAnimationFrame(()=>{const control=[...document.querySelectorAll<HTMLButtonElement>('.mobile-quick-add,.desktop-add-expense')].find(node=>node.getClientRects().length>0);control?.focus()})}} onEscapeKeyDown={event=>{event.preventDefault();requestCloseBill()}} onOpenAutoFocus={event=>{event.preventDefault();requestAnimationFrame(()=>document.querySelector<HTMLInputElement>('.expense-editor [data-primary-amount]')?.focus())}} onInteractOutside={v=>v.preventDefault()}><DialogTitle className="sr-only">Expense editor</DialogTitle><DialogDescription className="sr-only">Record or edit one expense, then return to your selected record.</DialogDescription>{error&&<p role="alert" className="message error"><CopyError value={error} owner={!!rec?.owner}/></p>}{bill.activity&&<div className="space-link-note editor-origin"><MapPinned size={18}/><div><b>{space==='trip'?"Record trip expense":"Money · linked to your trip"}</b><p>{e.activities.find(a=>a.id===bill.activity)?.name||'Trip plan'} · {bill.date}. {e.expenses.some(b=>b.id===bill.id)?"Update this bill; it will not create a second expense.":"Saved once and shared with Money."}</p></div>{space==='money'&&<button className="text-button" onClick={()=>switchSpace('trip',bill.activity)}>Return to Trip</button>}</div>}<ExpenseEditor onDirty={dirty=>{billDirty.current=dirty}} stickyActions draftScope={localScope} draftRevision={draftRevision}
                     key={bill.id+editorEpoch}
                     event={rec.entryContext||e}
                     initial={bill} onPreset={openPreparedExpense} quickPicks={<TemplateShelf compact workspace={workspace} event={rec.entryContext||e!} group={rec.id} canAdd busy={busy} source={templateSource} onDirty={setTemplateDirty} onSaved={()=>setTemplateSource(null)} onRecord={async entity=>{openPreparedExpense(entity);return true}}/>}

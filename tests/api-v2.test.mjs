@@ -61,6 +61,7 @@ async function harness(){const sqlite=new DatabaseSync(':memory:');for(const f o
 
  const templateLogic=compile('../lib/plan-templates.ts');modules['@/lib/plan-templates']=templateLogic;await templateLogic.link(s=>s==='./ledger'?modules['@/lib/ledger']:modules[s]);await templateLogic.evaluate();
  const templates=compile('../app/api/plan-templates/route.ts');await templates.link(s=>modules[s]);await templates.evaluate();
+ const appearance=compile('../app/api/preferences/route.ts');await appearance.link(s=>modules[s]);await appearance.evaluate();
  const preferences=compile('../app/api/trip-preferences/route.ts');await preferences.link(s=>modules[s]);await preferences.evaluate();
  const checkpointApi=compile('../app/api/checkpoints/route.ts');await checkpointApi.link(s=>modules[s]);await checkpointApi.evaluate();
  const workspace=compile('../app/api/workspace/route.ts');await workspace.link(s=>modules[s]);await workspace.evaluate();
@@ -92,7 +93,7 @@ async function harness(){const sqlite=new DatabaseSync(':memory:');for(const f o
  const portalRead=async(group,person,email='owner@example.com',etag='')=>{const r=await memberPortal.namespace.GET(new Request('https://trip.test/api/member-portal?'+new URLSearchParams({group,person}),{headers:{...(email?{'oai-authenticated-user-id':email,'oai-authenticated-user-email':email}:{}),...(etag?{'If-None-Match':etag}:{})}}));return {status:r.status,etag:r.headers.get('ETag'),cache:r.headers.get('Cache-Control'),...(r.status===304?{}:await r.json())}};
  const conditionalGet=async(etag='',email='owner@example.com')=>{const r=await trips.namespace.GET(new Request('https://trip.test/api/trips',{headers:{'oai-authenticated-user-email':email,'oai-authenticated-user-id':email,...(etag?{'If-None-Match':etag}:{})}}));return {status:r.status,etag:r.headers.get('ETag'),requestId:r.headers.get('X-Request-ID'),...(r.status===304?{}:await r.json())}};
  const checkpointCall=async(method,body={},email='owner@example.com')=>{const query=method==='GET'?'?'+new URLSearchParams(body):'';const r=await checkpointApi.namespace[method](new Request('https://trip.test/api/checkpoints'+query,{method,headers:{'oai-authenticated-user-email':email,'oai-authenticated-user-id':email,'Content-Type':'application/json',Origin:'https://trip.test'},...(method==='POST'?{body:JSON.stringify(body)}:{})}));return {status:r.status,...await r.json()}};
- return {getQuery:async(query,email='owner@example.com')=>{const r=await trips.namespace.GET(new Request('https://trip.test/api/trips?'+query,{headers:{'oai-authenticated-user-email':email,'oai-authenticated-user-id':email}}));return {status:r.status,...await r.json()}},getLegacy:async(email)=>{const r=await legacy.namespace.GET(new Request('https://trip.test/api/trips',{headers:{'oai-authenticated-user-email':email,'oai-authenticated-user-id':email}}));return r.json()},resetQueries:()=>{queryCount=0},queries:()=>queryCount,portalRead,checkpointCall,conditionalGet,templateRead,templateSave,preferenceRead,preferenceSave,documentRead,documentSave,notificationRead,photosRead,photosSave,workspaceRead,workspaceSave,payoutCall,post,get,getWithCookie,postWithCookie,getWithSession,postWithSession,read,syncRead,integrationEnv,sqlite};}
+ return {appearanceRead:async(email="owner@example.com")=>{const r=await appearance.namespace.GET(req({},email));return {status:r.status,...await r.json()}},appearanceSave:async(body,email="owner@example.com")=>{const r=await appearance.namespace.POST(req(body,email));return {status:r.status,...await r.json()}},getQuery:async(query,email='owner@example.com')=>{const r=await trips.namespace.GET(new Request('https://trip.test/api/trips?'+query,{headers:{'oai-authenticated-user-email':email,'oai-authenticated-user-id':email}}));return {status:r.status,...await r.json()}},getLegacy:async(email)=>{const r=await legacy.namespace.GET(new Request('https://trip.test/api/trips',{headers:{'oai-authenticated-user-email':email,'oai-authenticated-user-id':email}}));return r.json()},resetQueries:()=>{queryCount=0},queries:()=>queryCount,portalRead,checkpointCall,conditionalGet,templateRead,templateSave,preferenceRead,preferenceSave,documentRead,documentSave,notificationRead,photosRead,photosSave,workspaceRead,workspaceSave,payoutCall,post,get,getWithCookie,postWithCookie,getWithSession,postWithSession,read,syncRead,integrationEnv,sqlite};}
 
 test('Personal portal authorizes the bound member, projects only their details and refreshes the same link after edits',async()=>{
  const h=await harness();try{
@@ -620,5 +621,25 @@ test('Notification count/list use one read, match original visibility and recent
   const readAt='2026-09-01T00:01:00.000Z',w=await h.workspaceRead('b@example.com');await h.workspaceSave({revision:w.revision,action:'notificationsRead',readAt},'b@example.com');assert.equal((await h.notificationRead('b@example.com',true)).unread,expected['b@example.com'].filter(x=>x.date>readAt).length);
   const row=h.sqlite.prepare('SELECT id,data FROM trips LIMIT 1').get(),event=JSON.parse(row.data);event.people.find(p=>p.id==='B').active=false;h.sqlite.prepare('UPDATE trips SET data=? WHERE id=?').run(JSON.stringify(event),row.id);assert.equal((await h.notificationRead('b@example.com')).notifications.some(x=>x.group===row.id),false);
   await h.post({action:'revoke',id:row.id,grant:row.id+':b@example.com'});assert.equal((await h.notificationRead('b@example.com')).notifications.some(x=>x.group===row.id),false);
+ }finally{h.sqlite.close()}
+});
+
+
+test('Appearance migrates unmarked legacy values and preserves explicit choices across unrelated saves',async()=>{
+ const h=await harness();try{
+ h.sqlite.prepare("INSERT INTO user_preferences(user,email,palette,mode,motion,updated_at) VALUES(?,?,?,?,?,?)").run('owner@example.com','owner@example.com','cozy','light','smooth',1);
+ assert.equal((await h.appearanceRead()).mode,'system');
+ assert.equal(h.sqlite.prepare('SELECT mode FROM user_preferences').get().mode,'light');
+ const base={palette:'cozy',mode:'night',motion:'smooth'};
+ for(const mode of ['night','light','system']){
+ assert.equal((await h.appearanceSave({...base,mode,lightingChanged:true})).status,200);
+ assert.equal((await h.appearanceRead()).mode,mode);
+ assert.equal((await h.appearanceRead()).lightingExplicit,true);
+ await h.appearanceSave({...base,mode:'light',palette:'plum',motion:'battery'});
+ assert.equal((await h.appearanceRead()).mode,mode);
+ }
+ assert.equal((await h.appearanceRead('other@example.com')).mode,'system');
+ assert.equal((await h.appearanceSave({...base,lightingChanged:'yes'})).status,400);
+ assert.equal((await h.appearanceSave(base,'')).status,401);
  }finally{h.sqlite.close()}
 });
