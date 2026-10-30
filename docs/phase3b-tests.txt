@@ -19,26 +19,26 @@ Running bounded vinext build...
 [1/5] analyze client references...
 [2Ktransforming...✓ 169 modules transformed.
 rendering chunks...
-✓ built in 1.17s
+✓ built in 1.06s
 [2/5] analyze server references...
 [2Ktransforming...✓ 688 modules transformed.
 rendering chunks...
-✓ built in 836ms
+✓ built in 664ms
 [3/5] build rsc environment...
 [2Ktransforming...✓ 175 modules transformed.
 rendering chunks...
 computing gzip size...
-✓ built in 1.19s
+✓ built in 924ms
 [4/5] build client environment...
 [2Ktransforming...✓ 2453 modules transformed.
 rendering chunks...
 computing gzip size...
-✓ built in 1.77s
+✓ built in 1.62s
 [5/5] build ssr environment...
 [2Ktransforming...✓ 695 modules transformed.
 rendering chunks...
 computing gzip size...
-✓ built in 1.30s
+✓ built in 1.18s
 [0m
   Route (app)
   ┌ ƒ /                              
@@ -67,201 +67,199 @@ computing gzip size...
 
   Build complete. Run `vinext start` to start the production server.
 
-(node:159) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(node:129) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
 (Use `node --trace-warnings ...` to show where the warning was created)
-✔ Only owner can delete event; stale deletion preserves shares; successful deletion removes access (808.723101ms)
-✔ Trip planning persists bookings, dates and tasks; viewers cannot edit and stale writes fail (413.743927ms)
-✔ Personal portal authorizes the bound member, projects only their details and refreshes the same link after edits (282.40741ms)
-✔ API roles, old data migration, stale writes, private read links and revocation (442.754811ms)
-✔ Shared PIN brute-force attempts are locked and nonmembers cannot list events (476.12621ms)
-✔ Owner sees and manages every event across devices when authenticated user IDs differ (290.939507ms)
-✔ Mobile session cookie keeps cloud trips available when embedded fetch omits auth headers (290.159986ms)
-✔ Embedded mobile session header loads and saves without relying on cookies (259.723325ms)
-✔ Ordinary member and shared link only expose the linked personal record (251.25088ms)
-✔ Personal sync paginates Daily and Trip, isolates B, records repayments and edits with tombstones (338.685276ms)
-✔ Owner retains full access and their email member binding in both groups (254.211176ms)
-✔ Payment timing updates the same personal sync key and blocks invalid backward transitions (192.51279ms)
-✔ Split removal tombstones retain original dates and old cursors can be retried (217.658817ms)
-✔ Invitations bind the intended account once, enforce email and prevent member takeover (217.591717ms)
-✔ Personal workspace templates persist independently, do not book expenses, and reject stale writes (184.586008ms)
-✔ Payout details are visible only to the bound owner and selected group members, even to group owner (257.944628ms)
-✔ New settlement payments preserve original payees and reject indirect simplified routes (250.386802ms)
-✔ Pairwise confirmation is authorized, retry-safe, revision-checked and isolated from other groups (225.595096ms)
-✔ Trip photos use authenticated storage, reject spoofed images and isolate groups (244.199441ms)
-✔ Personal Money editing and shared Trip planning do not grant ledger or membership control (225.984569ms)
-✔ History restores an expense with original repayment allocations and rejects unrelated editors (200.657325ms)
-✔ Travel kit is validated, shared with trip members, and never creates Money debt (198.659041ms)
-✔ Booking attachments require trip authorization, validate actual bytes and download as attachments (236.40936ms)
-✔ In-app notifications reveal only related Money changes and disappear after access is revoked (228.066372ms)
-✔ Quick Pick pinning and notification read state persist per account with stale-write protection (214.998192ms)
-✔ Revoking login access invalidates accepted invites and inactive members cannot accept old links (238.783608ms)
-✔ Quick Pick split preferences persist privately and reject invalid or cross-group combinations (204.300747ms)
-✔ Supplier Paid update preserves the original expense and incremental sync key; server rejects stale or unauthorized writes (220.993315ms)
-✔ Trip preferences are isolated per signed-in member, visible only to owner, and excluded from shared/group data (256.214837ms)
-✔ Private preferences require a real bound member, isolate trips and cascade only with their own trip (197.126379ms)
-✔ Plan library is private, strips booking fields, enforces revisions and per-account limits (201.252571ms)
-✔ Booking intent round-trips through authorized plan saves and retired capacity does not block joining (203.865409ms)
-✔ Template batch append is permission checked, atomic, repeat-safe and never creates Money records (190.719764ms)
-✔ Competing plan batches cannot both append against one revision (190.064009ms)
-✔ Flight timezones persist across the date line; deleting a linked plan clears only planning relationships (175.125225ms)
-✔ New planner storage failures return traceable 503s without exposing SQL or submitted private text (159.505859ms)
-✔ Bulk plan shift is atomic, permission checked, stale safe and does not change Money (149.952457ms)
-✔ Bulk bill metadata preserves finances and emits every updated record through original paginated cursors (153.44687ms)
-✔ Supplier installments update stable sync identity and protect existing repayments and other groups (144.929102ms)
-✔ Removing a supplier-only payer emits a tombstone through the existing cursor (130.210322ms)
-✔ Conditional group reads recheck authorization and invalidate on permission changes without a trip revision (142.149052ms)
-✔ Concurrent expense writes create sync history only for the winning mutation (129.712554ms)
-✔ Refund and cancellation updates preserve sync identity and retain actual repayments (200.294401ms)
-✔ Plan B switch retains linked bills, requires planning permission and retries only the same alternative (183.065752ms)
-✔ Category budgets are owner-only, isolated from planner projections and do not post Money records (187.497392ms)
-✔ Checkpoint restore is owner-only, verified, CAS safe, repeat safe and preserves access plus financial tombstones (178.443586ms)
-✔ Checkpoint retention is bounded and changed rosters cannot be restored in place (181.811187ms)
-✔ Core storage failures return a problem reference without SQL or submitted content (155.218305ms)
-✔ A failed sync insertion rolls back the group update and mutation marker (155.127903ms)
-✔ A supplier refund after full friend repayment creates and settles an exact reverse credit (180.217251ms)
-✔ Ordinary members receive personal cost sources and safe itineraries, never admin booking records (171.490663ms)
-✔ Pocket integration exports PayLater debt only for its payer and fee is attributed to the friend (162.271809ms)
-✔ Selected-bill batches are atomic, source-bound, permission checked and idempotent with undo and sync (175.084269ms)
-✔ Concurrent batch confirmations have one CAS winner; failed sync rolls back every payment (153.230777ms)
-✔ N+1 batched GET equals frozen v79 response for owner, collaborator, member and unauthorized accounts; <=4 header-auth queries (204.994069ms)
-✔ Scoped group and lightweight directory preserve permissions without exposing other bills (185.254703ms)
-✔ Early304 uses one metadata read; cash, permissions, active member and binding key changes invalidate it (202.268199ms)
-✔ Notification count/list use one read, match original visibility and recent-100 policy across groups (229.065221ms)
+✔ Only owner can delete event; stale deletion preserves shares; successful deletion removes access (665.024704ms)
+✔ Trip planning persists bookings, dates and tasks; viewers cannot edit and stale writes fail (346.417711ms)
+✔ Personal portal authorizes the bound member, projects only their details and refreshes the same link after edits (266.230682ms)
+✔ API roles, old data migration, stale writes, private read links and revocation (409.840153ms)
+✔ Shared PIN brute-force attempts are locked and nonmembers cannot list events (424.98049ms)
+✔ Owner sees and manages every event across devices when authenticated user IDs differ (268.332582ms)
+✔ Mobile session cookie keeps cloud trips available when embedded fetch omits auth headers (250.667471ms)
+✔ Embedded mobile session header loads and saves without relying on cookies (251.703925ms)
+✔ Ordinary member and shared link only expose the linked personal record (242.923061ms)
+✔ Personal sync paginates Daily and Trip, isolates B, records repayments and edits with tombstones (363.398393ms)
+✔ Owner retains full access and their email member binding in both groups (210.317173ms)
+✔ Payment timing updates the same personal sync key and blocks invalid backward transitions (180.252119ms)
+✔ Split removal tombstones retain original dates and old cursors can be retried (174.027009ms)
+✔ Invitations bind the intended account once, enforce email and prevent member takeover (198.057632ms)
+✔ Personal workspace templates persist independently, do not book expenses, and reject stale writes (143.131094ms)
+✔ Payout details are visible only to the bound owner and selected group members, even to group owner (208.726424ms)
+✔ New settlement payments preserve original payees and reject indirect simplified routes (250.379318ms)
+✔ Pairwise confirmation is authorized, retry-safe, revision-checked and isolated from other groups (250.490881ms)
+✔ Trip photos use authenticated storage, reject spoofed images and isolate groups (219.519151ms)
+✔ Personal Money editing and shared Trip planning do not grant ledger or membership control (240.128622ms)
+✔ History restores an expense with original repayment allocations and rejects unrelated editors (221.597559ms)
+✔ Travel kit is validated, shared with trip members, and never creates Money debt (222.734836ms)
+✔ Booking attachments require trip authorization, validate actual bytes and download as attachments (193.681665ms)
+✔ In-app notifications reveal only related Money changes and disappear after access is revoked (161.16133ms)
+✔ Quick Pick pinning and notification read state persist per account with stale-write protection (211.538415ms)
+✔ Revoking login access invalidates accepted invites and inactive members cannot accept old links (228.648818ms)
+✔ Quick Pick split preferences persist privately and reject invalid or cross-group combinations (210.148851ms)
+✔ Supplier Paid update preserves the original expense and incremental sync key; server rejects stale or unauthorized writes (218.215087ms)
+✔ Trip preferences are isolated per signed-in member, visible only to owner, and excluded from shared/group data (231.798241ms)
+✔ Private preferences require a real bound member, isolate trips and cascade only with their own trip (222.447695ms)
+✔ Plan library is private, strips booking fields, enforces revisions and per-account limits (231.104021ms)
+✔ Booking intent round-trips through authorized plan saves and retired capacity does not block joining (190.813214ms)
+✔ Template batch append is permission checked, atomic, repeat-safe and never creates Money records (198.531629ms)
+✔ Competing plan batches cannot both append against one revision (198.112803ms)
+✔ Flight timezones persist across the date line; deleting a linked plan clears only planning relationships (204.660396ms)
+✔ New planner storage failures return traceable 503s without exposing SQL or submitted private text (186.044728ms)
+✔ Bulk plan shift is atomic, permission checked, stale safe and does not change Money (180.700011ms)
+✔ Bulk bill metadata preserves finances and emits every updated record through original paginated cursors (205.185327ms)
+✔ Supplier installments update stable sync identity and protect existing repayments and other groups (204.628159ms)
+✔ Removing a supplier-only payer emits a tombstone through the existing cursor (152.791527ms)
+✔ Conditional group reads recheck authorization and invalidate on permission changes without a trip revision (187.096917ms)
+✔ Concurrent expense writes create sync history only for the winning mutation (229.295029ms)
+✔ Refund and cancellation updates preserve sync identity and retain actual repayments (225.55411ms)
+✔ Plan B switch retains linked bills, requires planning permission and retries only the same alternative (141.569136ms)
+✔ Category budgets are owner-only, isolated from planner projections and do not post Money records (140.621372ms)
+✔ Checkpoint restore is owner-only, verified, CAS safe, repeat safe and preserves access plus financial tombstones (176.427123ms)
+✔ Checkpoint retention is bounded and changed rosters cannot be restored in place (146.88024ms)
+✔ Core storage failures return a problem reference without SQL or submitted content (118.35227ms)
+✔ A failed sync insertion rolls back the group update and mutation marker (137.254308ms)
+✔ A supplier refund after full friend repayment creates and settles an exact reverse credit (164.118221ms)
+✔ Ordinary members receive personal cost sources and safe itineraries, never admin booking records (161.98008ms)
+✔ Pocket integration exports PayLater debt only for its payer and fee is attributed to the friend (140.356582ms)
+✔ Selected-bill batches are atomic, source-bound, permission checked and idempotent with undo and sync (169.914028ms)
+✔ Concurrent batch confirmations have one CAS winner; failed sync rolls back every payment (140.620668ms)
+✔ N+1 batched GET equals frozen v79 response for owner, collaborator, member and unauthorized accounts; <=4 header-auth queries (149.72309ms)
+✔ Scoped group and lightweight directory preserve permissions without exposing other bills (145.307765ms)
+✔ Early304 uses one metadata read; cash, permissions, active member and binding key changes invalidate it (182.39692ms)
+✔ Notification count/list use one read, match original visibility and recent-100 policy across groups (253.065472ms)
+✔ All bills share one member row and exact per-bill subtotals, column totals and grand total (27.359755ms)
+✔ Missing participation produces zero cells without shifting another person’s values, and FX totals stay in settlement currency (1.018599ms)
+✔ Mine and authorized personal projection combine only related records and print all of them (13.38269ms)
+✔ Combined printing retains wide column groups without silently dropping items and escapes labels (3.828673ms)
 WebSocket server error: Port 24678 is already in use
-2:20:08 PM [vite] (client) Re-optimizing dependencies because vite config has changed
-✔ All bills share one member row and exact per-bill subtotals, column totals and grand total (29.222485ms)
-✔ Missing participation produces zero cells without shifting another person’s values, and FX totals stay in settlement currency (9.156522ms)
-✔ Mine and authorized personal projection combine only related records and print all of them (10.41257ms)
-✔ Combined printing retains wide column groups without silently dropping items and escapes labels (4.947209ms)
-2:20:08 PM [vite] (client) Re-optimizing dependencies because vite config has changed
-✔ Personal hub counts incurred consumption once and separates friends from unpaid supplier bills (28.823798ms)
-✔ Templates are available only in their selected groups and do not auto-create expenses (17.892455ms)
-✔ Settlement comparison is available without booking a payment (1.823403ms)
-✔ Trip funding counts booked estimates, deposits and supplier obligations without doubling them (2.457696ms)
-✔ Personal month defaults use local calendar boundaries including leap February (0.961714ms)
-✔ Group chrome shows personal scope without revealing a group member count (5.530406ms)
-✔ Group context is collapsed until requested (1.900346ms)
-✔ Recent context uses personal snapshot rather than underlying group expenses (0.355343ms)
-✔ Recent group context omits deleted expenses and sorts newest first (1.867388ms)
-✔ Only three complete themes remain selectable (0.291219ms)
-✔ All six complete theme modes keep text and primary buttons readable (1.458016ms)
-✔ Trip and Money have distinct navigation and personal members keep personal scope (0.233343ms)
-✔ Trip picker excludes daily groups and personal-only snapshots (0.207486ms)
-✔ Linked Trip consumption excludes estimates, deposits, deleted bills and repayments (2.667284ms)
-✔ Trip landing never displays daily or restricted group content (2.010197ms)
-✔ Owner has a dedicated People & Access workspace; collaborators never see it (14.372376ms)
-✔ Duplicate bill hint compares a real amount and requires explicit acknowledgment (39.58091ms)
-✔ Travel kit and handbook keep planning separate from the ledger and escape text (3.970542ms)
-✔ Settlement exports offer current outstanding CSV and printable statements (0.464303ms)
-✔ Trip sidebar opens dedicated planner sections without duplicating internal navigation (19.317801ms)
-✔ Planner compact view and full cost view separate estimates from bills and preserve privacy (26.090687ms)
-✔ Planner opens the requested date rather than resetting to the first travel day (13.567562ms)
-✔ Focus sections render only the active section and leave expensive secondary sections unmounted (0.646381ms)
-✔ Master detail paginates six rows, renders one selected detail and falls back after filtering (5.198078ms)
-✔ Hybrid planner keeps the default overview short and displays only one detailed booking (25.754793ms)
-✔ Section switching is locked while a Quick Pick or trip draft is unsaved (0.594235ms)
-✔ Top-of-sheet Save keeps the existing edit confirmation requirement (22.664626ms)
-✔ Hybrid itinerary keeps drag targets in the list and excludes ongoing stays from ordering (1.493918ms)
-✔ Daily hotel rows distinguish check-in, overnight stay and timed checkout without changing the booking (43.082326ms)
-✔ Member navigation hides booking and group Money management while delegated managers retain their scope (0.223689ms)
-✔ Simple itinerary shows selected-day hotel phases and readable notes without booking controls or credentials (40.157483ms)
-✔ Personal Money uses member IDs with duplicate names and exposes only related bill and repayment sources (60.576945ms)
-✔ Member itinerary shows remarks directly without redundant headings, routes or a duplicate overnight entry (4.205608ms)
-✔ Restored full Admin sidebar exposes every allowed destination without a More-only gateway (7.959811ms)
-✔ Restored detailed plan dialog retains busy locking and never retries a failed commit implicitly (0.501478ms)
-✔ Trip has one contextual add entry and keeps detailed functions without duplicate quick-add buttons (36.299487ms)
-✔ Trip tools are collapsed with task descriptions and preserve authorization without a floating dock (29.119222ms)
-✔ New Trip creation is above trip context, separate from plan additions, and guarded against unsaved input (0.928295ms)
-✔ Responsive Trip rules use viewport width, safe areas and readable controls from 320 through 480 CSS pixels (28.47201ms)
-✔ One Itinerary destination supports day and all-date booking modes without changing records (38.209157ms)
-✔ Personal trip link uses stable IDs and its read-only portal shows only the selected member and group total (36.285275ms)
-✔ Remarks turn complete HTTP(S) map links into safe anchors while retaining escaped text and line breaks (2.625142ms)
-✔ Data and ETag survive reload under the same account; another account cannot restore them (1.479828ms)
-✔ Expired/corrupt data is rejected, removal/clear revoke stored data, blocked storage is harmless (0.707061ms)
-✔ Directory placeholder has complete schema2 arrays and preserves Daily/Trip without financial data (4.634208ms)
-✔ URL group starts while directory is unresolved; rejected discarded read is handled (0.937659ms)
-✔ RM800 / 8: consumed, cash paid, outstanding and conservation (26.292634ms)
-✔ RM800 / 6 never loses cents (0.492955ms)
-✔ Treat keeps consumption; different cash payer is reimbursed by host (3.714285ms)
-✔ Restaurant personal + selected sharing (0.478264ms)
-✔ Tax/service exemptions and receipt mismatch validation (0.607504ms)
-✔ Custom amount/shares/percent retain charges (0.594495ms)
-✔ Voucher benefit personal, shared and reimbursable contribution (1.849842ms)
-✔ Voucher cannot silently become a negative consumption (0.279732ms)
-✔ Multiple payers and partial settlement (1.052068ms)
-✔ Settlement preserves each actual payee (0.422431ms)
-✔ Amount expressions accept calculator-style input (0.441389ms)
-✔ Actual card debit + foreign rounding and zero-decimal currency (0.472616ms)
-✔ Changing an old expense does not turn its repayment into credit on newer bills (4.468935ms)
-✔ Repayment stays attached to the old expense and never discounts a newer bill (3.501051ms)
-✔ Settlement details show the exact remaining source expenses (0.446547ms)
-✔ Legacy repayment is frozen onto the oldest matching expense before changes (0.398066ms)
-✔ Inactive people do not change historical consumption (0.313791ms)
-✔ Soft delete / restore and permissions (0.469651ms)
-✔ Deterministic cent conservation across discounts, tax and voucher (7.201486ms)
-✔ Selected item discount is proportional and excludes unrelated item (0.481558ms)
-✔ Invalid negative split rejected (0.168288ms)
-✔ Postpaid and prepaid distinguish consumption, cash and supplier obligations (1.773369ms)
-✔ Repeat keeps targeted item discounts and exact personal shares while issuing new bill and item IDs (0.762232ms)
-✔ Repeating all-item discounts preserves that scope, and broken item references are never widened silently (0.35348ms)
-✔ Every Money destination round-trips without losing group/hash; denied and invalid routes safely fall back (11.367485ms)
+✔ Personal hub counts incurred consumption once and separates friends from unpaid supplier bills (25.273061ms)
+✔ Templates are available only in their selected groups and do not auto-create expenses (15.529999ms)
+✔ Settlement comparison is available without booking a payment (1.641034ms)
+✔ Trip funding counts booked estimates, deposits and supplier obligations without doubling them (2.313042ms)
+✔ Personal month defaults use local calendar boundaries including leap February (1.053951ms)
+✔ Group chrome shows personal scope without revealing a group member count (5.210055ms)
+✔ Group context is collapsed until requested (1.691398ms)
+✔ Recent context uses personal snapshot rather than underlying group expenses (0.380821ms)
+✔ Recent group context omits deleted expenses and sorts newest first (1.943569ms)
+✔ Only three complete themes remain selectable (0.291859ms)
+✔ All six complete theme modes keep text and primary buttons readable (1.656897ms)
+✔ Trip and Money have distinct navigation and personal members keep personal scope (0.401951ms)
+✔ Trip picker excludes daily groups and personal-only snapshots (0.358597ms)
+✔ Linked Trip consumption excludes estimates, deposits, deleted bills and repayments (2.160408ms)
+✔ Trip landing never displays daily or restricted group content (1.67205ms)
+✔ Owner has a dedicated People & Access workspace; collaborators never see it (22.304434ms)
+✔ Duplicate bill hint compares a real amount and requires explicit acknowledgment (33.426917ms)
+✔ Travel kit and handbook keep planning separate from the ledger and escape text (4.503405ms)
+✔ Settlement exports offer current outstanding CSV and printable statements (4.388937ms)
+✔ Trip sidebar opens dedicated planner sections without duplicating internal navigation (31.890747ms)
+✔ Planner compact view and full cost view separate estimates from bills and preserve privacy (28.490505ms)
+✔ Planner opens the requested date rather than resetting to the first travel day (12.277513ms)
+✔ Focus sections render only the active section and leave expensive secondary sections unmounted (0.432897ms)
+✔ Master detail paginates six rows, renders one selected detail and falls back after filtering (3.769957ms)
+✔ Hybrid planner keeps the default overview short and displays only one detailed booking (24.037563ms)
+✔ Section switching is locked while a Quick Pick or trip draft is unsaved (0.440618ms)
+✔ Top-of-sheet Save keeps the existing edit confirmation requirement (17.973412ms)
+✔ Hybrid itinerary keeps drag targets in the list and excludes ongoing stays from ordering (1.044857ms)
+✔ Daily hotel rows distinguish check-in, overnight stay and timed checkout without changing the booking (54.472529ms)
+✔ Member navigation hides booking and group Money management while delegated managers retain their scope (0.287973ms)
+✔ Simple itinerary shows selected-day hotel phases and readable notes without booking controls or credentials (60.657389ms)
+✔ Personal Money uses member IDs with duplicate names and exposes only related bill and repayment sources (39.510858ms)
+✔ Member itinerary shows remarks directly without redundant headings, routes or a duplicate overnight entry (4.539509ms)
+✔ Restored full Admin sidebar exposes every allowed destination without a More-only gateway (7.19146ms)
+✔ Restored detailed plan dialog retains busy locking and never retries a failed commit implicitly (0.38051ms)
+✔ Trip has one contextual add entry and keeps detailed functions without duplicate quick-add buttons (37.252696ms)
+✔ Trip tools are collapsed with task descriptions and preserve authorization without a floating dock (42.875368ms)
+✔ New Trip creation is above trip context, separate from plan additions, and guarded against unsaved input (0.95776ms)
+✔ Responsive Trip rules use viewport width, safe areas and readable controls from 320 through 480 CSS pixels (27.022226ms)
+✔ One Itinerary destination supports day and all-date booking modes without changing records (32.802178ms)
+✔ Personal trip link uses stable IDs and its read-only portal shows only the selected member and group total (32.247072ms)
+✔ Remarks turn complete HTTP(S) map links into safe anchors while retaining escaped text and line breaks (2.607887ms)
+✔ Data and ETag survive reload under the same account; another account cannot restore them (1.272451ms)
+✔ Expired/corrupt data is rejected, removal/clear revoke stored data, blocked storage is harmless (0.553845ms)
+✔ Directory placeholder has complete schema2 arrays and preserves Daily/Trip without financial data (3.540528ms)
+✔ URL group starts while directory is unresolved; rejected discarded read is handled (1.352409ms)
+✔ RM800 / 8: consumed, cash paid, outstanding and conservation (19.716273ms)
+✔ RM800 / 6 never loses cents (0.447829ms)
+✔ Treat keeps consumption; different cash payer is reimbursed by host (2.303067ms)
+✔ Restaurant personal + selected sharing (0.47528ms)
+✔ Tax/service exemptions and receipt mismatch validation (6.287067ms)
+✔ Custom amount/shares/percent retain charges (0.695723ms)
+✔ Voucher benefit personal, shared and reimbursable contribution (4.821461ms)
+✔ Voucher cannot silently become a negative consumption (0.277267ms)
+✔ Multiple payers and partial settlement (0.805444ms)
+✔ Settlement preserves each actual payee (0.399628ms)
+✔ Amount expressions accept calculator-style input (0.505934ms)
+✔ Actual card debit + foreign rounding and zero-decimal currency (0.303627ms)
+✔ Changing an old expense does not turn its repayment into credit on newer bills (0.577499ms)
+✔ Repayment stays attached to the old expense and never discounts a newer bill (0.389453ms)
+✔ Settlement details show the exact remaining source expenses (0.280572ms)
+✔ Legacy repayment is frozen onto the oldest matching expense before changes (0.274254ms)
+✔ Inactive people do not change historical consumption (0.268495ms)
+✔ Soft delete / restore and permissions (0.558482ms)
+✔ Deterministic cent conservation across discounts, tax and voucher (6.032342ms)
+✔ Selected item discount is proportional and excludes unrelated item (0.397996ms)
+✔ Invalid negative split rejected (0.145775ms)
+✔ Postpaid and prepaid distinguish consumption, cash and supplier obligations (0.784634ms)
+✔ Repeat keeps targeted item discounts and exact personal shares while issuing new bill and item IDs (1.940794ms)
+✔ Repeating all-item discounts preserves that scope, and broken item references are never widened silently (0.273482ms)
+✔ Every Money destination round-trips without losing group/hash; denied and invalid routes safely fall back (10.676663ms)
 WebSocket server error: Port 24678 is already in use
-✔ Four primary destinations, active More secondary page and accessible pending dot; no management for members (14.240121ms)
-✔ Auth return allowlist retains new tab/view and old activity/simple links (0.328143ms)
+✔ Four primary destinations, active More secondary page and accessible pending dot; no management for members (12.532252ms)
+✔ Auth return allowlist retains new tab/view and old activity/simple links (0.277918ms)
 WebSocket server error: Port 24678 is already in use
-✔ Supplier payment keeps identity, incurred date, allocations and consumption; changes funding only (8.086307ms)
-✔ Supplier payment validates status, payer and exact calendar date; repeating removes old paid-on metadata (1.703306ms)
-✔ Three-way review keeps disjoint edits without changing source inputs or server identity fields (1.46791ms)
-✔ Concurrent financial edits require an explicit whole financial version, preserving currency precision (2.358751ms)
-✔ Review blocks removed bills, identity mismatches and collisions; a new draft remains a new draft (0.49608ms)
-✔ Quick Picks reuse only their group split and active people; each use has a fresh bill and item ID (0.591641ms)
-✔ Search respects personal projections, deletions and planning permissions across groups (2.118917ms)
-✔ Repayment recovery detects already recorded IDs, changed balances and limits retries (2.539647ms)
-✔ Search-opened records can reveal details on mobile and select a later page (14.808597ms)
-✔ Main workspace still renders empty safely after adding global search and review flows (38.593962ms)
+✔ Supplier payment keeps identity, incurred date, allocations and consumption; changes funding only (15.535396ms)
+✔ Supplier payment validates status, payer and exact calendar date; repeating removes old paid-on metadata (1.370396ms)
+✔ Three-way review keeps disjoint edits without changing source inputs or server identity fields (1.283959ms)
+✔ Concurrent financial edits require an explicit whole financial version, preserving currency precision (2.54184ms)
+✔ Review blocks removed bills, identity mismatches and collisions; a new draft remains a new draft (0.676174ms)
+✔ Quick Picks reuse only their group split and active people; each use has a fresh bill and item ID (0.727551ms)
+✔ Search respects personal projections, deletions and planning permissions across groups (2.025049ms)
+✔ Repayment recovery detects already recorded IDs, changed balances and limits retries (5.119272ms)
+✔ Search-opened records can reveal details on mobile and select a later page (13.424591ms)
+✔ Main workspace still renders empty safely after adding global search and review flows (35.709966ms)
 WebSocket server error: Port 24678 is already in use
-✔ Summary uses remaining pairwise balances, hides fully paid pairs, and never subtracts partial payments twice (34.298523ms)
-✔ Paying every remaining transfer yields an empty summary and print; undo restores the obligation (15.232681ms)
-✔ Mine and server-redacted member summaries retain only own pending pairs, with safe print labels (8.636617ms)
-✔ Zero/self rows are excluded and unmatched recorded cash is flagged rather than declared settled (0.848168ms)
-✔ Duplicate bill names stay separate and stale source calculations never invent attribution (4.025392ms)
-✔ Wide print continuations keep every bill, label repeated totals, and personal scope excludes unrelated bills (8.088651ms)
-✔ KL House summary/export only includes food final due and disappears after confirmation (27.005598ms)
-✔ Reciprocal and reverse obligations remain nonnegative and reconcile after cash and source edits (3.486019ms)
-✔ Selected A100/B50 mode preserves every original creditor and offsets B to A to RM10 (20.177436ms)
-✔ Screenshot amounts reconcile exactly; Reyes pays ET RM7.94 and other payees stay intact (2.594547ms)
-✔ A previous full repayment is applied before a newer reverse expense, independent of expense order (1.695885ms)
-✔ Partial payments, exact reciprocal zero and undo retain all source records (1.600464ms)
-✔ Edits and deletions surface unapplied old payments without discounting a newer bill (0.425296ms)
-✔ Frozen empty legacy allocations never migrate to a newer expense (0.683316ms)
-✔ Rounding is deterministic and money conservation holds without rerouting across generated groups (95.936394ms)
-✔ Invalid, duplicate and excessive repayments cannot be processed (1.976057ms)
-✔ financing a friend purchase assigns fee to friend once and leaves owner consumption zero (11.737704ms)
-✔ financing fees are added after purchase tax and voucher and split only with selected people (1.032509ms)
+✔ Summary uses remaining pairwise balances, hides fully paid pairs, and never subtracts partial payments twice (42.068871ms)
+✔ Paying every remaining transfer yields an empty summary and print; undo restores the obligation (8.780098ms)
+✔ Mine and server-redacted member summaries retain only own pending pairs, with safe print labels (3.59493ms)
+✔ Zero/self rows are excluded and unmatched recorded cash is flagged rather than declared settled (0.647132ms)
+✔ Duplicate bill names stay separate and stale source calculations never invent attribution (3.754735ms)
+✔ Wide print continuations keep every bill, label repeated totals, and personal scope excludes unrelated bills (4.339604ms)
+✔ KL House summary/export only includes food final due and disappears after confirmation (10.685462ms)
+✔ Reciprocal and reverse obligations remain nonnegative and reconcile after cash and source edits (1.596208ms)
+✔ Selected A100/B50 mode preserves every original creditor and offsets B to A to RM10 (18.554931ms)
+✔ Screenshot amounts reconcile exactly; Reyes pays ET RM7.94 and other payees stay intact (8.940008ms)
+✔ A previous full repayment is applied before a newer reverse expense, independent of expense order (0.7209ms)
+✔ Partial payments, exact reciprocal zero and undo retain all source records (1.338749ms)
+✔ Edits and deletions surface unapplied old payments without discounting a newer bill (0.630988ms)
+✔ Frozen empty legacy allocations never migrate to a newer expense (0.403353ms)
+✔ Rounding is deterministic and money conservation holds without rerouting across generated groups (123.795448ms)
+✔ Invalid, duplicate and excessive repayments cannot be processed (1.837182ms)
+✔ financing a friend purchase assigns fee to friend once and leaves owner consumption zero (8.775938ms)
+✔ financing fees are added after purchase tax and voucher and split only with selected people (0.902146ms)
 WebSocket server error: Port 24678 is already in use
-✔ Match device handles dark and light changes, removes subscriptions, and manual overrides remain fixed (2.320684ms)
-✔ Rejected internal writes, failed reads and unknown saves have different messages (0.912062ms)
-✔ Owner errors expose Refresh and omit contact-owner guidance (7.838322ms)
-✔ Accounting states retain short and distinct presentation labels (0.304458ms)
-✔ Canonical expense form links visible labels, puts amount first, preserves advanced controls and does not post accounting (57.500259ms)
+✔ Match device handles dark and light changes, removes subscriptions, and manual overrides remain fixed (3.891129ms)
+✔ Rejected internal writes, failed reads and unknown saves have different messages (1.115881ms)
+✔ Owner errors expose Refresh and omit contact-owner guidance (9.648155ms)
+✔ Accounting states retain short and distinct presentation labels (0.32599ms)
+✔ Canonical expense form links visible labels, puts amount first, preserves advanced controls and does not post accounting (73.193803ms)
 WebSocket server error: Port 24678 is already in use
-✔ Flight interval converts independent local timezones across midnight and the date line (18.645636ms)
-✔ DST nonexistent times fail and repeated times require an explicit clock occurrence (1.187087ms)
-✔ Traffic buffers use entered durations and actual intervals, exclude cancelled or disjoint parties (0.644658ms)
-✔ Timezone overlap detects a flight still in progress rather than comparing airport clock strings (0.738277ms)
-✔ Return flight reverses airports/timezones but clears booking identifiers, amounts and local times (0.803202ms)
-✔ Templates retain relative dates and reusable relationships, stripping bookings and all financial data (2.040032ms)
-✔ Retired capacity metadata does not limit joining while legacy waiting list structure stays valid (0.552373ms)
-✔ Calendar emits correct UTC and all-day boundaries, keeps stable UIDs and excludes sensitive/cancelled data (1.888829ms)
-✔ Google Calendar and route links use official hosts, URL encoding and independent timezone parameters (0.707842ms)
-✔ Offline ZIP is independently readable, checksummed and safe for Unicode document names (51.216914ms)
-✔ Planner retains flight details and omits retired practical, capacity and buffer controls (81.685382ms)
-✔ Streaming JSON limits reject oversized bodies before parsing and keep Unicode intact (7.865604ms)
+✔ Flight interval converts independent local timezones across midnight and the date line (14.354849ms)
+✔ DST nonexistent times fail and repeated times require an explicit clock occurrence (1.056504ms)
+✔ Traffic buffers use entered durations and actual intervals, exclude cancelled or disjoint parties (0.7276ms)
+✔ Timezone overlap detects a flight still in progress rather than comparing airport clock strings (0.902288ms)
+✔ Return flight reverses airports/timezones but clears booking identifiers, amounts and local times (0.532974ms)
+✔ Templates retain relative dates and reusable relationships, stripping bookings and all financial data (2.246485ms)
+✔ Retired capacity metadata does not limit joining while legacy waiting list structure stays valid (0.705157ms)
+✔ Calendar emits correct UTC and all-day boundaries, keeps stable UIDs and excludes sensitive/cancelled data (2.528049ms)
+✔ Google Calendar and route links use official hosts, URL encoding and independent timezone parameters (0.742452ms)
+✔ Offline ZIP is independently readable, checksummed and safe for Unicode document names (55.98422ms)
+✔ Planner retains flight details and omits retired practical, capacity and buffer controls (80.5675ms)
+✔ Streaming JSON limits reject oversized bodies before parsing and keep Unicode intact (6.397793ms)
 tripshare_response_timing {
-  requestId: '168f725d-4cad-4cdc-83f0-3816bba68fb3',
+  requestId: '7cb0f6eb-d9d5-4b48-a336-40386c25c846',
   path: '/',
   status: 307,
-  totalMs: 12,
+  totalMs: 11,
   dbMs: 0,
   sessionMs: 0,
   serializeMs: 0,
@@ -270,10 +268,10 @@ tripshare_response_timing {
   dbRegions: []
 }
 tripshare_response_timing {
-  requestId: '566d5997-71a8-4f71-8e83-4df181a1c063',
+  requestId: 'f8a44ac4-10d2-4658-b558-d6ef04ac5727',
   path: '/api/integrations/v1/me/entries',
   status: 503,
-  totalMs: 4,
+  totalMs: 3,
   dbMs: 0,
   sessionMs: 0,
   serializeMs: 0,
@@ -281,14 +279,14 @@ tripshare_response_timing {
   ingressColo: 'DFW',
   dbRegions: []
 }
-✔ production Worker protects the home page and fails closed when sync is unconfigured (4313.657869ms)
-✔ Request-local timing preserves bindings/results and logs only numeric aggregates (7.613171ms)
-✔ Failed queries are timed, preserve the original error, and do not log error text (1.362956ms)
-✔ Off switch uses the original database/response and emits no diagnostics (3.222361ms)
-✔ Streaming JSON gzip preserves data, request tracing and vary without double compression (23.568706ms)
-✔ Negotiation and exclusions preserve unencoded/HTML/error/existing encoding responses (1.610219ms)
+✔ production Worker protects the home page and fails closed when sync is unconfigured (4180.082855ms)
+✔ Request-local timing preserves bindings/results and logs only numeric aggregates (4.84627ms)
+✔ Failed queries are timed, preserve the original error, and do not log error text (0.789481ms)
+✔ Off switch uses the original database/response and emits no diagnostics (0.420619ms)
+✔ Streaming JSON gzip preserves data, request tracing and vary without double compression (19.562432ms)
+✔ Negotiation and exclusions preserve unencoded/HTML/error/existing encoding responses (0.859985ms)
 tripshare_response_timing {
-  requestId: 'a3cd43ee-8b4f-432f-87bb-64816834ed61',
+  requestId: '7659c13c-1b70-426b-85f5-d35487d62b68',
   path: '/api/test',
   status: 200,
   totalMs: 0,
@@ -300,10 +298,10 @@ tripshare_response_timing {
   dbRegions: []
 }
 tripshare_response_timing {
-  requestId: 'f212c493-fac0-42ff-9241-b607bd5c8796',
+  requestId: '6397152d-4757-484d-b4d8-8e76aa89c227',
   path: '/api/test',
   status: 200,
-  totalMs: 2,
+  totalMs: 4,
   dbMs: 0,
   sessionMs: 0,
   serializeMs: 0,
@@ -311,10 +309,10 @@ tripshare_response_timing {
   ingressColo: 'unknown',
   dbRegions: []
 }
-✔ Response timing adds safe headers and measures batch once without changing body (7.53117ms)
-✔ Concurrent request metrics and IDs remain isolated (2.900087ms)
+✔ Response timing adds safe headers and measures batch once without changing body (6.023102ms)
+✔ Concurrent request metrics and IDs remain isolated (8.337807ms)
 tripshare_response_timing {
-  requestId: '8e899b28-2c6b-4811-ac4e-208425a50178',
+  requestId: 'e5d6896a-e539-404f-adc2-f399860c18e2',
   path: '/',
   status: 200,
   totalMs: 3,
@@ -325,76 +323,76 @@ tripshare_response_timing {
   ingressColo: 'unknown',
   dbRegions: []
 }
-✔ Valid session reuses one lookup; expired and wrong-user sessions never authenticate (3.234699ms)
-✔ Same request SSR passes share a single session operation and valid cookie remains HTTP-only (5.70966ms)
-✔ KL House real pair: food is unpaid, toll is settled by offset, net stays RM16.40 and reversed cash is excluded (12.415637ms)
-✔ New reverse bill dynamically reallocates KL House offsets, reverses the net, and all final dues still sum to net (4.080423ms)
-✔ Partial, full, excess and reversed payments derive states without negative Applied (1.132166ms)
-✔ Partial offset RM10 minus RM4 yields RM6 and equal reciprocal debts settle by offset (0.764715ms)
-✔ Chronological offsets are deterministic, independent of insertion order, with ID tie-breaks (0.876229ms)
-✔ FX rounding to settlement minor units reconciles after partial payment and offset (0.59104ms)
-✔ Explicit supplier credit remains positive and reconciles without rewriting cash history (0.464433ms)
-✔ Reminders, copied lists and WhatsApp lines use final due, including partial offsets and the KL House total (19.74448ms)
-✔ Simplification preserves net positions, keeps unresolved cycles and never adds transfers (17.78725ms)
-✔ Partial indirect payments conserve cents and stay attached after expense deletion (1.156161ms)
+✔ Valid session reuses one lookup; expired and wrong-user sessions never authenticate (3.498777ms)
+✔ Same request SSR passes share a single session operation and valid cookie remains HTTP-only (7.520564ms)
+✔ KL House real pair: food is unpaid, toll is settled by offset, net stays RM16.40 and reversed cash is excluded (14.202484ms)
+✔ New reverse bill dynamically reallocates KL House offsets, reverses the net, and all final dues still sum to net (2.822152ms)
+✔ Partial, full, excess and reversed payments derive states without negative Applied (4.012544ms)
+✔ Partial offset RM10 minus RM4 yields RM6 and equal reciprocal debts settle by offset (1.281495ms)
+✔ Chronological offsets are deterministic, independent of insertion order, with ID tie-breaks (1.341243ms)
+✔ FX rounding to settlement minor units reconciles after partial payment and offset (0.807668ms)
+✔ Explicit supplier credit remains positive and reconciles without rewriting cash history (0.601935ms)
+✔ Reminders, copied lists and WhatsApp lines use final due, including partial offsets and the KL House total (18.391948ms)
+✔ Simplification preserves net positions, keeps unresolved cycles and never adds transfers (16.913052ms)
+✔ Partial indirect payments conserve cents and stay attached after expense deletion (1.086999ms)
+✔ Print snapshot contains canonical final payments, member totals, item matrix and pair calculations without mutating money (32.964568ms)
+✔ Partial repayments and deleted source review are printed once without silently discounting newer bills (28.319103ms)
+✔ Mine and redacted personal exports exclude unrelated people and private bills (7.733718ms)
+✔ Foreign currency stays labeled, and wide item lists continue without truncation (4.716348ms)
 WebSocket server error: Port 24678 is already in use
-✔ Print snapshot contains canonical final payments, member totals, item matrix and pair calculations without mutating money (30.340414ms)
-✔ Partial repayments and deleted source review are printed once without silently discounting newer bills (26.673754ms)
-✔ Mine and redacted personal exports exclude unrelated people and private bills (6.905342ms)
-✔ Foreign currency stays labeled, and wide item lists continue without truncation (5.397162ms)
-2:20:13 PM [vite] (client) Re-optimizing dependencies because vite config has changed
-✔ Selected-source payments never fall back to an earlier bill; batch preparation is immutable and retries match exact intent (36.746451ms)
-✔ Reject invalid, excess, duplicate, unrelated and reverse selections without any mutation (2.445068ms)
-✔ Reciprocal offsets cap selectable sources at the actual net and cleared history disappears from Calculation (20.656185ms)
-✔ Date-based source choices and server allocations agree even when insertion order differs (2.203813ms)
+2:21:51 PM [vite] (client) Re-optimizing dependencies because vite config has changed
+✔ Selected-source payments never fall back to an earlier bill; batch preparation is immutable and retries match exact intent (22.690432ms)
+✔ Reject invalid, excess, duplicate, unrelated and reverse selections without any mutation (2.227977ms)
+✔ Reciprocal offsets cap selectable sources at the actual net and cleared history disappears from Calculation (1.699681ms)
+✔ Date-based source choices and server allocations agree even when insertion order differs (1.197001ms)
 WebSocket server error: Port 24678 is already in use
-2:20:13 PM [vite] (client) Re-optimizing dependencies because vite config has changed
-✔ The compact sheet matches the reference rows and exact RM87.80 footer without changing records (17.074391ms)
-✔ Mine and personal projections only contain authorized rows and bills (6.796029ms)
-✔ Adjustments and FX remain distinct and totals use the existing engine (3.001796ms)
-✔ Printing the selected sheet escapes content and retains every item in bounded-width tables (6.177805ms)
+✔ The compact sheet matches the reference rows and exact RM87.80 footer without changing records (16.227624ms)
+✔ Mine and personal projections only contain authorized rows and bills (6.03527ms)
+✔ Adjustments and FX remain distinct and totals use the existing engine (0.810863ms)
+✔ Printing the selected sheet escapes content and retains every item in bounded-width tables (7.63974ms)
 WebSocket server error: Port 24678 is already in use
-✔ Calculation shows only unpaid sources and current offsets, preserving applied partial cash without exposing another pair (62.625567ms)
-✔ Large source lists have a bounded initial render and an explicit continuation (18.934852ms)
-✔ Payment workspace groups by payee, filters bill choices to visible obligations, and requires explicit selection (147.287509ms)
-✔ KL House UI separates net/cash/offset, explains dynamic ordering, and personal Who pays whom retains RM16.40 (49.956098ms)
-✔ Trip finance distinguishes estimates, incurred consumption, supplier debt and deposits (4.915563ms)
-✔ Updating an unpaid bill to Paid and recognizing a deposit keeps one record per bill (0.703755ms)
-✔ Cancelled plans retain actual bills; unlinked and deleted bills do not lose or duplicate costs (0.608065ms)
-✔ Trip finance uses settlement minor units for foreign and zero decimal currencies (0.328384ms)
-✔ Trip URL destinations roundtrip, preserve group/hash and support legacy links (1.756524ms)
-✔ Trip has five primary entries and permission-filtered More, financial links use existing destination IDs (13.123899ms)
-✔ Shared financial tabs preserve workspace context, while explicit Trip/Money-only destinations switch it (0.318709ms)
-✔ Desktop Trip exposes all authorized secondary destinations directly; Money has no More wrapper (8.773052ms)
-✔ A hotel spans nights without duplicating its estimate or creating expense debt (8.838926ms)
-✔ Explicit day order overrides time, while legacy activities remain readable (10.128273ms)
-✔ Booking classification distinguishes ordinary plans, explicit reservations and legacy booked activities without Money changes (1.002305ms)
-✔ Schedule warnings use explicit intervals and shared travellers, excluding cancelled plans and hotel stays (12.177709ms)
-✔ Planner search combines confirmation, status, type and traveller filters while preserving explicit order (0.443603ms)
+2:21:51 PM [vite] (client) Re-optimizing dependencies because vite config has changed
+✔ Calculation shows only unpaid sources and current offsets, preserving applied partial cash without exposing another pair (36.243631ms)
+✔ Large source lists have a bounded initial render and an explicit continuation (19.139008ms)
+✔ Payment workspace groups by payee, filters bill choices to visible obligations, and requires explicit selection (169.849171ms)
+✔ KL House UI separates net/cash/offset, explains dynamic ordering, and personal Who pays whom retains RM16.40 (69.404017ms)
+✔ Trip finance distinguishes estimates, incurred consumption, supplier debt and deposits (5.812912ms)
+✔ Updating an unpaid bill to Paid and recognizing a deposit keeps one record per bill (0.831674ms)
+✔ Cancelled plans retain actual bills; unlinked and deleted bills do not lose or duplicate costs (0.657798ms)
+✔ Trip finance uses settlement minor units for foreign and zero decimal currencies (0.499305ms)
 WebSocket server error: Port 24678 is already in use
-✔ emits the catalog's animation and scrolling utilities (102.275906ms)
-✔ forwards progress semantics to the primitive (797.370556ms)
-✔ emits chart themes for the starter's media dark mode (909.385925ms)
-✔ renders sidebar skeletons deterministically (495.725769ms)
+✔ Trip URL destinations roundtrip, preserve group/hash and support legacy links (1.59054ms)
+✔ Trip has five primary entries and permission-filtered More, financial links use existing destination IDs (13.6622ms)
+✔ Shared financial tabs preserve workspace context, while explicit Trip/Money-only destinations switch it (0.384966ms)
+✔ Desktop Trip exposes all authorized secondary destinations directly; Money has no More wrapper (9.67141ms)
+✔ A hotel spans nights without duplicating its estimate or creating expense debt (7.040889ms)
+✔ Explicit day order overrides time, while legacy activities remain readable (9.311299ms)
+✔ Booking classification distinguishes ordinary plans, explicit reservations and legacy booked activities without Money changes (0.675003ms)
+✔ Schedule warnings use explicit intervals and shared travellers, excluding cancelled plans and hotel stays (11.187009ms)
+✔ Planner search combines confirmation, status, type and traveller filters while preserving explicit order (0.477532ms)
+✔ emits the catalog's animation and scrolling utilities (53.873629ms)
+✔ forwards progress semantics to the primitive (876.615991ms)
+✔ emits chart themes for the starter's media dark mode (896.60854ms)
+✔ renders sidebar skeletons deterministically (508.908215ms)
 WebSocket server error: Port 24678 is already in use
-✔ Supplier deposit and balance stay on one incurred bill; friend settlement waits for full funding (13.150969ms)
-✔ Prepaid partial deposit recognizes only the paid upfront amount and can be incurred without duplicating (2.261898ms)
-✔ Installment validation rejects invalid dates, empty payments, duplicate identities and overpayment (0.929608ms)
-✔ Foreign-currency installments preserve bill FX and allocate rounded paid/unpaid amounts exactly (1.029745ms)
-✔ Batch shifting handles day rollover, hotel duration, flight zones and fails outside valid range (0.470302ms)
-✔ Change-impact review identifies downstream transfers and linked return/hotel without changing other plans (2.65705ms)
-✔ Today/Next ranks instants in trip timezone and retains manual place information (0.67942ms)
-✔ Browser drafts expire, reject malformed data and remain isolated by account/group (0.668023ms)
-✔ Workflow controls expose payment progress, trip tools and readable recovery status through existing components (36.246218ms)
-✔ Supplier refunds reduce the same bill and actual payer funding without creating repayments (0.942797ms)
-✔ Cancelled prepaid booking recognizes its fee and separates pending refund from friend settlement (2.488621ms)
-✔ Refunds validate actual payer, chronology, totals, duplicate IDs and safe FX rounding (0.87645ms)
-✔ Plan B creates a fresh planning entry, clears booking credentials and leaves original finances untouched (6.029281ms)
-✔ Checkpoint recovery verifies checksums, keeps access-related roster and preserves later financial history as deleted (11.993576ms)
-✔ Flight details reach quick summaries and offline handbooks while return creation clears old seat and gate (9.312121ms)
-✔ Category budget scopes stay bounded and do not change actual consumption or friend balances (1.091806ms)
-✔ Recovery and travel controls expose readable summaries and reachable mobile actions (54.307853ms)
-✔ Refund credits keep earlier cash movements and can offset other outstanding bills without losing attribution (0.829581ms)
+✔ Supplier deposit and balance stay on one incurred bill; friend settlement waits for full funding (14.340367ms)
+✔ Prepaid partial deposit recognizes only the paid upfront amount and can be incurred without duplicating (2.35155ms)
+✔ Installment validation rejects invalid dates, empty payments, duplicate identities and overpayment (2.305352ms)
+✔ Foreign-currency installments preserve bill FX and allocate rounded paid/unpaid amounts exactly (1.043165ms)
+✔ Batch shifting handles day rollover, hotel duration, flight zones and fails outside valid range (0.540806ms)
+✔ Change-impact review identifies downstream transfers and linked return/hotel without changing other plans (3.05932ms)
+✔ Today/Next ranks instants in trip timezone and retains manual place information (7.307051ms)
+✔ Browser drafts expire, reject malformed data and remain isolated by account/group (1.063455ms)
+✔ Workflow controls expose payment progress, trip tools and readable recovery status through existing components (45.700054ms)
+✔ Supplier refunds reduce the same bill and actual payer funding without creating repayments (1.1552ms)
+✔ Cancelled prepaid booking recognizes its fee and separates pending refund from friend settlement (2.842421ms)
+✔ Refunds validate actual payer, chronology, totals, duplicate IDs and safe FX rounding (0.906864ms)
+✔ Plan B creates a fresh planning entry, clears booking credentials and leaves original finances untouched (9.243248ms)
+✔ Checkpoint recovery verifies checksums, keeps access-related roster and preserves later financial history as deleted (8.221756ms)
+✔ Flight details reach quick summaries and offline handbooks while return creation clears old seat and gate (10.452688ms)
+✔ Category budget scopes stay bounded and do not change actual consumption or friend balances (1.254325ms)
+✔ Recovery and travel controls expose readable summaries and reachable mobile actions (68.873857ms)
+✔ Refund credits keep earlier cash movements and can offset other outstanding bills without losing attribution (1.260284ms)
 ℹ tests 251
 ℹ suites 0
 ℹ pass 251
@@ -402,4 +400,4 @@ WebSocket server error: Port 24678 is already in use
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 13719.264105
+ℹ duration_ms 13113.886995
