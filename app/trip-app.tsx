@@ -1587,7 +1587,7 @@ setPlannerDirty(false);setTemplateDirty(false);
                     <div className="settlement-hero">
                       <div>
                         <p className="eyebrow">{settlementScope === "mine" ? "MY SETTLEMENT" : "Payments to settle"}</p>
-                        <h2>{visibleTransfers.length ? `${visibleTransfers.length} payment${visibleTransfers.length > 1 ? "s" : ""} remaining` : settlementReviews.length ? "Check recorded payments" : settlementScope === "mine" ? "You're all settled." : "Everyone is settled."}</h2>
+                        <h2>{visibleTransfers.length ? `${visibleTransfers.length} payment${visibleTransfers.length > 1 ? "s" : ""} remaining` : settlementReviews.length ? "Check recorded payments" : settlementScope === "mine" ? `${name(me)} has nothing left to settle.` : "Everyone is settled."}</h2>
                         <p>{visibleTransfers.length ? `${fmt(visibleTransfers.reduce((total, p) => total + p.amount, 0))} left to settle.` : settlementReviews.length ? "Check the recorded payments below before paying again." : "Amounts update when expenses change."}</p>
                       </div>
                       <button className="secondary" aria-label="Prepare WhatsApp summary" onClick={() => whatsapp(shareText())}><Bell size={17}/><span className="settlement-share-desktop">Prepare WhatsApp summary</span><span className="settlement-share-mobile">Share</span></button>

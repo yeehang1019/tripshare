@@ -81,3 +81,5 @@ test('Reciprocal and reverse obligations remain nonnegative and reconcile after 
  const e=fixture();pay(e,'B','A',500);
  for(const action of [()=>{},()=>{e.expenses[0].deleted=true}]){action();const m=outstandingSummary(e,ledger(e).transfers);for(const row of m.rows){assert.ok(Object.values(row.values).every(n=>n>=0));assert.equal(Object.values(row.values).reduce((n,v)=>n+v,0),row.amount)}}
 });
+
+ test('Empty scoped summaries never claim everyone is settled when only one person is visible',()=>{const e=fixture();const model=outstandingSummary(e,[],{person:'C'});assert.equal(model.personal,true);assert.match(outstandingPrintHTML(model),/You're all settled/);assert.doesNotMatch(outstandingPrintHTML(model),/Everyone is settled/);assert.ok(outstandingCSVRows(model).some(row=>row.includes("You're all settled.")))});
