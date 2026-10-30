@@ -37,7 +37,7 @@ export type OutstandingSummary=ReturnType<typeof outstandingSummary>;
 export function outstandingCSVRows(model:OutstandingSummary):(string|number)[][]{
  const value=(n:number|null)=>n===null?'Unavailable':n/unit(model.currency);
  return [['From','To','Currency',...model.columns.map(c=>c.title+' · '+c.date.split('-').reverse().join('/')),...(model.hasPaid?['Repayment adjustment (add to bill columns)']:[]),'Still to pay'],
-  ...model.rows.map(t=>[t.fromName,t.toName,model.currency,...model.columns.map(c=>value(t.values?t.values[c.id]||0:null)),...(model.hasPaid?[value(t.paid===null?null:-t.paid)]:[]),value(t.amount)]),['Total still to pay','',model.currency,...model.columns.map(()=>''),value(model.total)]];
+  ...(!model.rows.length?[['Everyone is settled.']]:[]),...model.rows.map(t=>[t.fromName,t.toName,model.currency,...model.columns.map(c=>value(t.values?t.values[c.id]||0:null)),...(model.hasPaid?[value(t.paid===null?null:-t.paid)]:[]),value(t.amount)]),['Total still to pay','',model.currency,...model.columns.map(()=>''),value(model.total)]];
 }
 export function outstandingPrintHTML(model:OutstandingSummary,reviewAmount=0){
  const fmt=(n:number|null)=>n===null?'Unavailable':esc(money(n,model.currency));
@@ -48,9 +48,9 @@ export function outstandingPrintHTML(model:OutstandingSummary,reviewAmount=0){
  }
  return '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src \'none\'; style-src \'unsafe-inline\'"><title>'+esc(model.title)+' · Settlement summary</title><style>body{font:12px/1.6 system-ui;color:#292336;margin:24px}h1{font-size:23px}table{border-collapse:collapse;width:100%;margin:20px 0}th,td{text-align:right;border:1px solid #ddd;padding:9px;overflow-wrap:anywhere}th:first-child,td:first-child,th:nth-child(2),td:nth-child(2){text-align:left}thead,tfoot{background:#eee9f6;color:#513580;font-weight:700}thead{display:table-header-group}tr{break-inside:avoid}small{color:#656277}@page{size:A4 landscape;margin:14mm}</style></head><body><h1>'+esc(model.title)+' · Settlement summary</h1>'+
   (reviewAmount?'<p><b>Recorded repayments need review: '+fmt(reviewAmount)+'. Check Settlement before paying.</b></p>':'')+
-  (model.rows.length?tables:'<p>'+(reviewAmount?'No remaining transfers. Recorded repayments still need review.':'All settled. No payments remaining.')+'</p>')+
+  (model.rows.length?tables:'<p>'+(reviewAmount?'No remaining transfers. Recorded repayments still need review.':'Everyone is settled.')+'</p>')+
   (model.unavailable?'<p>Some bill details are unavailable. Remaining amounts are unchanged; check View Calculation.</p>':'')+
   '<p><small>Only bills with Still to pay greater than zero are included. '+(model.hasPaid?'Bill columns + repayment adjustment = Still to pay. ':'')+'All amounts in '+esc(model.currency)+'.'+(model.columns.length>7?' Continued bill columns: Adjustment and Still to pay repeat; do not add repeated amounts.':'')+'</small></p>'+
-  model.offsets.map(o=>'<p>'+o.count+' bills settled by offset · '+fmt(o.amount)+' each way</p>').join('')+
+  model.offsets.map(o=>'<p>'+o.count+' bills cancelled out · '+fmt(o.amount)+' each way</p>').join('')+
   '<p><small>Snapshot · '+esc(new Date().toLocaleString('en-GB',{timeZone:'Asia/Kuala_Lumpur'}))+' MYT. Printing does not record a payment.</small></p></body></html>';
 }

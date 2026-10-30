@@ -1,4 +1,6 @@
 'use client';
+import {CopyError} from "./copy-feedback";
+import {userError} from '@/lib/ui-copy';
 import {useEffect,useMemo,useRef,useState} from 'react';
 import {money,type Event,type PairCalculation} from '@/lib/ledger';
 import {settlementSheet,combinedSheetValue,type SheetScope,type SheetTransfer,type CombinedSettlementSheet} from '@/lib/settlement-sheet';
@@ -34,13 +36,13 @@ export default function SettlementSummary({event:e,transfers,person,personal,onC
  function print(){try{const w=frame.current?.contentWindow;if(!w)throw Error('Print preview is still loading.');w.focus();w.print()}catch{setError('Printing is unavailable in this browser. Open TripShare in your browser and try again.')}}
  function csv(){csvFile('tripshare-settlement.csv',outstandingCSVRows(model))}
  return <Dialog open onOpenChange={v=>{if(!v)onClose()}}><DialogContent className="settlement-summary-dialog">
-  <header><DialogTitle>Settlement summary</DialogTitle><DialogDescription>Only bills still to pay are shown. Open Details for payments and offsets.</DialogDescription></header>
+  <header><DialogTitle>Settlement summary</DialogTitle><DialogDescription>Only bills still to pay are shown. Open Details for payments and amounts cancelled out.</DialogDescription></header>
   {!!reviewAmount&&<p role="alert">Recorded repayments need review: {money(reviewAmount,e.settlement)}. Check Settlement before paying.</p>}
-  {model.rows.length?<div className="settlement-sheet-scroll" role="region" aria-label="Remaining settlement table" tabIndex={0}><OutstandingSettlementTable model={model}/></div>:<p role="status">{reviewAmount?'No remaining transfers. Recorded repayments still need review.':'All settled. No payments remaining.'}</p>}
+  {model.rows.length?<div className="settlement-sheet-scroll" role="region" aria-label="Remaining settlement table" tabIndex={0}><OutstandingSettlementTable model={model}/></div>:<p role="status">{reviewAmount?'No remaining transfers. Recorded repayments still need review.':'Everyone is settled.'}</p>}
   {model.unavailable&&<p role="alert">Some bill details are unavailable. Check View Calculation.</p>}
-  {model.offsets.map(o=><button type="button" className="text-button" key={o.from+o.to} onClick={()=>{onClose();requestAnimationFrame(()=>{const detail=[...document.querySelectorAll<HTMLDetailsElement>('.pair-calculation')].find(d=>d.dataset.pair===JSON.stringify([o.from,o.to].sort()));if(detail){let parent=detail.parentElement;while(parent){if(parent instanceof HTMLDetailsElement)parent.open=true;parent=parent.parentElement}detail.open=true;const cleared=detail.querySelector<HTMLDetailsElement>('.offset-settled-bills');if(cleared)cleared.open=true;detail.scrollIntoView({block:'start',behavior:'smooth'})}})}}>{o.count} bills settled by offset · {money(o.amount,model.currency)} each way · Details</button>)}
+  {model.offsets.map(o=><button type="button" className="text-button" key={o.from+o.to} onClick={()=>{onClose();requestAnimationFrame(()=>{const detail=[...document.querySelectorAll<HTMLDetailsElement>('.pair-calculation')].find(d=>d.dataset.pair===JSON.stringify([o.from,o.to].sort()));if(detail){let parent=detail.parentElement;while(parent){if(parent instanceof HTMLDetailsElement)parent.open=true;parent=parent.parentElement}detail.open=true;const cleared=detail.querySelector<HTMLDetailsElement>('.offset-settled-bills');if(cleared)cleared.open=true;detail.scrollIntoView({block:'start',behavior:'smooth'})}})}}>{o.count} bills cancelled out · {money(o.amount,model.currency)} each way · Details</button>)}
   <footer><button type="button" className="primary" disabled={!ready} onClick={print}>Print / Save PDF</button><button type="button" className="secondary" onClick={csv}>Settlement CSV</button><small>Still to pay · {model.currency}</small></footer>
   <iframe ref={frame} title="Printable settlement summary" className="sheet-print-frame" srcDoc={html} sandbox="allow-same-origin allow-modals" aria-hidden="true" tabIndex={-1} onLoad={()=>setReady(true)}/>
-  {error&&<p role="alert">{error}</p>}
+  {error&&<p role="alert"><CopyError value={error}/></p>}
  </DialogContent></Dialog>;
 }

@@ -1,11 +1,14 @@
 "use client";
-import { useState,useMemo } from "react";
+import {CopyError} from "./copy-feedback";
+import {userError} from '@/lib/ui-copy';
+import { useState,useMemo,useEffect } from "react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Event,
   Expense,
   Item,
   blankItem,
+  blankExpense,
   calculate,
   duplicateFingerprint,
   categories,
@@ -13,6 +16,7 @@ import {
   money,
   unit,
 } from "@/lib/ledger";
+import {repeatExpense} from '@/lib/ledger';
 import {useDraftSave} from "./save-recovery";
 import {RefundFields} from "./refund-fields";
 import {PayLaterFields} from "./paylater-fields";
@@ -28,6 +32,9 @@ export default function ExpenseEditor({
   stickyActions=false,
   draftScope,
   draftRevision=0,
+  onDirty,
+  quickPicks,
+  onPreset,
 }: {
   event: Event;
   initial: Expense;
@@ -37,10 +44,14 @@ export default function ExpenseEditor({
   stickyActions?:boolean;
   draftScope?:string;
   draftRevision?:number;
+  onDirty?:(dirty:boolean)=>void;
+  quickPicks?:React.ReactNode;
+  onPreset?:(expense:Expense)=>void;
 }) {
   const [b, set] = useState(initial),
     [confirmed, setConfirmed] = useState(false);
   const localStatus=useDraftSave(draftScope,'expense',b,draftRevision,e.expenses.find(x=>x.id===initial.id)||null);
+  useEffect(()=>{onDirty?.(JSON.stringify(b)!==JSON.stringify(initial));return()=>onDirty?.(false)},[b,initial]);
   const edit = e.expenses.some((x) => x.id === b.id);
   const update = (patch: Partial<Expense>) => {
     const next={...b,...patch};
@@ -104,6 +115,8 @@ export default function ExpenseEditor({
           </button>
         </div>
         {localStatus&&<p className="muted" role="status">{localStatus}</p>}
+        {quickPicks}
+        {!edit&&onPreset&&<div className="checks expense-presets">{[['Toll','Transport'],['Petrol','Transport'],['Ticket','Activity'],['Meal','Food']].map(([name,category])=><button type="button" className="secondary" key={name} onClick={()=>{const next=blankExpense(e,b.payers[0]?.person||'');next.merchant=name;next.category=category;onPreset(next)}}>{name}</button>)}{e.expenses.some(x=>!x.deleted)&&<button type="button" className="secondary" onClick={()=>onPreset(repeatExpense(e.expenses.filter(x=>!x.deleted).at(-1)!))}>Repeat last</button>}</div>}
         <Tabs
           value={b.mode}
           onValueChange={(v) => {
@@ -121,7 +134,7 @@ export default function ExpenseEditor({
           }}
         >
           <TabsList>
-            <TabsTrigger value="simple">Quick expense</TabsTrigger>
+            <TabsTrigger value="simple">Quick entry</TabsTrigger>
             <TabsTrigger value="itemized">Itemized bill</TabsTrigger>
           </TabsList>
         </Tabs>
@@ -130,7 +143,8 @@ export default function ExpenseEditor({
           <div><b>Expense details</b><small>What was paid, and when?</small></div>
         </div>
         <div className="fields">
-          <Field label="Merchant / description">
+          {b.mode==='simple'&&<Field label={`Amount (${b.currency})`}><Amount primary value={b.items[0].amount} currency={b.currency} onChange={amount=>item(0,{amount:amount||0})}/></Field>}
+          <Field label="What was it for?" error={!b.merchant.trim()&&JSON.stringify(b)!==JSON.stringify(initial)?"Enter an expense name.":undefined}>
             <input
               value={b.merchant}
               placeholder="Toll, 7-Eleven…"
@@ -156,7 +170,21 @@ export default function ExpenseEditor({
               }}
             />
           </Field>
-          <Field label="Date">
+          <Field label={b.supplierPayments?"Default payer for new business payments":b.paymentStatus === 'postpaid' ? "Will be paid by" : "Paid by"}>
+            <Pick
+              label="Paid by"
+              value={b.payers[0]?.person || ""}
+              options={e.people}
+              onChange={(person) =>
+                update({
+                  payers: b.payers.map((p, i) =>
+                    i === 0 ? { ...p, person } : p,
+                  ),
+                })
+              }
+            />
+          </Field>
+          <Field label="Date" error={!b.date?"Choose a valid date.":undefined}>
             <input
               type="date"
               value={b.date}
@@ -211,38 +239,24 @@ export default function ExpenseEditor({
           <div><b>Amount & people</b><small>Who paid, and who shared it?</small></div>
         </div>
         <div className="fields">
-          {b.paidOn!==undefined&&<Field label="Supplier payment date"><input type="date" min={b.date} value={b.paidOn} onChange={v=>update({paidOn:v.target.value})}/><small>Expense date stays the date the cost was incurred.</small></Field>}
+          {b.paidOn!==undefined&&<Field label="Date you paid the business"><input type="date" min={b.date} value={b.paidOn} onChange={v=>update({paidOn:v.target.value})}/><small>Expense date stays the date the cost was incurred.</small></Field>}
           <Field label="Payment status">
-            {b.payLater?<p className="muted">The merchant is covered by PayLater. Confirm platform repayments in Pocket Ledger; friends still repay through Settlement.</p>:b.cancellation?<p className="muted">Cancelled booking: the final fee is incurred; actual supplier payments determine the remaining balance and refund due.</p>:<Pick label="Payment status" value={b.paymentStatus || 'paid'} options={[
-              {id:'paid',name:'Consumed & paid'},
-              {id:'postpaid',name:'Postpaid · consumed, not paid'},
-              {id:'prepaid',name:'Prepaid · paid, not consumed'},
+            {b.payLater?<p className="muted">The merchant is covered by PayLater. Confirm platform repayments in Pocket Ledger; friends still repay through Settlement.</p>:b.cancellation?<p className="muted">Cancelled booking: the final fee is incurred; actual business payments determine the remaining balance and refund due.</p>:<Pick label="Payment status" value={b.paymentStatus || 'paid'} options={[
+              {id:'paid',name:"Used & paid"},
+              {id:'postpaid',name:"Used · not paid yet"},
+              {id:'prepaid',name:"Paid in advance · not used yet"},
             ]} onChange={(paymentStatus) => update({paymentStatus:paymentStatus as Expense['paymentStatus']})}/>}
-            <small>{b.paymentStatus === 'postpaid' ? 'Counts as consumption and unpaid to the supplier. Change to Consumed & paid after payment.' : b.paymentStatus === 'prepaid' ? 'Counts as paid upfront only. Edit this same record to Consumed & paid when used; do not add a second expense.' : 'Counts as consumption and actual payment. Member reimbursements appear in Settlement.'}</small>
+            <small>{b.paymentStatus === 'postpaid' ? "Counts as spending, with payment still due to the business. Change to Used & paid after payment." : b.paymentStatus === 'prepaid' ? 'Counts as paid upfront only. Edit this same record to Consumed & paid when used; do not add a second expense.' : 'Counts as consumption and actual payment. Member reimbursements appear in Settlement.'}</small>
           </Field>
           <PayLaterFields bill={b} event={e} update={update}/>
           {!b.payLater&&<SupplierInstallments bill={b} event={e} update={update}/>}<RefundFields bill={b} event={e} update={update}/>
-          <Field label={b.supplierPayments?"Default payer for new supplier payments":b.paymentStatus === 'postpaid' ? "Will be paid by" : "Paid by"}>
-            <Pick
-              label="Paid by"
-              value={b.payers[0]?.person || ""}
-              options={e.people}
-              onChange={(person) =>
-                update({
-                  payers: b.payers.map((p, i) =>
-                    i === 0 ? { ...p, person } : p,
-                  ),
-                })
-              }
-            />
-          </Field>
           <div className="treat-toggle">
             <Check
               label="This expense is a treat"
               checked={!!b.treat}
               onChange={(checked) => update({ treat: checked ? b.payers[0].person : "" })}
             />
-            <small>Leave off for normal AA.</small>
+            <small>Leave off to share the cost.</small>
           </div>
           {b.treat && (
             <Field label="Treat by">
@@ -267,15 +281,15 @@ export default function ExpenseEditor({
                   />
                 </Field>
               )}
-              <Field label={`Price (${b.currency}) · try 40+10`}>
+              {b.mode === "itemized" && <Field label={`Price (${b.currency}) · try 40+10`}>
                 <Amount
                   value={it.amount}
                   currency={b.currency}
                   onChange={(v) => item(i, { amount: v || 0 })}
                 />
-              </Field>
+              </Field>}
             </div>
-            <b>Consumed by · {it.people.length}</b>
+            <b>Split with · {it.people.length}</b>
             <People
               people={e.people}
               selected={it.people}
@@ -519,7 +533,7 @@ export default function ExpenseEditor({
               />
               {!b.voucherContribution && (
                 <>
-                  <p>Who benefits? Empty selection = all consumers.</p>
+                  <p>Choose who gets the voucher discount. Leave this blank to share it with everyone on the bill.</p>
                   <People
                     people={e.people}
                     selected={b.voucherPeople}
@@ -660,7 +674,7 @@ export default function ExpenseEditor({
       </section>
       <aside className="panel preview">
         <p className="eyebrow">3 · REVIEW</p>
-        {b.supplierPayments&&<p className="muted">Actual supplier payers are listed in Deposit & balance. Friend settlement uses those payments once fully paid and consumed.</p>}
+        {b.supplierPayments&&<p className="muted">Actual business payers are listed in Deposit &amp; balance. Friend settlement uses those payments once fully paid and consumed.</p>}
         {(b.cancellation||b.refunds?.length)&&<p className="muted">Original bill total · net cost and refunds are shown below.</p>}
         <h2>{money(c?.cashTotal || 0, b.currency)}</h2>
         <p className="muted">
@@ -668,7 +682,7 @@ export default function ExpenseEditor({
         </p>
         {error && (
           <p className="message error" role="alert">
-            {error}
+            <CopyError value={error}/>
           </p>
         )}
         {c && (
@@ -688,7 +702,7 @@ export default function ExpenseEditor({
               <div className="live-result">
                 <b>After saving</b>
                 {Object.entries(c.responsible).filter(([p,v])=>p !== b.payers[0].person && v > 0).map(([p,v])=><p key={p}><span>{name(p)} will owe {name(b.payers[0].person)}</span><b>{money(v,e.settlement)}</b></p>)}
-                {!Object.entries(c.responsible).some(([p,v])=>p !== b.payers[0].person && v > 0) && <small>No repayment will be created.</small>}
+                {!Object.entries(c.responsible).some(([p,v])=>p !== b.payers[0].person && v > 0) && <small>Saving this expense won't record a payment to a friend.</small>}
               </div>
             )}
             <hr />

@@ -1,9 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import DeviceLighting from "./device-lighting";
 
 export const metadata: Metadata = {
   title: "TripShare · Trip & Money",
-  description: "Manage the whole journey in Trip. Track trip bills and everyday shared expenses in Money, with clear splits and settlements.",
+  description: "Plan your journey in Trip. Track expenses and payments in Money.",
   manifest: "/manifest.webmanifest",
   applicationName: "TripShare",
   appleWebApp: {
@@ -34,15 +35,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
+        <script dangerouslySetInnerHTML={{__html:`try{var m=localStorage.getItem('tripshare-theme');document.documentElement.dataset.theme=m==='light'||m==='night'?m:matchMedia('(prefers-color-scheme: dark)').matches?'night':'light'}catch{document.documentElement.dataset.theme=matchMedia('(prefers-color-scheme: dark)').matches?'night':'light'}`}}/>
         <link rel="manifest" href="/manifest.webmanifest" />
         <link rel="apple-touch-icon" href="/app-icon-180.png" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
       </head>
-      <body className="antialiased">{children}</body>
+      <body className="antialiased"><DeviceLighting/>{children}</body>
     </html>
   );
 }

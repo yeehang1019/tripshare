@@ -535,3 +535,11 @@ Directory and URL-selected group now start together; directory still validates s
 
 ## v90 notifications and v89 refresh cache
 See docs/v88-v90-review.md. v89 actual20 refresh304 samples54/63ms p50/p95,1call; retained v88 rollback. v90 preserves original history visibility while merging access/history into1SQL snapshot; count-only initial/poll requests and lazy panel list.58 API tests cover original list equality across roles/groups, read count, inactive/revoked access and one-call budgets. No full ledger transfer/normalize; JSON remains physically embedded and still parsed by SQLite. No schema/data migration or outgoing messages. KEEP permissions/history/financial results; CHANGE NOW query/request scheduling; IMPROVE LATER audit storage only after separate migration approval; DO NOT ADD further scope. Current next rollback v89.
+
+
+## Phase 3b / v94 candidate — 2026-10-30
+Approved A/B/C presentation copy, short statuses, Saved people terminology and Trip/Money selectors; owner-aware error messages preserve uncertain-save semantics. Quick picks no longer submits expenses through a second form. Single responsive add entry; labeled canonical form with dirty Discard and amount focus. Default Match device supports OS events and preserves manual choice; preference endpoint accepts system without a migration. No ledger, allocation, permission, account data or database schema changes.
+
+Validation: full suite (251 tests), typecheck, production build; fixed KL House food1640/toll0/offset32974eachway/ET→YH1640. Live v93 baseline read-only: KL House YC→YH RM51.70 and 39 historical payments. Preview routing returns Not Found; use production read-only smoke after deployment. No local browser/device verification claimed. v93 remains rollback.
+
+KEEP: ledger, original payees, permission/CAS/idempotency enforcement. CHANGE NOW: approved form and copy changes. IMPROVE LATER: user retest and phase3c. DO NOT ADD: duplicate ledgers, new copy-request features, migrations.

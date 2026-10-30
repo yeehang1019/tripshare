@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useId, Children, isValidElement, cloneElement } from "react";
 import {
   Select,
   SelectTrigger,
@@ -16,7 +16,13 @@ export function Pick({
   value,
   onChange,
   options,
+  id,
+  errorId,
+  invalid,
 }: {
+  id?:string;
+  errorId?:string;
+  invalid?:boolean;
   label: string;
   value: string;
   onChange: (s: string) => void;
@@ -27,7 +33,7 @@ export function Pick({
       value={value || "__none"}
       onValueChange={(v) => onChange(v === "__none" ? "" : v)}
     >
-      <SelectTrigger className="pick" aria-label={label}>
+      <SelectTrigger id={id} aria-describedby={errorId} aria-invalid={invalid} className="pick" aria-label={label}>
         <SelectValue placeholder={label} />
       </SelectTrigger>
       <SelectContent>
@@ -45,23 +51,33 @@ export function Pick({
 export function Field({
   label,
   children,
+  error,
 }: {
   label: string;
   children: React.ReactNode;
+  error?:string;
 }) {
-  return (
-    <label className="field">
-      <span>{label}</span>
-      {children}
-    </label>
-  );
+  const id=useId();
+  let linked=false;
+  const control=Children.map(children,child=>{if(linked||!isValidElement(child))return child;linked=true;const custom=typeof child.type!=='string';return cloneElement(child as React.ReactElement<any>,{id,...(custom?{errorId:error?id+'-error':undefined,invalid:!!error}:{'aria-describedby':error?id+'-error':undefined,'aria-invalid':!!error})})});
+  return <label className="field" htmlFor={id}><span>{label}</span>{control}{error&&<small id={id+'-error'} role="alert">{error}</small>}</label>;
 }
 export function Amount({
   value,
   onChange,
   currency = "MYR",
   negative = false,
+  id,
+  autoFocus=false,
+  primary=false,
+  errorId,
+  invalid,
 }: {
+  id?:string;
+  errorId?:string;
+  invalid?:boolean;
+  autoFocus?:boolean;
+  primary?:boolean;
   value: number | null;
   onChange: (n: number | null) => void;
   currency?: string;
@@ -76,6 +92,7 @@ export function Amount({
   }, [value, currency, focused]);
   return (
     <input
+      id={id} aria-describedby={errorId} aria-invalid={invalid} autoFocus={autoFocus} data-primary-amount={primary||undefined}
       aria-label={`Amount ${currency}`}
       inputMode="decimal"
       type="text"

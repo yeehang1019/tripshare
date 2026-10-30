@@ -32,7 +32,7 @@ test('Summary uses remaining pairwise balances, hides fully paid pairs, and neve
 test('Paying every remaining transfer yields an empty summary and print; undo restores the obligation',()=>{
  const e=fixture();for(const t of ledger(e).transfers)pay(e,t.from,t.to,t.amount);
  let m=outstandingSummary(e,ledger(e).transfers);assert.equal(m.total,0);assert.equal(m.rows.length,0);
- assert.match(outstandingPrintHTML(m),/All settled/);assert.doesNotMatch(outstandingPrintHTML(m),/<tbody>/);
+ assert.match(outstandingPrintHTML(m),/Everyone is settled/);assert.doesNotMatch(outstandingPrintHTML(m),/<tbody>/);
  e.payments[0].deleted=true;m=outstandingSummary(e,ledger(e).transfers);assert.ok(m.total>0);
 });
 test('Mine and server-redacted member summaries retain only own pending pairs, with safe print labels',()=>{
@@ -44,7 +44,7 @@ test('Mine and server-redacted member summaries retain only own pending pairs, w
 });
 test('Zero/self rows are excluded and unmatched recorded cash is flagged rather than declared settled',()=>{
  const e=fixture(),m=outstandingSummary(e,[{from:'A',to:'B',amount:0},{from:'A',to:'A',amount:100}]);
- assert.equal(m.rows.length,0);const html=outstandingPrintHTML(m,1000);assert.match(html,/repayments need review/);assert.doesNotMatch(html,/All settled/);
+ assert.equal(m.rows.length,0);const html=outstandingPrintHTML(m,1000);assert.match(html,/repayments need review/);assert.doesNotMatch(html,/Everyone is settled/);
 });
 
 test('Duplicate bill names stay separate and stale source calculations never invent attribution',()=>{

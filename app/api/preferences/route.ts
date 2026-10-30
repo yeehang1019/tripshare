@@ -33,7 +33,7 @@ export async function GET(request: Request) {
     .prepare("SELECT palette,mode,motion FROM user_preferences WHERE user=?")
     .bind(who.user)
     .first();
-  return response(row || { palette: "cyberpunk", mode: "light", motion: "smooth" });
+  return response(row || { palette: "cyberpunk", mode: "system", motion: "smooth" });
 }
 
 export async function POST(request: Request) {
@@ -43,7 +43,7 @@ export async function POST(request: Request) {
     return response({ error: "Invalid origin" }, 403);
   const body:any = await request.json();
   const palettes = ["cyberpunk", "cozy", "plum", "abyss", "sahara", "northern", "kodak", "amazon", "interstellar", "kyoto"];
-  const modes = ["light", "night"];
+  const modes = ["system", "light", "night"];
   const motions = ["full", "smooth", "battery"];
   if (!palettes.includes(body.palette) || !modes.includes(body.mode) || !motions.includes(body.motion))
     return response({ error: "Invalid appearance preference" }, 400);

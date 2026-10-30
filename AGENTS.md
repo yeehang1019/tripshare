@@ -1,5 +1,7 @@
 # TripShare engineering rules
 
+- Latest approved phase3b: apply approved English A/B/C copy with final user corrections; one mobile FAB/desktop top-right add entry and canonical ExpenseEditor (Quick picks, presets, Repeat last inside it), visible linked field labels, dirty-only Discard on Escape/close, default Match device lighting with live OS changes and manual override. Preserve all accounting algorithms and v93 rollback; no 3c header/Home/notification regrouping. Publish after passing checks, then stop for user retest.
+
 - Latest v93 approval supersedes v92 financial jumps: Trip Expenses/Settlement render same financial components and record while keeping space=trip, five-item mobile navigation and tab=expenses/settle. Desktop Trip sidebar expands all permitted secondary entries below divider; Money desktop must also have direct entries. Publish after tests; retain v92 rollback. No accounting/data changes. Stop after v93; copy table before3b.
 
 - Latest v92 approval: Trip outer navigation Overview / Itinerary / Expenses / Settle up / More; secondary Checklist, Trip tools, member preview and permitted management in More. Money links use same group. Publish after tests; preserve v91 rollback. System lighting belongs to 3b; compact mobile header <=160px belongs to 3c. Stop after v92; submit copy table separately before 3b. No amount/data/schema changes.

@@ -51,7 +51,7 @@ export function settlementPrintHTML(e:Event,transfers:Transfer[],options:{person
   ['FINAL PAYMENT',route(p,p.remainingForward,p.remainingReverse)],
  ].filter((_,index)=>index===5||[p.grossForward,p.grossReverse,p.offset,p.paidForward,p.paidReverse][index]>0))+
  table(['Source expense','Date','Original obligation'],p.expenses.map(x=>[esc(x.title),day(x.date),(x.from===p.from?esc(p.fromName)+' → '+esc(p.toName):esc(p.toName)+' → '+esc(p.fromName))+' · '+fmt(x.amount)]))+
- (p.payments.length?table(['Recorded payment allocation','Date','Applied','Needs review'],p.payments.map(x=>[(x.from===p.from?esc(p.fromName)+' → '+esc(p.toName):esc(p.toName)+' → '+esc(p.fromName)),day(x.date),fmt(x.applied),fmt(x.unapplied)])):'')+
+ (p.payments.length?table(['Recorded payment allocation','Date',"Paid toward bill",'Needs review'],p.payments.map(x=>[(x.from===p.from?esc(p.fromName)+' → '+esc(p.toName):esc(p.toName)+' → '+esc(p.fromName)),day(x.date),fmt(x.applied),fmt(x.unapplied)])):'')+
  (p.unappliedForward+p.unappliedReverse?'<p class="review">Needs review: '+fmt(p.unappliedForward+p.unappliedReverse)+' of recorded payments no longer matches its source bill. It has not been deducted from a newer bill.</p>':'')+'</section>').join('');
  const reviewTotal=pairs.reduce((n,p)=>n+p.unappliedForward+p.unappliedReverse,0);
  const timestamp=esc((options.generatedAt||new Date()).toLocaleString('en-GB',{timeZone:'Asia/Kuala_Lumpur',dateStyle:'medium',timeStyle:'short'}));

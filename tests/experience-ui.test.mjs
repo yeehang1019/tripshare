@@ -82,7 +82,7 @@ test('Trip landing never displays daily or restricted group content',()=>{
 
 test('Owner has a dedicated People & Access workspace; collaborators never see it',()=>{
  const e=normalize({name:'Friends',people:['A','B'],bills:[],payments:[]});const owner={id:'group',data:e,owner:true,permissions:[],person:'A',revision:0};
- const html=renderToStaticMarkup(React.createElement(collaboration.PeopleAccess,{record:owner,onAction:async()=>null}));assert.match(html,/Only you add people/);assert.match(html,/Add person/);assert.match(html,/Exact GPT sign-in email/);
+ const html=renderToStaticMarkup(React.createElement(collaboration.PeopleAccess,{record:owner,onAction:async()=>null}));assert.match(html,/Only you can add people/);assert.match(html,/Add person/);assert.match(html,/Their ChatGPT sign-in email/);
  assert.equal(renderToStaticMarkup(React.createElement(collaboration.PeopleAccess,{record:{...owner,owner:false},onAction:async()=>null})), '');
  assert.equal(spaces.spaceDestinations({...owner,owner:false,permissions:['plan']},'money').includes('People & Access'),false);
 });
@@ -116,9 +116,9 @@ test('Planner compact view and full cost view separate estimates from bills and 
  const b=blankExpense(e,'A');b.merchant='Private supplier details';b.activity='hotel';b.items[0].amount=123456;b.paymentStatus='postpaid';e.expenses=[b];
  const props={event:e,busy:false,canPlan:true,canExpense:true,draft:null,setDraft(){},onBegin(){},onSave:async()=>true,onAction:async()=>true,onDelete(){},onExpense(){},onShare(){},onDirty(){}};
  const privateView=renderToStaticMarkup(React.createElement(TripPlanner,{...props,section:'Itinerary',initialDay:e.start,showFinancial:false}));
- assert.match(privateView,/Group costs are private/);assert.doesNotMatch(privateView,/Private supplier details|1,234.56|9,876.54|Supplier unpaid/);
+ assert.match(privateView,/Everyone else&#x27;s costs are private/);assert.doesNotMatch(privateView,/Private supplier details|1,234.56|9,876.54|Supplier unpaid/);
  const costs=renderToStaticMarkup(React.createElement(tripCosts.default,{event:e,canAdd:true,canEdit:true,busy:false,onAdd(){},onEdit(){},onMarkPaid(){},onOpenMoney(){}}));
- assert.match(costs,/Plan estimate/);assert.match(costs,/Recorded spending/);assert.match(costs,/Supplier bills unpaid/);assert.match(costs,/Prepaid \/ deposits/);assert.match(costs,/Mark supplier paid/);assert.match(costs,/Edit bill/);assert.match(costs,/\+ Deposit/);
+ assert.match(costs,/Plan estimate/);assert.match(costs,/Recorded spending/);assert.match(costs,/Unpaid business bills/);assert.match(costs,/Prepaid \/ deposits/);assert.match(costs,/Record business payment/);assert.match(costs,/Edit bill/);assert.match(costs,/\+ Deposit/);
  assert.equal(e.expenses.length,1);
 });
 test('Planner opens the requested date rather than resetting to the first travel day',()=>{
@@ -149,7 +149,7 @@ test('Hybrid planner keeps the default overview short and displays only one deta
 
 test('Section switching is locked while a Quick Pick or trip draft is unsaved',()=>{
  const html=renderToStaticMarkup(React.createElement(focusWorkspace.FocusSections,{label:'Sections',initial:'quick',locked:true,sections:[{id:'summary',label:'Overview',render:()=>React.createElement('p',{},'Overview body')},{id:'quick',label:'Quick Picks',render:()=>React.createElement('p',{},'Unsaved quick pick')}]}));
- assert.match(html,/disabled=""/);assert.match(html,/Save or cancel the current draft/);assert.match(html,/Unsaved quick pick/);assert.doesNotMatch(html,/Overview body/);
+ assert.match(html,/disabled=""/);assert.match(html,/Save or cancel your draft/);assert.match(html,/Unsaved quick pick/);assert.doesNotMatch(html,/Overview body/);
 });
 test('Top-of-sheet Save keeps the existing edit confirmation requirement',()=>{
  const e=normalize({name:'Daily',people:['A'],bills:[],payments:[]});const b=blankExpense(e,'A');b.merchant='Train';b.items[0].amount=500;

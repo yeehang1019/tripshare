@@ -1,4 +1,6 @@
 'use client';
+import {CopyError} from "./copy-feedback";
+import {userError} from '@/lib/ui-copy';
 import {useEffect,useRef,useState} from 'react';
 import {money} from '@/lib/ledger';
 import type {MemberPortalSnapshot} from '@/lib/member-portal';
@@ -46,7 +48,7 @@ export default function MemberPortal({group,person,session,signInHref}:{group:st
   return()=>{disposed=true;controller?.abort();clearInterval(timer);window.removeEventListener('focus',visible);document.removeEventListener('visibilitychange',visible);refresh.current=()=>{}};
  },[group,person,session]);
  return <div className="member-portal"><header><span className="brand">tripshare.</span><button className="text-button" disabled={busy} onClick={()=>refresh.current()}>{busy?'Updating…':'Refresh'}</button></header><main>
-  {error&&<p className="message error" role="alert">{error}</p>}{status===401&&<a className="secondary" href={signInHref} target="_top">Sign in again</a>}
+  {error&&<p className="message error" role="alert"><CopyError value={error}/></p>}{status===401&&<a className="secondary" href={signInHref} target="_top">Sign in again</a>}
   {snapshot?<MemberPortalContent snapshot={snapshot} page={page} onPage={setPage}/>:!error&&<p role="status">Loading your trip…</p>}
   {snapshot&&<small className="member-portal-update">Updates automatically while this page is open.</small>}
  </main></div>;
