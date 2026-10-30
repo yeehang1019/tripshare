@@ -543,3 +543,8 @@ Approved A/B/C presentation copy, short statuses, Saved people terminology and T
 Validation: full suite (251 tests), typecheck, production build; fixed KL House food1640/toll0/offset32974eachway/ET→YH1640. Live v93 baseline read-only: KL House YC→YH RM51.70 and 39 historical payments. Preview routing returns Not Found; use production read-only smoke after deployment. No local browser/device verification claimed. v93 remains rollback.
 
 KEEP: ledger, original payees, permission/CAS/idempotency enforcement. CHANGE NOW: approved form and copy changes. IMPROVE LATER: user retest and phase3c. DO NOT ADD: duplicate ledgers, new copy-request features, migrations.
+
+
+### 3b production smoke and final copy correction
+Published v94 and verified the live Add expense control opens exactly one editor, focus starts at Amount, clean Escape closes, dirty Escape opens Discard, Keep editing retains entered amount, Discard removes only browser draft and focus returns to Add expense. Tested Dark→night and Match device→current OS light; restored prior manual Light. No expense/payment writes. KL House YC→YH remains RM51.70 and history39. Browser errors observed are extension metadata messages, not application errors. Actual OS appearance transitions are covered by subscription tests; no physical-device switch or target viewport claim.
+Final patch pluralizes the dynamic per-payee payment count, simplifies payment-status help and derives new-expense Undo eligibility using the authenticated creator (server permission checks remain authoritative). Final version follows v94; v93 remains baseline rollback.

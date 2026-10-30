@@ -246,7 +246,7 @@ export default function ExpenseEditor({
               {id:'postpaid',name:"Used · not paid yet"},
               {id:'prepaid',name:"Paid in advance · not used yet"},
             ]} onChange={(paymentStatus) => update({paymentStatus:paymentStatus as Expense['paymentStatus']})}/>}
-            <small>{b.paymentStatus === 'postpaid' ? "Counts as spending, with payment still due to the business. Change to Used & paid after payment." : b.paymentStatus === 'prepaid' ? 'Counts as paid upfront only. Edit this same record to Consumed & paid when used; do not add a second expense.' : 'Counts as consumption and actual payment. Member reimbursements appear in Settlement.'}</small>
+            <small>{b.paymentStatus === 'postpaid' ? "Counts as spending, with payment still due to the business. Change to Used & paid after payment." : b.paymentStatus === 'prepaid' ? 'Counts as paid upfront only. Edit this same record to Consumed & paid when used; do not add a second expense.' : 'Counts as spending and payment to the business. Record payments between friends in Settle up.'}</small>
           </Field>
           <PayLaterFields bill={b} event={e} update={update}/>
           {!b.payLater&&<SupplierInstallments bill={b} event={e} update={update}/>}<RefundFields bill={b} event={e} update={update}/>
