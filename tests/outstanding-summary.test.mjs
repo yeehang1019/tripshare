@@ -56,7 +56,7 @@ test('Duplicate bill names stay separate and stale source calculations never inv
 });
 
 test('Wide print continuations keep every bill, label repeated totals, and personal scope excludes unrelated bills',()=>{
- const e=fixture();for(let i=0;i<9;i++){const b=blankExpense(e,'A');b.merchant='Extra '+i;b.date='2026-11-01';b.items[0].amount=100;e.expenses.push(b)}
+ const e=fixture();for(const b of e.expenses)b.date='2026-10-26';for(let i=0;i<9;i++){const b=blankExpense(e,'A');b.merchant='Extra '+i;b.date='2026-11-01';b.items[0].amount=100;e.expenses.push(b)}
  const privateBill=blankExpense(e,'D');privateBill.merchant='PRIVATE_D_E';privateBill.items[0].people=['E'];privateBill.items[0].weights=[1];privateBill.items[0].amount=100;e.expenses.push(privateBill);
  const personal=personalView(e,'B'),m=outstandingSummary({...e,people:[],expenses:[],payments:[]},personal.transfers,{personal});
  const printed=outstandingPrintHTML(m);assert.match(printed,/Extra 8/);assert.match(printed,/do not add repeated/);assert.doesNotMatch(printed,/PRIVATE_D_E/);assert.ok(m.rows.every(r=>r.from==='B'||r.to==='B'));

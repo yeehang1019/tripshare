@@ -7,7 +7,7 @@ export function groupNotifications(items:NotificationItem[]):NotificationGroup[]
  // Only known audit categories can be combined; unknown records retain their own title.
  const kind=['expense','payment','plan','record'].includes(item.kind||'')?item.kind:undefined;
  const key=needsYou||!kind?item.id:JSON.stringify([item.group,day,kind]);
- const row=groups.get(key);if(row){row.ids.push(item.id);if(item.date>row.date)row.date=item.date;row.title=row.ids.length+' updates in '+row.groupName;}
+ const row=groups.get(key);if(row){row.ids.push(item.id);if(item.date>row.date)row.date=item.date;row.title=row.ids.length+' updates';}
  else groups.set(key,{id:key,group:item.group,groupName:item.groupName,date:item.date,title:item.title,ids:[item.id],needsYou});
  }
  return [...groups.values()].sort((a,b)=>b.date.localeCompare(a.date));

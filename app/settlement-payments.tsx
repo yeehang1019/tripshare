@@ -70,22 +70,23 @@ export default function SettlementPayments({event:e,group,revision,session,trans
  }
  const invalid=!!draft&&(!draft.batch.payments.length||draft.batch.payments.some(p=>{const available=(sources.get(pairKey(p))||[]).filter(b=>p.expenseIds.includes(b.id)).reduce((n,b)=>n+b.amount,0);return !p.expenseIds.length||!Number.isSafeInteger(p.amount)||p.amount<=0||p.amount>available||!p.date}));
  return <div className="settlement-compact-list">
-  <div className="settlement-record-toolbar"><Field label="Bill"><select value={filter} onChange={v=>{setFilter(v.target.value);setSelected([])}}><option value="">All unpaid bills</option>{bills.map(b=><option key={b.id} value={b.id}>{b.title} · {b.date.split('-').reverse().join('/')}</option>)}</select></Field>
-   <details className="settlement-bulk-menu"><summary aria-label="Payment batch actions">⋯</summary><div>{canRecord&&<button className="primary" disabled={disabled||!chosen.length||chosen.length>100} onClick={()=>open(chosen)}>Record selected · {chosen.length}{chosen.length?' · '+fmt(total):''}</button>}</div></details>
-  </div>
   {chosen.length>100&&<p role="alert">Select at most 100 payments per batch.</p>}
   {error&&!draft&&!receipt&&<p role="alert"><CopyError value={error}/></p>}
   {copyText&&<div role="status" className="settlement-copy-result">{copyText==='Copied.'?copyText:<textarea readOnly aria-label="Copy payment list" value={copyText} onFocus={v=>v.target.select()}/>}</div>}
   {recipients.map(to=><details open className="settlement-recipient" key={to}>
-   <summary>Pay {name(to)} · {recipientBills(to)} bill{recipientBills(to)===1?"":"s"}</summary><details className="settlement-bulk-menu recipient-menu"><summary aria-label={"Actions for payments to "+name(to)}>⋯</summary><div className="checks settlement-recipient-actions">{canRecord&&<button className="text-button" onClick={()=>{const keys=visible.filter(t=>t.to===to).map(pairKey);setSelected(v=>keys.every(k=>v.includes(k))?v.filter(k=>!keys.includes(k)):[...new Set([...v,...keys])])}}>Select / clear all</button>}<button className="text-button" onClick={()=>copy(to)}>Copy payment list</button></div></details>
-   {payout(to)}
+   <summary>Pay {name(to)} · {recipientBills(to)} bill{recipientBills(to)===1?"":"s"}</summary>
    {visible.filter(t=>t.to===to).map(t=>{const key=pairKey(t),c=calculations.find(c=>c.from===t.from&&c.to===t.to||c.from===t.to&&c.to===t.from),amount=selectedFinalDue(t,choices(t));return <article className="transfer payment-card" key={key}>
     <div>{canRecord&&<input type="checkbox" aria-label={'Select '+name(t.from)+' to '+name(t.to)} checked={selected.includes(key)} onChange={()=>toggle(key)}/>}<b>{name(t.from)}</b><span>→</span><b>{name(t.to)}</b><strong>{fmt(t.amount)}</strong><span className="bill-count-badge">{choices(t).length} bill{choices(t).length===1?"":"s"} still to pay</span><span className={"bill-status "+(choices(t).some(b=>b.applied>0||b.offset>0)?"status-partial":"status-unpaid")}>{choices(t).some(b=>b.offset>0)?"Partly cancelled out":choices(t).some(b=>b.applied>0)?"Partly paid":"Unpaid"}</span></div>
     <div className="checks">{filter&&<small>Selected bill · Still to pay {fmt(amount)}</small>}{canRecord&&<button className="primary" disabled={disabled} onClick={()=>open([t])}>Record payment</button>}{onRemind&&<button className="text-button" onClick={()=>onRemind({...t,amount:filter?amount:t.amount},filter?bills.find(b=>b.id===filter):undefined)}>Prepare reminder</button>}</div>
     <Calculation calculation={c} currency={e.settlement} compact showNet={false}/>
    </article>})}
+<details className="settlement-bulk-menu recipient-menu"><summary aria-label={"Actions for payments to "+name(to)}>⋯</summary><div className="checks settlement-recipient-actions">{canRecord&&<button className="text-button" onClick={()=>{const keys=visible.filter(t=>t.to===to).map(pairKey);setSelected(v=>keys.every(k=>v.includes(k))?v.filter(k=>!keys.includes(k)):[...new Set([...v,...keys])])}}>Select / clear all</button>}<button className="text-button" onClick={()=>copy(to)}>Copy payment list</button></div></details>
+   {payout(to)}
   </details>)}
   {!visible.length&&<p>You have nothing left to pay for these bills.</p>}
+  <div className="settlement-record-toolbar"><Field label="Bill"><select value={filter} onChange={v=>{setFilter(v.target.value);setSelected([])}}><option value="">All unpaid bills</option>{bills.map(b=><option key={b.id} value={b.id}>{b.title} · {b.date.split('-').reverse().join('/')}</option>)}</select></Field>
+   <details className="settlement-bulk-menu"><summary aria-label="Payment batch actions">⋯</summary><div>{canRecord&&<button className="primary" disabled={disabled||!chosen.length||chosen.length>100} onClick={()=>open(chosen)}>Record selected · {chosen.length}{chosen.length?' · '+fmt(total):''}</button>}</div></details>
+  </div>
   {(draft||receipt)&&<Dialog open onOpenChange={v=>{if(!v)close()}}><DialogContent className="settlement-record-dialog" onCloseAutoFocus={v=>v.preventDefault()} onInteractOutside={v=>v.preventDefault()} onEscapeKeyDown={v=>{if(working||uncertain)v.preventDefault()}} showCloseButton={!working&&!uncertain}>
    <header><DialogTitle>{receipt?(receipt.undone?"Payments undone.":"Payments recorded."):'Record payments'}</DialogTitle><DialogDescription>{receipt?"Each payment stays in history.":"Choose the bills and check each amount. Record only money that was actually paid."}</DialogDescription></header>
    {error&&<p role="alert" className="message error"><CopyError value={error}/></p>}

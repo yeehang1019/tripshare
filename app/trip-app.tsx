@@ -1474,25 +1474,14 @@ setPlannerDirty(false);setTemplateDirty(false);
                 )}
                 {tab === "Settlement" && (
                   <section className="settlement-page">
-                    {!shared && <details className="panel cross-group-summary cross-group-compact" aria-label="Payments across Trip and Money" onToggle={event=>{if(event.currentTarget.open&&!allGroupsLoaded)loadAcrossGroups()}}>
-                      <summary><Wallet size={16}/><b>Across Trip and Money</b>{!allGroupsLoaded&&<span>Open to load totals</span>}{allGroupsLoaded&&<small>{crossGroupBalances.length} spaces</small>}{allGroupsLoaded&&unselectedOwnerGroups>0&&<small>{unselectedOwnerGroups} not included</small>}{allGroupsLoaded&&crossGroupTotals.map(([currency,total])=><span key={currency}>{currency} · Pay {money(total.pay,currency)} · Receive {money(total.receive,currency)}</span>)}</summary>
-                      {!allGroupsLoaded?<p><button className="secondary" disabled={allGroupsBusy} onClick={loadAcrossGroups}>{allGroupsBusy?'Loading totals…':'Load totals'}</button></p>:crossGroupTotals.length ? <>
-                        <div className="cross-group-totals">{crossGroupTotals.map(([currency, total]) => <div key={currency} className="cross-group-total"><span>{currency} · Total to pay</span><strong>{money(total.pay, currency)}</strong><small>To receive: {money(total.receive, currency)}</small></div>)}</div>
-                        <div className="cross-group-list">{crossGroupBalances.map((group) => <button key={group.id} className="cross-group-row" onClick={() => { if (group.id !== rec.id) choose(group.id); else document.querySelector(".settlement-current")?.scrollIntoView({ behavior: "smooth" }); }}><span><b>{group.name}</b><small>{group.kind === "daily" ? "Money" : "Trip"} · {group.member}</small></span><span>Pay {money(group.pay, group.currency)}<small>Receive {money(group.receive, group.currency)}</small></span></button>)}</div>
-                      </> : <p className="muted">Choose your name in each Trip or Money space to see your totals.</p>}
-                      {allGroupsLoaded&&unselectedOwnerGroups > 0 && <p className="muted">{unselectedOwnerGroups} owned space{unselectedOwnerGroups === 1 ? " is" : "s are"} excluded. Open each one and choose your own name under Viewing member.</p>}
-                      <small>You have a separate total for each currency. What you're owed doesn't reduce what you need to pay.</small>
-                    </details>}
                     <div className="settlement-hero">
                       <div>
                         <p className="eyebrow">{settlementScope === "mine" ? "MY SETTLEMENT" : "Payments to settle"}</p>
-                        <h2>{visibleTransfers.length ? `${visibleTransfers.length} payment${visibleTransfers.length > 1 ? "s" : ""} remaining` : settlementReviews.length ? "Check recorded payments" : settlementScope === "mine" ? `${name(me)} has nothing left to settle.` : "Everyone is settled."}</h2>
-                        <p>{visibleTransfers.length ? `${fmt(visibleTransfers.reduce((total, p) => total + p.amount, 0))} left to settle.` : settlementReviews.length ? "Check the recorded payments below before paying again." : "Amounts update when expenses change."}</p>
+                        <h2>{visibleTransfers.length ? `${visibleTransfers.length} payment${visibleTransfers.length > 1 ? "s" : ""} remaining · ${fmt(visibleTransfers.reduce((total,p)=>total+p.amount,0))} left to settle` : settlementReviews.length ? "Check recorded payments" : settlementScope === "mine" ? `${name(me)} has nothing left to settle.` : "Everyone is settled."}</h2>
+                        <p className={visibleTransfers.length?"settlement-summary-note":""}>{visibleTransfers.length ? "" : settlementReviews.length ? "Check the recorded payments below before paying again." : "Amounts update when expenses change."}</p>
                       </div>
-                      <button className="secondary" aria-label="Prepare WhatsApp summary" onClick={() => whatsapp(shareText())}><Bell size={17}/><span className="settlement-share-desktop">Prepare WhatsApp summary</span><span className="settlement-share-mobile">Share</span></button>
+
                     </div>
-                    {rec.person && <PayoutDetails group={rec.id} person={rec.person} event={e} session={authenticatedSession} editable/>}
-                    {(rec.owner||can('export'))&&<SettlementExport event={e} transfers={visibleTransfers} reviewPairs={sum!.calculations} person={settlementScope==="mine"?me:undefined}/>}
                     <div className="scope-switch" role="group" aria-label="Settlement view">
                       {hasPersonalAccess && <button className={settlementScope === "mine" ? "active" : ""} onClick={()=>setSettlementScope("mine")}><UserRound size={17}/> Mine</button>}
                       {!isMember && <button className={settlementScope === "everyone" ? "active" : ""} onClick={()=>setSettlementScope("everyone")}><UsersRound size={17}/> Everyone</button>}
@@ -1562,6 +1551,20 @@ setPlannerDirty(false);setTemplateDirty(false);
                       </details>
                     </div>
                     </div>
+                    <details className="panel settlement-page-tools"><summary>More settlement options</summary>
+                      <button className="secondary" aria-label="Prepare WhatsApp summary" onClick={() => whatsapp(shareText())}><Bell size={17}/><span className="settlement-share-desktop">Prepare WhatsApp summary</span><span className="settlement-share-mobile">Share</span></button>
+                    {rec.person && <PayoutDetails group={rec.id} person={rec.person} event={e} session={authenticatedSession} editable/>}
+                    {(rec.owner||can('export'))&&<SettlementExport event={e} transfers={visibleTransfers} reviewPairs={sum!.calculations} person={settlementScope==="mine"?me:undefined}/>}
+                    {!shared && <details className="panel cross-group-summary cross-group-compact" aria-label="Payments across Trip and Money" onToggle={event=>{if(event.currentTarget.open&&!allGroupsLoaded)loadAcrossGroups()}}>
+                      <summary><Wallet size={16}/><b>Across Trip and Money</b>{!allGroupsLoaded&&<span>Open to load totals</span>}{allGroupsLoaded&&<small>{crossGroupBalances.length} spaces</small>}{allGroupsLoaded&&unselectedOwnerGroups>0&&<small>{unselectedOwnerGroups} not included</small>}{allGroupsLoaded&&crossGroupTotals.map(([currency,total])=><span key={currency}>{currency} · Pay {money(total.pay,currency)} · Receive {money(total.receive,currency)}</span>)}</summary>
+                      {!allGroupsLoaded?<p><button className="secondary" disabled={allGroupsBusy} onClick={loadAcrossGroups}>{allGroupsBusy?'Loading totals…':'Load totals'}</button></p>:crossGroupTotals.length ? <>
+                        <div className="cross-group-totals">{crossGroupTotals.map(([currency, total]) => <div key={currency} className="cross-group-total"><span>{currency} · Total to pay</span><strong>{money(total.pay, currency)}</strong><small>To receive: {money(total.receive, currency)}</small></div>)}</div>
+                        <div className="cross-group-list">{crossGroupBalances.map((group) => <button key={group.id} className="cross-group-row" onClick={() => { if (group.id !== rec.id) choose(group.id); else document.querySelector(".settlement-current")?.scrollIntoView({ behavior: "smooth" }); }}><span><b>{group.name}</b><small>{group.kind === "daily" ? "Money" : "Trip"} · {group.member}</small></span><span>Pay {money(group.pay, group.currency)}<small>Receive {money(group.receive, group.currency)}</small></span></button>)}</div>
+                      </> : <p className="muted">Choose your name in each Trip or Money space to see your totals.</p>}
+                      {allGroupsLoaded&&unselectedOwnerGroups > 0 && <p className="muted">{unselectedOwnerGroups} owned space{unselectedOwnerGroups === 1 ? " is" : "s are"} excluded. Open each one and choose your own name under Viewing member.</p>}
+                      <small>You have a separate total for each currency. What you're owed doesn't reduce what you need to pay.</small>
+                    </details>}
+                    </details>
                   </section>
                 )}
                 {tab === "Settings" && !shared && rec.owner && (

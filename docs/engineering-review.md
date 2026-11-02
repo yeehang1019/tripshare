@@ -568,3 +568,19 @@ KEEP: canonical ledger and server-enforced personal scope, source-bound payments
 CHANGE NOW: scope/role regressions and mixed consumption/cash headline fixed before release; no known arithmetic blocker.
 IMPROVE LATER: actual375/1280 user retest and long-name layout confirmation; large legacy trip-app/globals files; notification recent100 window remains bounded as before.
 DO NOT ADD: expanded member navigation, synthetic notification requests/counts, screenshot-only production routes, accounting/schema/data migrations.
+
+
+## v97 retest corrections — 2026-11-02
+
+Problem: mobile payment cards were pushed below the first viewport by secondary controls. Move cross-space summary, own payout details, exports and Share into a collapsed "More settlement options" section after the settlement list/history. Move bill filtering and batch actions after recipient cards, and recipient payout/copy/select controls after their cards. Mobile hides the recipient summary toggle and redundant list heading while keeping recipients open; summary combines count and remaining amount, then Mine/Everyone, then payment cards. Existing permissions, filters, recording, retry/CAS, history and outputs remain unchanged.
+
+Root cause of uncoloured badges: status components referenced undefined positive/negative/warning semantic variables. Define light/dark tokens, and use specific selectors against legacy colour rules. Text/soft-background contrast: light positive4.60, negative4.96, warning4.77; dark8.03,7.82,8.17. Cancelled-out continues to use theme primary. Home positive receivables use green; zero amounts/direction labels use neutral text instead of the legacy owes destructive rule.
+
+Home dates now dd/mm/yyyy; notification timestamp is en-GB date + hour/minute in Asia/Kuala_Lumpur. Combined updates body is only "{n} updates" under the existing space-name heading. Desktop sync status is explicitly static in document flow, with no absolute positioning into the balance card.
+
+Validation: production build completed, TypeScript passed; final264 tests passed,0fail/skipped. New render regression verifies payment cards precede filtering, payout and batch controls without changing the ledger; zero-balance neutral state/date formatting and real notification ID counts covered. A pre-existing wide-print test became clock-sensitive after November1 because its base bills used today's date; fix the test's base dates to October26, preserving the original wide-source assertions and production algorithms. No accounting/amount/data/permission/schema changes, no real bills or payments created by QA. Source/outputs keep v97 as rollback. Mobile375 screenshot/position remains for user retest; CSS layout/order checks are not a claim of actual device measurement.
+
+KEEP: ledger, source-bound payments, membership checks and accepted160px header.
+CHANGE NOW: first-screen hierarchy, missing semantic tokens, zero/owed colours and formatting fixed.
+IMPROVE LATER: user375/1280 light/dark retest; no new product features.
+DO NOT ADD: new QA routes, member navigation or accounting migrations.
