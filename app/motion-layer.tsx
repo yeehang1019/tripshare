@@ -16,20 +16,21 @@ export default function MotionLayer({scene,mode='smooth',style='arcade',celebrat
       const low=mode!=='full'||window.innerWidth<850||window.innerWidth*window.innerHeight*Math.max(1,devicePixelRatio**2)>4_000_000||(navigator.hardwareConcurrency||8)<=4;
       setLite(low);document.documentElement.dataset.motionTier=minimal?'battery':low?'lite':'full';
     })}
-    function visibility(){setVisible(document.visibilityState==='visible')}
+    function visibility(){const active=document.visibilityState==='visible';document.documentElement.dataset.motionVisibility=active?'visible':'hidden';setVisible(active);if(!active)document.querySelectorAll<HTMLElement>('main .topline, main .hub-stats > *, main .stats > *, main .template-tile').forEach(node=>{node.getAnimations().forEach(a=>a.cancel());node.style.opacity='1';node.style.transform='translateY(0px)'})}
     tier();visibility();window.addEventListener('resize',tier,{passive:true});document.addEventListener('visibilitychange',visibility);
     return()=>{cancelAnimationFrame(frame);window.removeEventListener('resize',tier);document.removeEventListener('visibilitychange',visibility)};
   },[mode,minimal]);
   useEffect(()=>{
-    if(minimal||!visible)return;
+    const cards=Array.from(document.querySelectorAll<HTMLElement>('main .topline, main .hub-stats > *, main .stats > *, main .template-tile')).slice(0,10);
+    const finish=(nodes:HTMLElement[])=>nodes.forEach(node=>{node.style.opacity='1';node.style.transform='translateY(0px)'});
+    if(minimal||!visible||document.visibilityState!=='visible'){finish(cards);return;}
     const running:ReturnType<typeof animate>[]=[];
     const frame=requestAnimationFrame(()=>{
-      const cards=Array.from(document.querySelectorAll('main .topline, main .hub-stats > *, main .stats > *, main .template-tile')).slice(0,10);
-      if(cards.length)running.push(animate(cards,{opacity:[.4,1],y:[lite?8:18,0]},{duration:lite?.24:.38,ease:'easeOut',delay:stagger(.025)}));
+      if(cards.length){const entry=animate(cards,{opacity:[.4,1],y:[lite?8:18,0]},{duration:lite?.24:.38,ease:'easeOut',delay:stagger(.025)});running.push(entry);Promise.resolve(entry).then(()=>finish(cards),()=>finish(cards));}
     });
     const targets=Array.from(document.querySelectorAll('main .expense-card, main .plan-entry-body')).slice(0,20);
-    const stop=targets.length?inView(targets,element=>{const a=animate(element,{opacity:[.65,1],y:[6,0]},{duration:.25});return()=>a.stop()}):()=>{};
-    return()=>{cancelAnimationFrame(frame);stop();running.forEach(a=>a.stop())};
+    const stop=targets.length?inView(targets,element=>{const a=animate(element,{opacity:[.65,1],y:[6,0]},{duration:.25});return()=>{a.stop();(element as HTMLElement).style.opacity='1';(element as HTMLElement).style.transform='translateY(0px)'}}):()=>{};
+    return()=>{cancelAnimationFrame(frame);stop();running.forEach(a=>a.stop());finish(cards)};
   },[scene,minimal,lite,visible]);
   if(minimal)return <div className="motion-world motion-still" aria-hidden="true"/>;
   return <div className={'motion-world efficient-motion '+(visible?'':'motion-paused')} aria-hidden="true">

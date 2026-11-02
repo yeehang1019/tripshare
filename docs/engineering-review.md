@@ -584,3 +584,23 @@ KEEP: ledger, source-bound payments, membership checks and accepted160px header.
 CHANGE NOW: first-screen hierarchy, missing semantic tokens, zero/owed colours and formatting fixed.
 IMPROVE LATER: user375/1280 light/dark retest; no new product features.
 DO NOT ADD: new QA routes, member navigation or accounting migrations.
+
+
+## Phase4 remaining items + phase5 regression — 2026-11-02
+
+Feasibility: Sites identity-and-secrets reference explicitly allows anonymous requests to public Sites. Current audience public; previous root page enforced requireChatGPTUser itself. The public root now renders only product introduction and a normal platform Sign in anchor. Signed-in rendering and createTripShareSession remain unchanged. Anonymous financial API requests still401; no auth-route reimplementation or platform bypass. Shared app/chatgpt-auth-paths retains same-origin return sanitization and preserves route/hash through platform sign-in.
+
+Invitation preview: same-origin POST, streamed1024byte request cap, strict72char token shape, parameterized lookup, unexpired/unaccepted token and active recipient required. Response contains only owner-bound display name and space name; no token, email, person list or financial data. Reads never grant access or consume invitations. If historical owner display-name binding is absent, say "The owner" instead of inventing a name. Revocation/expiry immediately removes preview. Existing invitation acceptance still independently verifies account and membership.
+
+Animation: completion resolves to explicit opacity1/translateY0; effect interruption stops then commits the final state. Visibility listener cancels title/card animations and commits final state synchronously when hidden. Reduced-motion/hidden CSS forces final title rendering. Mobile sync status moves from recovery overlay into topline metadata grid in document flow, outside balance cards; summary inset12px. No ledger, data model, permissions, currency or settlement changes.
+
+Validation: production build via npm test passed,267 tests passed0fail/skip; npx tsc --noEmit passed. Anonymous production Worker test confirms200 introductory page plus401 trips and fail-closed unconfigured integration. Valid/invalid/expired/cross-origin invitation previews and unchanged DB record tested. Sign-in safe-return/fragment and landing SSR tests added. Existing multi-currency, itemized allocation, prepaid/postpaid, source-bound payments/undo, WhatsApp/export summary, personal authorization and Trip funding suites pass.
+
+Browser QA: actual viewport1363x936, not375 or1280. Created QA Test (QA A/QA B); RM100 QA meal preview splits50/50; settlement B->A50; payment recorded50; Undo reversed it; due restored50; History contains create/expense/paymentBatch/undoPaymentBatch. Untouched Esc closes with0dialogs/confirmations; dirty Esc opens Discard, Keep editing retains data. Writes only QA Test, never KL House or Thailand. Space cleanup and final production smoke recorded in final response. These functional steps ran on v98 before deploying the non-accounting phase4 changes; final release smoke separately checks titles/status/baselines.
+
+Limits: browser advertises no viewport resize or reduced-motion/background emulation. Therefore exact375/1280 two-pass workflow and hidden/reduced browser scenarios are not complete; do not claim phase5 fully device-accepted. Browser screenshot capture timed out. No fake responsive route or new /layout-check added. Platform anonymous landing verified in production Worker harness; signed browser cannot impersonate anonymous identity. Do not claim external WhatsApp message delivery or real-device checks. Console findings and baseline follow-up go in final report.
+
+KEEP: trusted platform identity, server financial authorization, original ledger algorithms and purple/theme preferences; rollback v98.
+CHANGE NOW: finished entrance states, bounded invitation metadata preview and two accepted layout fixes.
+IMPROVE LATER: exact viewport/media-state user retest and historical owner display-name binding where missing.
+DO NOT ADD: auth bypass, another login provider, synthetic invite names, broad ledger migration or live writes outside QA Test.
