@@ -1,4 +1,5 @@
 'use client';
+import {MemberAvatar} from './member-avatar';
 import {CopyError} from "./copy-feedback";
 import {billStatus, userError} from '@/lib/ui-copy';
 import {outstandingSummary,outstandingText} from '@/lib/settlement-outstanding';
@@ -76,7 +77,7 @@ export default function SettlementPayments({event:e,group,revision,session,trans
   {recipients.map(to=><details open className="settlement-recipient" key={to}>
    <summary>Pay {name(to)} · {recipientBills(to)} bill{recipientBills(to)===1?"":"s"}</summary>
    {visible.filter(t=>t.to===to).map(t=>{const key=pairKey(t),c=calculations.find(c=>c.from===t.from&&c.to===t.to||c.from===t.to&&c.to===t.from),amount=selectedFinalDue(t,choices(t));return <article className="transfer payment-card" key={key}>
-    <div>{canRecord&&<input type="checkbox" aria-label={'Select '+name(t.from)+' to '+name(t.to)} checked={selected.includes(key)} onChange={()=>toggle(key)}/>}<b>{name(t.from)}</b><span>→</span><b>{name(t.to)}</b><strong>{fmt(t.amount)}</strong><span className="bill-count-badge">{choices(t).length} bill{choices(t).length===1?"":"s"} still to pay</span><span className={"bill-status "+(choices(t).some(b=>b.applied>0||b.offset>0)?"status-partial":"status-unpaid")}>{choices(t).some(b=>b.offset>0)?"Partly cancelled out":choices(t).some(b=>b.applied>0)?"Partly paid":"Unpaid"}</span></div>
+    <div>{canRecord&&<input type="checkbox" aria-label={'Select '+name(t.from)+' to '+name(t.to)} checked={selected.includes(key)} onChange={()=>toggle(key)}/>}<MemberAvatar id={t.from} name={name(t.from)}/><b>{name(t.from)}</b><span>→</span><MemberAvatar id={t.to} name={name(t.to)}/><b>{name(t.to)}</b><strong>{fmt(t.amount)}</strong><span className="bill-count-badge">{choices(t).length} bill{choices(t).length===1?"":"s"} still to pay</span><span className={"bill-status "+(choices(t).some(b=>b.applied>0||b.offset>0)?"status-partial":"status-unpaid")}>{choices(t).some(b=>b.offset>0)?"Partly cancelled out":choices(t).some(b=>b.applied>0)?"Partly paid":"Unpaid"}</span></div>
     <div className="checks">{filter&&<small>Selected bill · Still to pay {fmt(amount)}</small>}{canRecord&&<button className="primary" disabled={disabled} onClick={()=>open([t])}>Record payment</button>}{onRemind&&<button className="text-button" onClick={()=>onRemind({...t,amount:filter?amount:t.amount},filter?bills.find(b=>b.id===filter):undefined)}>Prepare reminder</button>}</div>
     <Calculation calculation={c} currency={e.settlement} compact showNet={false}/>
    </article>})}

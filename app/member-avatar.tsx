@@ -1,0 +1,1 @@
+export function MemberAvatar({id,name}:{id:string;name:string}){let hash=0;for(const c of id)hash=(hash*31+c.charCodeAt(0))|0;return <span aria-hidden="true" className={'member-avatar avatar-'+(hash>>>0)%8}>{name.trim().split(/\s+/).map(v=>v[0]).slice(0,2).join('').toUpperCase()}</span>}

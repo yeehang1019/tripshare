@@ -10,6 +10,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { unit, digits, Person } from "@/lib/ledger";
 import { evaluateAmount } from "@/lib/amount-expression";
+import {MemberAvatar} from './member-avatar';
 import { Users, UserRound, X } from "lucide-react";
 export function Pick({
   label,
@@ -187,7 +188,7 @@ export function People({
               )
             }
           />
-          {p.name}
+          <MemberAvatar id={p.id} name={p.name}/>{p.name}
           {!p.active ? " (inactive)" : ""}
         </label>
       ))}

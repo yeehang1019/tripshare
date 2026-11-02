@@ -99,7 +99,7 @@ import MotionLayer from "./motion-layer";
 import {PeopleAccess,ChangeHistory,NotificationBell,SettlementExport} from "./collaboration";
 import {SpaceSwitch,SpaceBridge,TripLanding,isTripSection,spaceDestinations,tripRecords,resolveSpaceRoute,destinationLabel,type Space} from "./space-navigation";
 import {Search,PanelRight} from "lucide-react";
-import {AppearancePanel,WorkspaceChrome,QuickNavigator,completeThemes,monthBounds} from "./workspace-design";
+import {AppearancePanel,ShellHeader,WorkspaceChrome,QuickNavigator,completeThemes,monthBounds} from "./workspace-design";
 import {useWorkspace,TemplateShelf,PersonalHub,PayoutDetails,TravelFunding,feedback} from "./experience";
 import SimpleItinerary from './simple-itinerary';
 import PersonalMoney from './personal-money';
@@ -192,7 +192,7 @@ export default function TripApp({ shared = false, authenticatedEmail = "", authe
     [groupPeople, setGroupPeople] = useState<string[]>([]),
     [payment, setPayment] = useState<any>(null),
     [settlementScope, setSettlementScope] = useState<"mine" | "everyone">("mine"),
-    [theme, setTheme] = useState<ThemeMode>("system"),
+    [theme, setTheme] = useState<ThemeMode>("light"),
     [palette, setPalette] = useState<PaletteName>("cyberpunk"),
     [motionMode, setMotionMode] = useState<MotionMode>("smooth"),
     [confirm, setConfirm] = useState<{
@@ -244,7 +244,7 @@ export default function TripApp({ shared = false, authenticatedEmail = "", authe
   const [celebrate,setCelebrate]=useState(false);
   const [expenseLimit,setExpenseLimit]=useState(50);
   const [appearanceOpen,setAppearanceOpen]=useState(false);
-  const [quickOpen,setQuickOpen]=useState(false),[railOpen,setRailOpen]=useState(false);
+  const [quickOpen,setQuickOpen]=useState(false),[railOpen,setRailOpen]=useState(true);
   useEffect(()=>{setRailOpen(localStorage.getItem("tripshare-context-rail")==="open");const shortcut=(event:KeyboardEvent)=>{if((event.metaKey||event.ctrlKey)&&event.key.toLowerCase()==="k"){event.preventDefault();setQuickOpen(v=>!v)}};window.addEventListener("keydown",shortcut);return()=>window.removeEventListener("keydown",shortcut)},[]);
   function toggleRail(){setRailOpen(v=>{localStorage.setItem("tripshare-context-rail",v?"closed":"open");return !v})}
 
@@ -328,7 +328,7 @@ export default function TripApp({ shared = false, authenticatedEmail = "", authe
     const savedMotion = localStorage.getItem("tripshare-motion");
     const upgradedMotion=localStorage.getItem("tripshare-motion-upgraded")==="yes";
     localStorage.setItem("tripshare-motion-upgraded","yes");
-    setTheme(localStorage.getItem("tripshare-lighting-explicit")==="1"&&(savedTheme === "light" || savedTheme === "night") ? savedTheme : "system");
+    setTheme(localStorage.getItem("tripshare-lighting-explicit")==="1"&&(["light","night","system"].includes(savedTheme||"")) ? savedTheme as ThemeMode : "light");
     const restoredPalette = resolvePalette(savedPalette);
     if (restoredPalette) setPalette(restoredPalette);
     if (["full", "smooth", "battery"].includes(savedMotion || "") && (upgradedMotion||savedMotion==="battery")) setMotionMode(savedMotion as MotionMode);
@@ -945,7 +945,25 @@ setPlannerDirty(false);setTemplateDirty(false);
   function homeCharts(){return <HomeCharts owner={!!rec.owner} category={donut(false)} daily={bars('date',false)} categoryBars={bars('category',false)} upfront={()=><div className="bars">{Object.entries(sum!.people).map(([id,p])=><p className="split-row" key={id}><span>{name(id)}</span><b>{fmt(p.paid)}</b></p>)}</div>}/>}
 
   const notificationBell=!shared?<NotificationBell session={authenticatedSession} workspace={workspace} onGroup={choose}/>:null;
-  const chrome=<WorkspaceChrome records={spaceRecords} selected={rec?.id||""} onGroup={choose} onAppearance={()=>setAppearanceOpen(true)} onSearch={()=>setQuickOpen(true)} onNavigate={navigate} destinations={destinations} tab={tab} style={workspace.data.style} palette={paletteLabels[palette]} event={e} member={!!rec?.personal} railOpen={railOpen} onRailClose={toggleRail} space={space} spaceSwitch={switcher}/>;
+  const invitationFlow=<div className="invitation-flow">{invitePrompt&&<section className="panel invitation-prompt"><h2>Join your friends</h2><p>Join using the name selected for you. You'll see your own spending and payments.</p><button className="primary" disabled={busy} onClick={async()=>{if(await send("acceptInvite",{token:inviteToken})){setInvitePrompt(false);setInviteToken("");setNotice("Joined.")}}}>Accept as {user}</button><button className="secondary" onClick={()=>{setInvitePrompt(false);setInviteToken("")}}>Dismiss</button></section>}{needsPin && (
+          <section className="panel narrow invitation-prompt">
+            <h1>Join your friends</h1>
+            <p>Enter the PIN shared with you.</p>
+            <Field label="Trip PIN">
+              <input
+                type="password"
+                inputMode="numeric"
+                value={pin}
+                onChange={(v) => setPin(v.target.value)}
+              />
+            </Field>
+            <button className="primary" onClick={() => load()}>
+              View trip
+            </button>
+          </section>
+        )}</div>;
+  const shellHeader=<ShellHeader name={e?.name||'TripShare'} records={spaceRecords} selected={rec?.id||''} onGroup={choose} spaceSwitch={switcher} onCreateTrip={!shared&&loaded&&canCreateEvents?()=>startNewEvent('trip'):undefined} onCreateMoney={!shared&&loaded&&canCreateEvents?()=>startNewEvent('daily'):undefined} notification={notificationBell} onSearch={()=>setQuickOpen(true)} profile={<><p>{user||'Read-only'} · {rec?.owner?'Owner':rec?.personal?'Member':'Admin'}</p>{e&&rec?.owner&&<Field label="Viewing"><Pick label="Viewing member" value={me} options={e.people} onChange={person=>{setMe(person);localStorage.setItem('tripshare-person-'+rec.id,person)}}/></Field>}<button className="secondary" onClick={()=>setAppearanceOpen(true)}><Palette size={18}/>Appearance</button><button className="secondary" onClick={toggleRail} aria-expanded={railOpen}><PanelRight size={18}/>Space details</button></>}/>;
+  const chrome=<WorkspaceChrome records={spaceRecords} selected={rec?.id||""} onGroup={choose} onAppearance={()=>setAppearanceOpen(true)} onSearch={()=>setQuickOpen(true)} onNavigate={navigate} destinations={destinations} tab={tab} style={workspace.data.style} palette={paletteLabels[palette]} event={e} member={!!rec?.personal} railOpen={railOpen} onRailClose={toggleRail} space={space} spaceSwitch={undefined}/>;
   const appearance=<AppearancePanel open={appearanceOpen} onOpenChange={setAppearanceOpen} workspace={workspace} palette={palette} labels={paletteLabels} mode={theme} motion={motionMode} onChange={(p,m,v,changed)=>saveAppearance(p as PaletteName,m as ThemeMode,v as MotionMode,changed)} shared={shared}/>;
   const moneyReviews=<>
     {supplierBill&&<SupplierPayment key={supplierBill.expense.id} expense={supplierBill.expense} event={rec.entryContext||e!} busy={busy} onCancel={()=>setSupplierBill(null)} onSave={async entity=>{if(await send('expense',{entity,revision:supplierBill.revision})){setNotice('Payment saved.');celebrateSave();return true}return false}}/>}
@@ -971,8 +989,8 @@ setPlannerDirty(false);setTemplateDirty(false);
     const payoutEvent={...e!,people:[...e!.people,...Array.from(new Map(view.transfers.flatMap(t=>[{id:t.from,name:t.fromName,active:true},{id:t.to,name:t.toName,active:true}]).filter(p=>p.id!==rec.person).map(p=>[p.id,p])).values())]};
     const owe=view.transfers.filter(t=>t.from===rec.person).reduce((n,t)=>n+t.amount,0);
     const receive=view.transfers.filter(t=>t.to===rec.person).reduce((n,t)=>n+t.amount,0);
-    return <CopyAudience owner={!!rec?.owner}><div data-space={space} className={"app member-view workspace-app money-nav-shell"+(railOpen?" rail-open":"")}>{chrome}{appearance}{quickNavigator}{moneyReviews}{confirmationDialog}<MotionLayer scene={rec.id} mode={motionMode} style={workspace.data.style} palette={completeThemes.find(t=>t.style===workspace.data.style)!.palette}/><header><a className="brand" href="/">tripshare<span className="brand-dot">.</span></a><strong>{view.name} · {e?.kind==='trip'?'Trip':'Money'}</strong><div className="header-right">{notificationBell}<button className="quick-launch" aria-label="Search expenses, plans and spaces" onClick={()=>setQuickOpen(true)}><Search size={17}/></button><button className="icon-button rail-toggle" aria-label="Show or hide space details" aria-expanded={railOpen} onClick={toggleRail}><PanelRight size={18}/></button><button className="icon-button mobile-appearance" aria-label="Appearance" onClick={()=>setAppearanceOpen(true)}><Palette size={18}/></button></div></header>
-      <main><div className="mobile-space-switch">{switcher}</div>{notice&&<p role="status">{notice}{undoExpense&&<button className="text-button" disabled={busy} onClick={async()=>{if(await send("deleteExpense",{entity:undoExpense.id})){setUndoExpense(null);setNotice("Expense undone.")}}}>Undo</button>}</p>}{syncStatusUI}{recoveryUI}{invitePrompt&&<section className="panel"><h2>New invitation</h2><button className="primary" disabled={busy} onClick={async()=>{if(await send("acceptInvite",{token:inviteToken})){setInvitePrompt(false);setInviteToken("")}}}>Accept as {user}</button><button className="secondary" onClick={()=>setInvitePrompt(false)}>Dismiss</button></section>}{error&&<p className="message error" role="alert"><CopyError value={error} owner={!!rec?.owner}/></p>}{can("addExpense")&&!bill&&<button className="primary desktop-add-expense" onClick={requestAdd}><Plus size={18}/> Add expense</button>}{bill&&<Dialog open onOpenChange={v=>{if(!v)requestCloseBill()}}><DialogContent className="workspace-editor-sheet" showCloseButton={false} onCloseAutoFocus={event=>{event.preventDefault();requestAnimationFrame(()=>{const control=[...document.querySelectorAll<HTMLButtonElement>('.mobile-quick-add,.desktop-add-expense')].find(node=>node.getClientRects().length>0);control?.focus()})}} onEscapeKeyDown={event=>{event.preventDefault();requestCloseBill()}} onOpenAutoFocus={event=>{event.preventDefault();requestAnimationFrame(()=>document.querySelector<HTMLInputElement>('.expense-editor [data-primary-amount]')?.focus())}} onInteractOutside={v=>v.preventDefault()}><DialogTitle className="sr-only">My expense editor</DialogTitle><DialogDescription className="sr-only">Edit your submitted bill.</DialogDescription>{error&&<p role="alert" className="message error"><CopyError value={error} owner={!!rec?.owner}/></p>}<ExpenseEditor onDirty={dirty=>{billDirty.current=dirty}} stickyActions draftScope={localScope} draftRevision={draftRevision} key={bill.id+editorEpoch} event={{...(rec.entryContext||rec.planning||e!),expenses:rec.ownEntries||[]}} initial={bill} onPreset={openPreparedExpense} quickPicks={<TemplateShelf compact workspace={workspace} event={rec.entryContext||e!} group={rec.id} canAdd busy={busy} source={templateSource} onDirty={setTemplateDirty} onSaved={()=>setTemplateSource(null)} onRecord={async entity=>{openPreparedExpense(entity);return true}}/>} busy={busy} onCancel={requestCloseBill} onSave={saveExpense}/></DialogContent></Dialog>}{["More","Tools"].includes(tab)?<MoneyMore allowed={destinations} onNavigate={navigate}/>:<FocusSections locked={templateDirty} key={rec.id+jumpEpoch} initial={focusExpense?'expenses':undefined} label="My Money sections" sections={[{id:'overview',label:'My overview',render:()=>spendingOverview()},{id:'expenses',label:'My expenses',render:()=> <><section className="panel"><h1>{e?.name}</h1><p>Your own spending and outstanding payments</p>
+    return <CopyAudience owner={!!rec?.owner}><div data-space={space} className={"app member-view workspace-app money-nav-shell"+(railOpen?" rail-open":"")}>{chrome}{appearance}{quickNavigator}{moneyReviews}{confirmationDialog}<MotionLayer scene={rec.id} mode={motionMode} style={workspace.data.style} palette={completeThemes.find(t=>t.style===workspace.data.style)!.palette}/>{shellHeader}
+      <main><div className="mobile-space-switch">{switcher}</div>{notice&&<p role="status">{notice}{undoExpense&&<button className="text-button" disabled={busy} onClick={async()=>{if(await send("deleteExpense",{entity:undoExpense.id})){setUndoExpense(null);setNotice("Expense undone.")}}}>Undo</button>}</p>}{syncStatusUI}{recoveryUI}{invitationFlow}{error&&<p className="message error" role="alert"><CopyError value={error} owner={!!rec?.owner}/></p>}{can("addExpense")&&!bill&&<button className="primary desktop-add-expense" onClick={requestAdd}><Plus size={18}/> Add expense</button>}{bill&&<Dialog open onOpenChange={v=>{if(!v)requestCloseBill()}}><DialogContent className="workspace-editor-sheet" showCloseButton={false} onCloseAutoFocus={event=>{event.preventDefault();requestAnimationFrame(()=>{const control=[...document.querySelectorAll<HTMLButtonElement>('.mobile-quick-add,.desktop-add-expense')].find(node=>node.getClientRects().length>0);control?.focus()})}} onEscapeKeyDown={event=>{event.preventDefault();requestCloseBill()}} onOpenAutoFocus={event=>{event.preventDefault();requestAnimationFrame(()=>document.querySelector<HTMLInputElement>('.expense-editor [data-primary-amount]')?.focus())}} onInteractOutside={v=>v.preventDefault()}><DialogTitle className="sr-only">My expense editor</DialogTitle><DialogDescription className="sr-only">Edit your submitted bill.</DialogDescription>{error&&<p role="alert" className="message error"><CopyError value={error} owner={!!rec?.owner}/></p>}<ExpenseEditor onDirty={dirty=>{billDirty.current=dirty}} stickyActions draftScope={localScope} draftRevision={draftRevision} key={bill.id+editorEpoch} event={{...(rec.entryContext||rec.planning||e!),expenses:rec.ownEntries||[]}} initial={bill} onPreset={openPreparedExpense} quickPicks={<TemplateShelf compact workspace={workspace} event={rec.entryContext||e!} group={rec.id} canAdd busy={busy} source={templateSource} onDirty={setTemplateDirty} onSaved={()=>setTemplateSource(null)} onRecord={async entity=>{openPreparedExpense(entity);return true}}/>} busy={busy} onCancel={requestCloseBill} onSave={saveExpense}/></DialogContent></Dialog>}{["More","Tools"].includes(tab)?<MoneyMore allowed={destinations} onNavigate={navigate}/>:<FocusSections locked={templateDirty} key={rec.id+jumpEpoch} initial={focusExpense?'expenses':undefined} label="My Money sections" sections={[{id:'overview',label:'My overview',render:()=>spendingOverview()},{id:'expenses',label:'My expenses',render:()=> <><section className="panel"><h1>{e?.name}</h1><p>Your own spending and outstanding payments</p>
         <select aria-label="Choose a Money space" value={rec.id} onChange={x=>choose(x.target.value)}>{records.map(x=><option value={x.id} key={x.id}>{x.data.name}</option>)}</select>
         <div className="stats personal-stats"><div className="stat featured"><span>Consumed · selected dates</span><strong>{fmt(monthExpenses.reduce((n,b)=>n+b.consumed,0))}</strong></div><div className="stat"><span>Paid · selected dates</span><strong>{fmt(monthExpenses.reduce((n,b)=>n+b.paid,0))}</strong></div><div className="stat"><span>Need to pay · all time</span><strong>{fmt(owe)}</strong></div><div className="stat"><span>Need to receive · all time</span><strong>{fmt(receive)}</strong></div></div>
       </section><section className="panel"><h2>My expenses</h2><div className="checks"><Field label="From"><input type="date" value={start} onChange={x=>setStart(x.target.value)}/></Field><Field label="Until"><input type="date" value={end} onChange={x=>setEnd(x.target.value)}/></Field><Field label="Description"><input value={merchant} onChange={x=>setMerchant(x.target.value)}/></Field><Pick label="Category" value={cat} options={['All',...categories]} onChange={setCat}/><Pick label="Payment timing" value={statusFilter} options={['All','paid','prepaid','postpaid']} onChange={setStatusFilter}/><Pick label="Cash payer" value={payerFilter} options={[{id:'',name:'Any payer'},{id:rec.person||'mine',name:'I paid'}]} onChange={setPayerFilter}/>
@@ -982,63 +1000,7 @@ setPlannerDirty(false);setTemplateDirty(false);
   return <CopyAudience owner={!!rec?.owner}><div data-space={space} className={"app workspace-app phase3c"+(!shared?" money-nav-shell":"")+(space==='trip'?' trip-entry-workspace':'')+(railOpen?" rail-open":"")}>
       <MotionLayer scene={`${rec?.id || "empty"}-${tab}-${workspace.data.style}-${palette}`} mode={motionMode} style={workspace.data.style} palette={completeThemes.find(t=>t.style===workspace.data.style)!.palette} celebrate={celebrate} />
       {chrome}{appearance}{quickNavigator}{moneyReviews}
-      <header>
-        <a className="brand" href={shared ? "#" : "/"}>
-          <span className="brandmark">
-            <Wallet size={22} />
-          </span>
-          tripshare<span className="brand-dot">.</span>
-        </a><label className="compact-space-picker"><span className="sr-only">Current space</span><select aria-label={space==='trip'?'Choose a trip':'Choose a Money space'} value={rec?.id||""} onChange={event=>choose(event.target.value)}>{spaceRecords.map(r=><option key={r.id} value={r.id}>{r.data.name}</option>)}</select></label><span className="space-header-label">{space==='trip'?'Trip':'Money'}</span>
-        <div className="header-right">
-          {notificationBell}
-          <button className="quick-launch" onClick={()=>setQuickOpen(true)} aria-label="Search expenses, plans and spaces"><Search size={16}/><span>Search…</span><kbd>⌘ / Ctrl K</kbd></button>
-          <button className="icon-button rail-toggle" onClick={toggleRail} aria-expanded={railOpen} aria-label="Show or hide space details"><PanelRight size={18}/></button>
-          {!shared && !standalone && (
-            <button
-              className="icon-button install-app"
-              aria-label="Install TripShare app"
-              title="Install TripShare"
-              onClick={async () => {
-                if (!installPrompt) {
-                  setInstallHelp(true);
-                  return;
-                }
-                await installPrompt.prompt();
-                const choice = await installPrompt.userChoice;
-                if (choice.outcome === "accepted") {
-                  setInstallPrompt(null);
-                  setStandalone(true);
-                }
-              }}
-            >
-              <Download size={18} />
-            </button>
-          )}
-          <button className="icon-button theme-toggle mobile-appearance" aria-label="Appearance" onClick={()=>setAppearanceOpen(true)}><Palette size={18}/><span className="appearance-label">Appearance</span></button>
-          <span className="saved sync-status" title={user || undefined}>
-            <span className="sync-role">
-              {shared ? "Read-only" : rec?.owner ? "Owner" : (can("plan")||canViewGroup) ? "Admin" : "Member"}
-            </span>
-            {!shared && <span className="sync-email"> · {user || "signed in"}</span>}
-          </span>
-          {e && rec.owner && (
-            <div className="desktop-viewing"><Pick
-              label="Viewing"
-              value={me}
-              options={e.people}
-              onChange={(p) => {
-                setMe(p);
-                localStorage.setItem("tripshare-person-" + rec.id, p);
-              }}
-            /></div>
-          )}
-          {e && !rec.owner && !shared && rec.person && (
-            <span className="pill" title="You're viewing the name linked to your sign-in.">
-              <UserRound size={14} /> {name(rec.person)}
-            </span>
-          )}
-        </div>
-      </header>
+      {shellHeader}
       <AlertDialog open={installHelp} onOpenChange={setInstallHelp}>
         <AlertDialogContent aria-describedby={confirm?.description?"workspace-confirm-description":undefined}>
           <AlertDialogHeader>
@@ -1058,7 +1020,7 @@ setPlannerDirty(false);setTemplateDirty(false);
         {e&&rec.owner&&<div className="mobile-viewing"><label htmlFor="mobile-viewing-member">Viewing</label><Pick id="mobile-viewing-member" label="Viewing member" value={me} onChange={person=>{setMe(person);localStorage.setItem("tripshare-person-"+rec.id,person)}} options={e.people}/></div>}</div>
         {recoveryUI}
 
-        {invitePrompt&&<section className="panel invitation-prompt"><h2>Join your friends</h2><p>Join using the name selected for you. You'll see your own spending and payments.</p><button className="primary" disabled={busy} onClick={async()=>{if(await send("acceptInvite",{token:inviteToken})){setInvitePrompt(false);setInviteToken("");setNotice("Joined.")}}}>Accept as {user}</button><button className="secondary" onClick={()=>{setInvitePrompt(false);setInviteToken("")}}>Dismiss</button></section>}
+        {invitationFlow}
         {error && (
           <div className="message error" role="alert">
             <CopyError value={error} owner={!!rec?.owner}/>
@@ -1073,23 +1035,6 @@ setPlannerDirty(false);setTemplateDirty(false);
               Dismiss
             </button>
           </div>
-        )}
-        {needsPin && (
-          <section className="panel narrow">
-            <h1>Open shared event</h1>
-            <p>Enter the PIN shared with you.</p>
-            <Field label="Trip PIN">
-              <input
-                type="password"
-                inputMode="numeric"
-                value={pin}
-                onChange={(v) => setPin(v.target.value)}
-              />
-            </Field>
-            <button className="primary" onClick={() => load()}>
-              View trip
-            </button>
-          </section>
         )}
         {!loaded && !needsPin && (
           <HomeSkeleton/>

@@ -629,7 +629,7 @@ test('Notification count/list use one read, match original visibility and recent
 test('Appearance migrates unmarked legacy values and preserves explicit choices across unrelated saves',async()=>{
  const h=await harness();try{
  h.sqlite.prepare("INSERT INTO user_preferences(user,email,palette,mode,motion,updated_at) VALUES(?,?,?,?,?,?)").run('owner@example.com','owner@example.com','cozy','light','smooth',1);
- assert.equal((await h.appearanceRead()).mode,'system');
+ assert.equal((await h.appearanceRead()).mode,'light');
  assert.equal(h.sqlite.prepare('SELECT mode FROM user_preferences').get().mode,'light');
  const base={palette:'cozy',mode:'night',motion:'smooth'};
  for(const mode of ['night','light','system']){
@@ -639,7 +639,7 @@ test('Appearance migrates unmarked legacy values and preserves explicit choices 
  await h.appearanceSave({...base,mode:'light',palette:'plum',motion:'battery'});
  assert.equal((await h.appearanceRead()).mode,mode);
  }
- assert.equal((await h.appearanceRead('other@example.com')).mode,'system');
+ assert.equal((await h.appearanceRead('other@example.com')).mode,'light');
  assert.equal((await h.appearanceSave({...base,lightingChanged:'yes'})).status,400);
  assert.equal((await h.appearanceSave(base,'')).status,401);
  }finally{h.sqlite.close()}

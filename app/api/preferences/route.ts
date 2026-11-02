@@ -33,7 +33,7 @@ export async function GET(request: Request) {
     .prepare("SELECT palette,mode,motion,lighting_explicit FROM user_preferences WHERE user=?")
     .bind(who.user)
     .first();
-  return response({palette:row?.palette||"cyberpunk",mode:row?.lighting_explicit===1?row.mode:"system",motion:row?.motion||"smooth",lightingExplicit:row?.lighting_explicit===1});
+  return response({palette:row?.palette||"cyberpunk",mode:row?.lighting_explicit===1?row.mode:"light",motion:row?.motion||"smooth",lightingExplicit:row?.lighting_explicit===1});
 }
 
 export async function POST(request: Request) {
