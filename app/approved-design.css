@@ -62,3 +62,5 @@ body{background-image:radial-gradient(45% 35% at 15% 10%,var(--blob-purple),tran
 @media(prefers-reduced-motion:reduce){.skeleton::after{animation:none!important;display:none}.navigation-pill{transition:none!important}}
 
 .trip-budget-card[data-level=warning] .budget-track i{background:var(--warning)}.trip-budget-card[data-level=over] .budget-track i{background:var(--negative)}.trip-departure-card .trip-summary-heading small{color:var(--text-secondary)}.workspace-app .settlement-view-toggle button{color:var(--text-secondary)!important}.workspace-app .settlement-view-toggle button[aria-pressed=true]{color:var(--primary)!important}
+/* Contain each full-card settlement hit area, including Trip's compact balance cards. */
+.money-home .home-balance{position:relative}
