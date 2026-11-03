@@ -25,7 +25,7 @@ import {RefundFields} from "./refund-fields";
 import {PayLaterFields} from "./paylater-fields";
 import {SupplierInstallments} from "./supplier-installments";
 import { Pick, Field, Amount, Check, People } from "./trip-controls";
-import { UsersRound, Sparkles, ArrowRight } from "lucide-react";
+import { UsersRound, Sparkles, ArrowRight, Utensils, Car, Ticket, ShoppingBag, ShoppingBasket, BedDouble, Receipt } from "lucide-react";
 export default function ExpenseEditor({
   event: e,
   initial,
@@ -178,6 +178,7 @@ export default function ExpenseEditor({
             />
           </Field>
         </div>
+        <section className="editor-category-section"><h3>Category</h3><div className="editor-category-chips" role="group" aria-label="Expense category">{categories.map(category=>{const Icon=({Food:Utensils,Transport:Car,Activity:Ticket,Shopping:ShoppingBag,Grocery:ShoppingBasket,Accommodation:BedDouble} as Record<string,typeof Receipt>)[category]||Receipt;return <button type="button" className="secondary" key={category} aria-pressed={b.category===category} onClick={()=>update({category})}><Icon size={20}/><span>{category}</span></button>})}</div></section>
         {b.items.map((it, i) => (
           <div key={it.id} className="item">
             <div className="fields">
@@ -364,15 +365,7 @@ export default function ExpenseEditor({
             <TabsTrigger value="simple">Quick entry</TabsTrigger>
             <TabsTrigger value="itemized">Itemized bill</TabsTrigger>
           </TabsList>
-        </Tabs><div className="fields">          <Field label="Category">
-            <Pick
-              label="Category"
-              value={b.category}
-              options={categories}
-              onChange={(category) => update({ category })}
-            />
-          </Field>
-          <Field label="Currency">
+        </Tabs><div className="fields">          <Field label="Currency">
             <Pick
               label="Currency"
               value={b.currency}

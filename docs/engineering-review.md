@@ -668,3 +668,5 @@ Added3 displaytests for actualTrip data,overbudgettrack andinvaliddates. Updated
 
 ## v106 live regression correction
 Trip View itinerary click revealed a pre-existing4b absolute .balance-go hit area covering main (788×2051px) when showSnapshot=false omitted balance-hero. Corrected the containing block on every home-balance; no ledger/data/permissions change. v106 not marked complete; publish corrective4c after build and verify actual hit rectangles and itinerary navigation. Amounts after counter finishes:Trip5312.00,owes482.93,zeroowed. Live QA notification/source and final cleanup still pending.
+
+4c v107 hit-area fix verified live:each balancehit344×168.5 within346×170.5 card;Viewitinerary now opens tab=itinerary and retains daily/bookingmodes,all6days,3firstdayplans andexistingdetails/actions. Final form alignment promotes Category fromMoreoptions to visible iconchoices using exactly existing7categories;Bills frommock is not added/mapped. No backend change. Final checks repeated before publishing this alignment.
