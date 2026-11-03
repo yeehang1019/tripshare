@@ -27,3 +27,18 @@
 :root[data-visual] .phase3c .settlement-layout{display:flex!important;flex-direction:column;gap:16px}.settlement-layout>.settlement-current,.settlement-layout>.settlement-side{width:100%;min-width:0}
 /* Counter legacy grid align-items and Field > span rules in the full-screen sheet. */
 .workspace-editor-sheet .entry-grid{align-items:stretch!important}.workspace-editor-sheet .editor-content-grid,.workspace-editor-sheet .expense-save-footer,.workspace-editor-sheet .sheet-drag-handle{width:100%;box-sizing:border-box}.workspace-editor-sheet .sheet-drag-handle{height:44px}.workspace-editor-sheet .expense-editor .payer-select-alternative{display:none!important}
+
+/* Let the scroll owner measure the entire form, rather than a clipped grid item. */
+.workspace-editor-sheet .editor-content-grid{align-items:start;grid-auto-rows:max-content;scrollbar-gutter:stable}
+.workspace-editor-sheet .expense-editor{overflow:visible;align-self:start;min-height:min-content}
+.workspace-editor-sheet .expense-editor .fields{grid-template-columns:repeat(2,minmax(0,1fr))}
+.workspace-editor-sheet .expense-editor .field{min-width:0}
+.workspace-editor-sheet .expense-editor .payer-avatar-row{flex-wrap:wrap;overflow:visible}
+.workspace-editor-sheet .expense-editor .payer-chip{max-width:100%;white-space:normal;text-align:left}
+.workspace-editor-sheet .expense-editor .payer-chip>span:last-child{min-width:0;overflow-wrap:anywhere}
+.workspace-editor-sheet .preview .split-row>b{flex-shrink:0;white-space:nowrap}
+/* Plan sheets share the shell, but have no separate expense scroll container. */
+[data-slot=dialog-content].workspace-editor-sheet.plan-editor-sheet{display:block!important;overflow-y:auto!important;padding:24px!important}
+@media(max-width:700px){.workspace-editor-sheet .expense-editor .fields{grid-template-columns:minmax(0,1fr)}}
+
+@media(max-width:700px){.expense-save-footer{flex-wrap:wrap}.expense-save-footer .save-requirement{flex-basis:100%}}

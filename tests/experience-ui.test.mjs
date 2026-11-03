@@ -224,7 +224,7 @@ test('Restored full Admin sidebar exposes every allowed destination without a Mo
 
 test('Restored detailed plan dialog retains busy locking and never retries a failed commit implicitly',()=>{
  const source=readFileSync(new URL('../app/trip-planner.tsx',import.meta.url),'utf8');
- assert.match(source,/<DialogContent className="workspace-editor-sheet"/);
+ assert.match(source,/<DialogContent className="workspace-editor-sheet plan-editor-sheet"/);
  assert.match(source,/<fieldset disabled=\{busy\} className="plan-editor-body">/);
  assert.match(source,/<button className="text-button" disabled=\{busy\} onClick=\{\(\)=>setDiscardDraft\(true\)\}>Cancel/);
  const save=source.split('\n').find(line=>line.includes('async function savePlan()'));
