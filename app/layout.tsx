@@ -39,6 +39,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{__html:`try{var m=localStorage.getItem('tripshare-theme');document.documentElement.dataset.theme=localStorage.getItem('tripshare-lighting-explicit')==='1'&&(m==='light'||m==='night'||m==='system')?(m==='system'?(matchMedia('(prefers-color-scheme: dark)').matches?'night':'light'):m):'light'}catch{document.documentElement.dataset.theme='light'}`}}/>
+        <link rel="preload" href="/fonts/jetbrains-mono-latin-700-normal.woff2" as="font" type="font/woff2" crossOrigin="anonymous"/>
         <link rel="manifest" href="/manifest.webmanifest" />
         <link rel="apple-touch-icon" href="/app-icon-180.png" />
         <meta name="mobile-web-app-capable" content="yes" />

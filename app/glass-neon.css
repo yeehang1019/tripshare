@@ -1,3 +1,6 @@
+@font-face{font-family:"JetBrains Mono";font-style:normal;font-weight:400;font-display:swap;src:url("/fonts/jetbrains-mono-latin-400-normal.woff2") format("woff2")}
+@font-face{font-family:"JetBrains Mono";font-style:normal;font-weight:600;font-display:swap;src:url("/fonts/jetbrains-mono-latin-600-normal.woff2") format("woff2")}
+@font-face{font-family:"JetBrains Mono";font-style:normal;font-weight:700;font-display:swap;src:url("/fonts/jetbrains-mono-latin-700-normal.woff2") format("woff2")}
 /* Phase 4a: one semantic system, independent of retained legacy palette/style IDs. */
 :root,:root[data-visual][data-theme],:root[data-palette][data-theme]{
  --background:#f5f5f7;--foreground:#1d1d1f;--text:#1d1d1f;--text-secondary:#6e6e73;--muted:#6e6e73;--muted-foreground:#6e6e73;
@@ -6,7 +9,7 @@
  --positive:#15803d;--negative:#dc2626;--warning:#92400e;--glow-primary:transparent;--glow-positive:transparent;--surface-shadow:0 8px 32px rgba(0,0,0,.06);--glass-filter:blur(24px) saturate(180%);
  --color-bg:var(--background);--color-surface:var(--surface-solid);--color-surface-muted:var(--surface-soft);--color-text:var(--text);--color-text-muted:var(--text-secondary);--color-border:var(--border);--color-primary:var(--primary);--color-positive:var(--positive);--color-negative:var(--negative);--color-warning:var(--warning);
  --color-primary-soft:color-mix(in srgb,var(--primary) 10%,var(--surface-solid));--color-positive-soft:color-mix(in srgb,var(--positive) 10%,var(--surface-solid));--color-negative-soft:color-mix(in srgb,var(--negative) 10%,var(--surface-solid));--color-warning-soft:color-mix(in srgb,var(--warning) 10%,var(--surface-solid));
- --font-ui:Inter,-apple-system,BlinkMacSystemFont,'SF Pro Text',system-ui,sans-serif;--font-numbers:'JetBrains Mono','SFMono-Regular',Consolas,monospace;
+ --font-ui:Inter,-apple-system,BlinkMacSystemFont,'SF Pro Text',system-ui,sans-serif;--font-numbers:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,monospace;
  --radius-card:24px;--radius-control:14px;--radius-pill:999px;--spring-snappy:linear(0,.18,.48,.73,.9,.98,1.014,1.012,1);--spring-smooth:linear(0,.1,.3,.52,.71,.85,.94,.985,1.006,1);--spring-bouncy:linear(0,.25,.68,1.02,1.14,1.13,1.06,.997,.976,.985,1);
  --night-preview-bg:#141024;--night-preview-surface:#211b35;--night-preview-line:#a78bfa;--blob-purple:rgba(139,92,246,.12);--blob-accent:rgba(34,211,238,.12);--grid-line:transparent;--avatar-edge:rgba(255,255,255,.8);
  --avatar-0:linear-gradient(135deg,#6d28d9,#be185d);--avatar-1:linear-gradient(135deg,#0e7490,#1d4ed8);--avatar-2:linear-gradient(135deg,#166534,#0e7490);--avatar-3:linear-gradient(135deg,#9a3412,#9f1239);--avatar-4:linear-gradient(135deg,#3730a3,#6d28d9);--avatar-5:linear-gradient(135deg,#115e59,#166534);--avatar-6:linear-gradient(135deg,#86198f,#3730a3);--avatar-7:linear-gradient(135deg,#854d0e,#9a3412);--avatar-text:#fff;
@@ -59,3 +62,29 @@ svg{stroke-width:1.75}.primary{background:var(--primary)!important;color:var(--p
 .profile-actions{display:grid;gap:16px}.workspace-app .topline{padding-bottom:0!important}.money-home .home-balance.is-zero>span{color:var(--text-secondary)!important}.workspace-app .payment-card .member-avatar{width:32px;height:32px}.person{display:inline-flex;gap:8px;align-items:center;min-height:44px}
 
 .navigation-pill{display:none}@media(max-width:1023px){.money-bottom-nav .navigation-pill{display:block;position:absolute;left:0;top:4px;height:54px;border-radius:999px;background:var(--color-primary-soft);transform-origin:left center;pointer-events:none}.money-bottom-nav .navigation-pill[hidden]{display:none}.money-bottom-nav:has(.navigation-pill[data-ready=true])>button[aria-current=page]{background:transparent!important}.money-bottom-nav>button{position:relative;z-index:1}}
+
+/* v102: secondary copy has its own semantic hierarchy in both themes. */
+:root[data-visual] .workspace-app .home-expense small,
+:root[data-visual] .workspace-app .home-balance p,
+:root[data-visual] .workspace-app .expense-meta,
+:root[data-visual] .workspace-app .expense-meta>span,
+:root[data-visual] .workspace-app .expense-amount small,
+:root[data-visual] .workspace-app .bill-count-badge,
+:root[data-visual] .workspace-app .rail-note p,
+:root[data-visual] .workspace-app .rail-recent small,
+:root[data-visual] .workspace-app .context-rail>small,
+:root[data-visual] .workspace-app .money-home .panel>p,
+:root[data-visual] .workspace-app .home-snapshot>small{color:var(--text-secondary)!important}
+.shell-header .quick-launch{display:inline-flex!important;width:44px;min-width:44px;justify-content:center;padding:10px!important}
+.shell-header .quick-launch>span,.shell-header .quick-launch kbd,.sidebar-search kbd{display:none!important}
+@media(min-width:1024px) and (hover:hover){.shell-header .quick-launch{width:auto;gap:8px}.shell-header .quick-launch>span,.shell-header .quick-launch kbd,.sidebar-search kbd{display:inline!important;white-space:nowrap}}
+@media(max-width:1023px){.shell-header .space-title{max-width:calc(100% - 156px);flex:1}.shell-header .header-right{gap:8px!important}}
+@media(min-width:1024px){
+ :root[data-visual] .workspace-app:not(.simple-member-app){--rail-width:320px!important}
+ :root[data-visual] .workspace-app:not(.simple-member-app)>main{max-width:768px!important;width:calc(100% - 560px)!important;margin-left:240px!important;margin-right:320px!important;padding:24px!important}
+ :root[data-visual] .workspace-app .context-rail{display:block!important;width:320px!important}
+ .context-rail .rail-close{display:none}
+}
+[data-slot=dialog-content][data-state=closed],[data-slot=alert-dialog-content][data-state=closed]{backdrop-filter:none!important}
+body:has([data-slot=alert-dialog-content][data-state=open]) [data-slot=dialog-content]{backdrop-filter:none!important;background:var(--surface-solid)!important}
+[data-slot=dialog-content]:has(~ [data-slot=dialog-content][data-state=open]){backdrop-filter:none!important;background:var(--surface-solid)!important}
