@@ -8,8 +8,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { unit, digits, Person } from "@/lib/ledger";
+import { unit, digits, Person, money } from "@/lib/ledger";
 import { evaluateAmount } from "@/lib/amount-expression";
+import {minimalMotion} from '@/lib/ui-interactions';
+import AnimatedAmount from './animated-amount';
 import {MemberAvatar} from './member-avatar';
 import { Users, UserRound, X } from "lucide-react";
 export function Pick({
@@ -102,6 +104,7 @@ export function Amount({
       onFocus={() => setFocused(true)}
       onChange={(e) => {
         const next = e.target.value;
+        if(primary&&!minimalMotion()){const node=e.currentTarget;node.getAnimations().forEach(a=>a.cancel());node.animate([{scale:1},{scale:1.015},{scale:1}],{duration:210,easing:'linear(0,.18,.48,.73,.9,.98,1.014,1.012,1)'})}
         setText(next);
         if (!next.trim()) return onChange(null);
         const n = evaluateAmount(next);
@@ -140,12 +143,12 @@ export function People({
   people,
   selected,
   onChange,
-  primaryPerson,
+  primaryPerson,amounts,currency='MYR',quickLabels=false,
 }: {
   people: Person[];
   selected: string[];
   onChange: (s: string[]) => void;
-  primaryPerson?: string;
+  primaryPerson?: string;amounts?:Record<string,number>;currency?:string;quickLabels?:boolean;
 }) {
   const primary = people.find((p) => p.id === primaryPerson);
   return (
@@ -157,7 +160,7 @@ export function People({
           onChange(people.filter((p) => p.active).map((p) => p.id))
         }
       >
-        <Users size={15}/> Select all · {people.filter((p) => p.active).length}
+        <Users size={15}/>{quickLabels?'Everyone':'Select all · '+people.filter((p) => p.active).length}
       </button>
       <button
         type="button"
@@ -172,7 +175,7 @@ export function People({
           className="text-button"
           onClick={() => onChange([primary.id])}
         >
-          <UserRound size={15}/> Only {primary.name}
+          <UserRound size={15}/>{quickLabels?'Just me':'Only '+primary.name}
         </button>
       )}
       {people.map((p) => (
@@ -188,7 +191,7 @@ export function People({
               )
             }
           />
-          <MemberAvatar id={p.id} name={p.name}/>{p.name}
+          <MemberAvatar id={p.id} name={p.name}/><span className="person-copy">{p.name}{amounts&&<small><AnimatedAmount value={money(amounts[p.id]||0,currency)}/></small>}</span>
           {!p.active ? " (inactive)" : ""}
         </label>
       ))}

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import "./glass-neon.css";
+import "./core-flows.css";
 import DeviceLighting from "./device-lighting";
 
 export const metadata: Metadata = {

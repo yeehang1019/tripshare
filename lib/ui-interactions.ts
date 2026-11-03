@@ -1,0 +1,9 @@
+export type SuccessKind='expense'|'payment'|'settled'|'undo';
+export function successFeedback(message:string,kind:SuccessKind='expense',rowId?:string){if(typeof window!=='undefined')window.dispatchEvent(new CustomEvent('tripshare:success',{detail:{message,kind,rowId}}))}
+export function touchFeedback(kind:'success'|'settled'|'threshold'|'refresh'|'error'){
+ if(typeof document==='undefined'||document.documentElement.dataset.touchFeedback!=='on'||typeof navigator.vibrate!=='function')return;
+ try{navigator.vibrate(kind==='settled'?[10,60,10]:kind==='error'?15:kind==='threshold'||kind==='refresh'?5:10)}catch{/* Optional device capability. */}
+}
+export function minimalMotion(){return typeof window==='undefined'||matchMedia('(prefers-reduced-motion: reduce)').matches||document.documentElement.dataset.motionMode==='battery'||document.visibilityState!=='visible'}
+export function springFrames(from:number,to:number,velocity=0){let x=from,v=velocity;const values:number[]=[];for(let t=0;t<120;t++){v+=(-300*(x-to)-30*v)/120;x+=v/120;values.push(x);if(t>10&&Math.abs(x-to)<.05&&Math.abs(v)<.1)break}values.push(to);return values}
+export function springTranslate(node:HTMLElement,to:number,axis:'X'|'Y'='X',velocity=0){const style=getComputedStyle(node),matrix=new DOMMatrix(style.transform==='none'?undefined:style.transform),from=axis==='Y'?parseFloat(style.translate.split(' ')[1]||'0'):matrix.m41;node.getAnimations().forEach(a=>a.cancel());if(axis==='Y')node.style.translate=`0 ${to}px`;else node.style.transform=`translateX(${to}px)`;if(minimalMotion())return;const frames=springFrames(from,to,velocity);node.style.willChange=axis==='Y'?'translate':'transform';const animation=node.animate(frames.map(v=>axis==='Y'?{translate:`0 ${v}px`}:{transform:`translateX(${v}px)`}),{duration:frames.length/120*1000});animation.finished.then(()=>node.style.removeProperty('will-change'),()=>node.style.removeProperty('will-change'));return animation}

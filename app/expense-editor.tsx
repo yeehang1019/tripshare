@@ -1,4 +1,7 @@
 "use client";
+import AnimatedAmount from './animated-amount';
+import {MemberAvatar} from './member-avatar';
+import {SheetDragHandle} from './swipe-reveal';
 import {CopyError} from "./copy-feedback";
 import {userError} from '@/lib/ui-copy';
 import { useState,useMemo,useEffect,useId } from "react";
@@ -100,6 +103,7 @@ export default function ExpenseEditor({
         next.length === b.items.length ? [] : next,
     });
   };
+  useEffect(()=>{if(edit||!initial.merchant||typeof document==='undefined'||matchMedia('(prefers-reduced-motion: reduce)').matches||document.documentElement.dataset.motionMode==='battery')return;const nodes=[...document.querySelectorAll<HTMLElement>('.expense-editor .hero-amount input,.expense-editor input[placeholder="Toll, 7-Eleven…"]')];const animations=nodes.map((node,i)=>node.animate([{filter:'brightness(1)'},{filter:'brightness(1.15)'},{filter:'brightness(1)'}],{duration:360,delay:i*35,easing:'linear(0,.1,.3,.52,.71,.85,.94,.985,1.006,1)'}));return()=>animations.forEach(a=>a.cancel())},[initial.id]);
   const saveDisabled=busy ||
             (duplicates.length>0&&duplicateApproved!==fingerprint) ||
             !c ||
@@ -109,43 +113,22 @@ export default function ExpenseEditor({
             (edit && !confirmed);
   return (
     <div className="entry-grid" onKeyDownCapture={event=>{if(event.key==="Escape"&&!event.defaultPrevented&&!event.nativeEvent.isComposing){event.preventDefault();event.stopPropagation();onCancel()}}}>
-      <section className={`panel expense-editor ${b.mode}`}>
+      <SheetDragHandle onClose={onCancel}/><div className="editor-content-grid"><section className={`panel expense-editor ${b.mode}`}>
         <div className="section-title">
-          <h2>{edit ? "Edit expense" : "Add expense"}</h2>{stickyActions&&<button className="primary" disabled={saveDisabled} onClick={()=>onSave(b)}>{busy?"Saving…":"Save"}</button>}
+          <h2>{edit ? "Edit expense" : "Add expense"}</h2>
           <button className="text-button" onClick={onCancel}>
             Close
           </button>
         </div>
+        <div className="hero-amount"><Field label={b.mode==='simple'?`Amount (${b.currency})`:`Receipt total (${b.currency})`}><Amount primary value={b.mode==='simple'?b.items[0].amount:b.receipt} currency={b.currency} onChange={amount=>b.mode==='simple'?item(0,{amount:amount||0}):update({receipt:amount})}/></Field></div>
         {localStatus&&<p className="muted" role="status">{localStatus}</p>}
-        {quickPicks}
-        {!edit&&onPreset&&<div className="checks expense-presets">{[['Toll','Transport'],['Petrol','Transport'],['Ticket','Activity'],['Meal','Food']].map(([name,category])=><button type="button" className="secondary" key={name} onClick={()=>{const next=blankExpense(e,b.payers[0]?.person||'');next.merchant=name;next.category=category;onPreset(next)}}>{name}</button>)}{e.expenses.some(x=>!x.deleted)&&<button type="button" className="secondary" onClick={()=>onPreset(repeatExpense(e.expenses.filter(x=>!x.deleted).at(-1)!))}>Repeat last</button>}</div>}
-        <Tabs
-          value={b.mode}
-          onValueChange={(v) => {
-            if (v === "itemized" || b.items.length === 1) {
-              const mode = v as "simple" | "itemized",
-                first = b.items[0];
-              update({
-                mode,
-                items:
-                  mode === "itemized" && first.people.length > 1
-                    ? [{ ...first, people: [b.payers[0].person], weights: [1] }]
-                    : b.items,
-              });
-            }
-          }}
-        >
-          <TabsList>
-            <TabsTrigger value="simple">Quick entry</TabsTrigger>
-            <TabsTrigger value="itemized">Itemized bill</TabsTrigger>
-          </TabsList>
-        </Tabs>
+
         <div className="entry-step-heading">
           <span>1</span>
           <div><b>Expense details</b><small>What was paid, and when?</small></div>
         </div>
         <div className="fields">
-          {b.mode==='simple'&&<Field label={`Amount (${b.currency})`}><Amount primary value={b.items[0].amount} currency={b.currency} onChange={amount=>item(0,{amount:amount||0})}/></Field>}
+
           <Field label="What was it for?" error={!b.merchant.trim()&&JSON.stringify(b)!==JSON.stringify(initial)?"Enter an expense name.":undefined}>
             <input
               value={b.merchant}
@@ -173,7 +156,8 @@ export default function ExpenseEditor({
             />
           </Field>
           <Field label={b.supplierPayments?"Default payer for new business payments":b.paymentStatus === 'postpaid' ? "Will be paid by" : "Paid by"}>
-            <Pick
+            <div className="payer-avatar-row" aria-label="Who paid?">{e.people.map(p=><button type="button" className="payer-chip secondary" key={p.id} aria-pressed={b.payers[0]?.person===p.id} onClick={()=>update({payers:b.payers.map((payer,i)=>i===0?{...payer,person:p.id}:payer)})}><MemberAvatar id={p.id} name={p.name}/><span>{p.name}</span></button>)}</div>
+            <span className="payer-select-alternative"><Pick
               label="Paid by"
               value={b.payers[0]?.person || ""}
               options={e.people}
@@ -184,7 +168,7 @@ export default function ExpenseEditor({
                   ),
                 })
               }
-            />
+            /></span>
           </Field>
           <Field label="Date" error={!b.date?"Choose a valid date.":undefined}>
             <input
@@ -193,83 +177,6 @@ export default function ExpenseEditor({
               onChange={(v) => update({ date: v.target.value })}
             />
           </Field>
-          <Field label="Category">
-            <Pick
-              label="Category"
-              value={b.category}
-              options={categories}
-              onChange={(category) => update({ category })}
-            />
-          </Field>
-          <Field label="Currency">
-            <Pick
-              label="Currency"
-              value={b.currency}
-              options={currencies}
-              onChange={(currency) =>
-                update({
-                  currency,
-                  rate: currency === e.settlement ? 1 : e.rates[currency] || 1,
-                  actual: null,
-                })
-              }
-            />
-          </Field>
-        </div>
-        {b.currency !== e.settlement && (
-          <div className="fields">
-            <Field label={`1 ${b.currency} = how many ${e.settlement}?`}>
-              <input
-                type="number"
-                min="0.00000001"
-                step="any"
-                value={b.rate}
-                onChange={(v) => update({ rate: Number(v.target.value) })}
-              />
-            </Field>
-            <Field label={`Actual card total (${e.settlement}) · optional`}>
-              <Amount
-                value={b.actual}
-                currency={e.settlement}
-                onChange={(actual) => update({ actual })}
-              />
-            </Field>
-          </div>
-        )}
-        <div className="entry-step-heading">
-          <span>2</span>
-          <div><b>Amount & people</b><small>Who paid, and who shared it?</small></div>
-        </div>
-        <div className="fields">
-          {b.paidOn!==undefined&&<Field label="Date you paid the business"><input type="date" min={b.date} value={b.paidOn} onChange={v=>update({paidOn:v.target.value})}/><small>Expense date stays the date the cost was incurred.</small></Field>}
-          <Field label="Payment status">
-            {b.payLater?<p className="muted">The merchant is covered by PayLater. Confirm platform repayments in Pocket Ledger; friends still repay through Settlement.</p>:b.cancellation?<p className="muted">Cancelled booking: the final fee is incurred; actual business payments determine the remaining balance and refund due.</p>:<Pick label="Payment status" value={b.paymentStatus || 'paid'} options={[
-              {id:'paid',name:"Used & paid"},
-              {id:'postpaid',name:"Used · not paid yet"},
-              {id:'prepaid',name:"Paid in advance · not used yet"},
-            ]} onChange={(paymentStatus) => update({paymentStatus:paymentStatus as Expense['paymentStatus']})}/>}
-            <small>{b.paymentStatus === 'postpaid' ? "Counts as spending, with payment still due to the business. Change to Used & paid after payment." : b.paymentStatus === 'prepaid' ? 'Counts as paid upfront only. Edit this same record to Consumed & paid when used; do not add a second expense.' : 'Counts as spending and payment to the business. Record payments between friends in Settle up.'}</small>
-          </Field>
-          <PayLaterFields bill={b} event={e} update={update}/>
-          {!b.payLater&&<SupplierInstallments bill={b} event={e} update={update}/>}<RefundFields bill={b} event={e} update={update}/>
-          <div className="treat-toggle">
-            <Check
-              label="This expense is a treat"
-              checked={!!b.treat}
-              onChange={(checked) => update({ treat: checked ? b.payers[0].person : "" })}
-            />
-            <small>Leave off to share the cost.</small>
-          </div>
-          {b.treat && (
-            <Field label="Treat by">
-              <Pick
-                label="Treat by"
-                value={b.treat}
-                options={e.people}
-                onChange={(treat) => update({ treat })}
-              />
-            </Field>
-          )}
         </div>
         {b.items.map((it, i) => (
           <div key={it.id} className="item">
@@ -293,6 +200,7 @@ export default function ExpenseEditor({
             </div>
             <b>Split with · {it.people.length}</b>
             <People
+              quickLabels amounts={b.mode==='simple'?c?.consumed:c?Object.fromEntries((c.lines[i]?.people||[]).map((id,j)=>[id,c!.lines[i].values[j]])):undefined} currency={b.mode==='simple'?e.settlement:b.currency}
               people={e.people}
               selected={it.people}
               primaryPerson={b.payers[0]?.person}
@@ -433,8 +341,103 @@ export default function ExpenseEditor({
             + Add item
           </button>
         )}
-        <details className="advanced-options">
-          <summary>More options <small>Tax, discount, custom split, multiple payers</small></summary>
+        {quickPicks}
+        {!edit&&onPreset&&<div className="checks expense-presets">{[['Toll','Transport'],['Petrol','Transport'],['Ticket','Activity'],['Meal','Food']].map(([name,category])=><button type="button" className="secondary" key={name} onClick={()=>{const next=blankExpense(e,b.payers[0]?.person||'');next.merchant=name;next.category=category;onPreset(next)}}>{name}</button>)}{e.expenses.some(x=>!x.deleted)&&<button type="button" className="secondary" onClick={()=>onPreset(repeatExpense(e.expenses.filter(x=>!x.deleted).at(-1)!))}>Repeat last</button>}</div>}
+        <details className="advanced-options" open={undefined}>
+          <summary>More options <small>Currency, itemized split, advance payments and refunds</small></summary>        <Tabs
+          value={b.mode}
+          onValueChange={(v) => {
+            if (v === "itemized" || b.items.length === 1) {
+              const mode = v as "simple" | "itemized",
+                first = b.items[0];
+              update({
+                mode,
+                items:
+                  mode === "itemized" && first.people.length > 1
+                    ? [{ ...first, people: [b.payers[0].person], weights: [1] }]
+                    : b.items,
+              });
+            }
+          }}
+        >
+          <TabsList>
+            <TabsTrigger value="simple">Quick entry</TabsTrigger>
+            <TabsTrigger value="itemized">Itemized bill</TabsTrigger>
+          </TabsList>
+        </Tabs><div className="fields">          <Field label="Category">
+            <Pick
+              label="Category"
+              value={b.category}
+              options={categories}
+              onChange={(category) => update({ category })}
+            />
+          </Field>
+          <Field label="Currency">
+            <Pick
+              label="Currency"
+              value={b.currency}
+              options={currencies}
+              onChange={(currency) =>
+                update({
+                  currency,
+                  rate: currency === e.settlement ? 1 : e.rates[currency] || 1,
+                  actual: null,
+                })
+              }
+            />
+          </Field>
+</div>        {b.currency !== e.settlement && (
+          <div className="fields">
+            <Field label={`1 ${b.currency} = how many ${e.settlement}?`}>
+              <input
+                type="number"
+                min="0.00000001"
+                step="any"
+                value={b.rate}
+                onChange={(v) => update({ rate: Number(v.target.value) })}
+              />
+            </Field>
+            <Field label={`Actual card total (${e.settlement}) · optional`}>
+              <Amount
+                value={b.actual}
+                currency={e.settlement}
+                onChange={(actual) => update({ actual })}
+              />
+            </Field>
+          </div>
+        )}
+        <div className="fields">
+          {b.paidOn!==undefined&&<Field label="Date you paid the business"><input type="date" min={b.date} value={b.paidOn} onChange={v=>update({paidOn:v.target.value})}/><small>Expense date stays the date the cost was incurred.</small></Field>}
+          <Field label="Payment status">
+            {b.payLater?<p className="muted">The merchant is covered by PayLater. Confirm platform repayments in Pocket Ledger; friends still repay through Settlement.</p>:b.cancellation?<p className="muted">Cancelled booking: the final fee is incurred; actual business payments determine the remaining balance and refund due.</p>:<Pick label="Payment status" value={b.paymentStatus || 'paid'} options={[
+              {id:'paid',name:"Used & paid"},
+              {id:'postpaid',name:"Used · not paid yet"},
+              {id:'prepaid',name:"Paid in advance · not used yet"},
+            ]} onChange={(paymentStatus) => update({paymentStatus:paymentStatus as Expense['paymentStatus']})}/>}
+            <small>{b.paymentStatus === 'postpaid' ? "Counts as spending, with payment still due to the business. Change to Used & paid after payment." : b.paymentStatus === 'prepaid' ? 'Counts as paid upfront only. Edit this same record to Consumed & paid when used; do not add a second expense.' : 'Counts as spending and payment to the business. Record payments between friends in Settle up.'}</small>
+          </Field>
+          <PayLaterFields bill={b} event={e} update={update}/>
+          {!b.payLater&&<SupplierInstallments bill={b} event={e} update={update}/>}<RefundFields bill={b} event={e} update={update}/>
+          <div className="treat-toggle">
+            <Check
+              label="This expense is a treat"
+              checked={!!b.treat}
+              onChange={(checked) => update({ treat: checked ? b.payers[0].person : "" })}
+            />
+            <small>Leave off to share the cost.</small>
+          </div>
+          {b.treat && (
+            <Field label="Treat by">
+              <Pick
+                label="Treat by"
+                value={b.treat}
+                options={e.people}
+                onChange={(treat) => update({ treat })}
+              />
+            </Field>
+          )}
+        </div>
+
         <details>
           <summary>Charges, discount & voucher</summary>
           <div className="fields">
@@ -649,15 +652,6 @@ export default function ExpenseEditor({
           </div>
         )}
         </details>
-        {b.mode === "itemized" && <div className="receipt-check">
-          <div className="entry-step-heading compact-step">
-            <span>3</span>
-            <div><b>Check receipt total</b><small>We will warn you if the items do not match.</small></div>
-          </div>
-          <Field label={`Receipt total (${b.currency})` }>
-            <Amount value={b.receipt} currency={b.currency} onChange={(receipt) => update({ receipt })} />
-          </Field>
-        </div>}
         {edit && (
           <Check
             label="I reviewed the new split; existing repayments will stay unchanged."
@@ -666,19 +660,12 @@ export default function ExpenseEditor({
           />
         )}
         {duplicates.length>0&&<div className="duplicate-warning" role="status"><b>Possible duplicate · {duplicates.length} similar bill{duplicates.length===1?'':'s'}</b><p>The same description, date, currency and amount already exist in records you can view.</p><Check label="This is a separate expense; save it anyway" checked={duplicateApproved===fingerprint} onChange={v=>setDuplicateApproved(v?fingerprint:'')}/></div>}
-        <button
-          className="primary save"
-          disabled={saveDisabled}
-          onClick={() => onSave(b)}
-        >
-          {busy ? "Saving…" : edit ? "Save changes" : "Save expense"} {!busy && <ArrowRight size={18}/>}
-        </button>
       </section>
       <aside className="panel preview">
         <p className="eyebrow">3 · REVIEW</p>
         {b.supplierPayments&&<p className="muted">Actual business payers are listed in Deposit &amp; balance. Friend settlement uses those payments once fully paid and consumed.</p>}
         {(b.cancellation||b.refunds?.length)&&<p className="muted">Original bill total · net cost and refunds are shown below.</p>}
-        <h2>{money(c?.cashTotal || 0, b.currency)}</h2>
+        <h2><AnimatedAmount value={money(c?.cashTotal || 0,b.currency)}/></h2>
         <p className="muted">
           {b.treat ? `Treated by ${name(b.treat)}` : `Split between ${b.items[0]?.people.length || 0} people`}
         </p>
@@ -722,7 +709,14 @@ export default function ExpenseEditor({
             <p className="muted">Shares add up exactly. Cent differences are handled automatically.</p>
           </>
         )}
-      </aside>
+      </aside></div><div className="expense-save-footer"><p className="save-requirement">{!b.merchant.trim()?'Enter an expense name.':b.mode==='itemized'&&b.receipt===null?'Enter the receipt total.':edit&&!confirmed?'Review and confirm the updated split.':duplicates.length&&duplicateApproved!==fingerprint?'Review the possible duplicate.':error?'Check the highlighted amounts.':''}</p>        <button
+          className="primary save"
+          disabled={saveDisabled}
+          onClick={() => onSave(b)}
+        >
+          {busy ? "Saving…" : edit ? "Save changes" : "Save expense"} {!busy && <ArrowRight size={18}/>}
+        </button>
+</div>
     </div>
   );
 }

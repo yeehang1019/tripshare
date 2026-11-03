@@ -151,10 +151,10 @@ test('Section switching is locked while a Quick Pick or trip draft is unsaved',(
  const html=renderToStaticMarkup(React.createElement(focusWorkspace.FocusSections,{label:'Sections',initial:'quick',locked:true,sections:[{id:'summary',label:'Overview',render:()=>React.createElement('p',{},'Overview body')},{id:'quick',label:'Quick Picks',render:()=>React.createElement('p',{},'Unsaved quick pick')}]}));
  assert.match(html,/disabled=""/);assert.match(html,/Save or cancel your draft/);assert.match(html,/Unsaved quick pick/);assert.doesNotMatch(html,/Overview body/);
 });
-test('Top-of-sheet Save keeps the existing edit confirmation requirement',()=>{
+test('Pinned Save keeps the existing edit confirmation requirement',()=>{
  const e=normalize({name:'Daily',people:['A'],bills:[],payments:[]});const b=blankExpense(e,'A');b.merchant='Train';b.items[0].amount=500;
  e.expenses=[b];const html=renderToStaticMarkup(React.createElement(ExpenseEditor,{event:e,initial:b,busy:false,stickyActions:true,onSave:async()=>true,onCancel(){}}));
- assert.match(html,/<button class="primary" disabled="">Save<\/button>/);assert.match(html,/<button class="primary save" disabled="">/);
+ assert.match(html,/expense-save-footer/);assert.match(html,/<button class="primary save" disabled="">/);assert.equal((html.match(/class="primary save"/g)||[]).length,1);
 });
 
 test('Hybrid itinerary keeps drag targets in the list and excludes ongoing stays from ordering',()=>{
