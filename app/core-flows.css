@@ -25,3 +25,5 @@
 /* Legacy style IDs cannot add blur inside the canonical editor or a disclosure. */
 :root[data-visual] .panel{backdrop-filter:none!important}
 :root[data-visual] .phase3c .settlement-layout{display:flex!important;flex-direction:column;gap:16px}.settlement-layout>.settlement-current,.settlement-layout>.settlement-side{width:100%;min-width:0}
+/* Counter legacy grid align-items and Field > span rules in the full-screen sheet. */
+.workspace-editor-sheet .entry-grid{align-items:stretch!important}.workspace-editor-sheet .editor-content-grid,.workspace-editor-sheet .expense-save-footer,.workspace-editor-sheet .sheet-drag-handle{width:100%;box-sizing:border-box}.workspace-editor-sheet .sheet-drag-handle{height:44px}.workspace-editor-sheet .expense-editor .payer-select-alternative{display:none!important}
