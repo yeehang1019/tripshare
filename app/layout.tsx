@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import "./glass-neon.css";
 import "./core-flows.css";
+import "./approved-design.css";
 import DeviceLighting from "./device-lighting";
 
 export const metadata: Metadata = {
@@ -26,8 +27,8 @@ export const viewport: Viewport = {
   initialScale: 1,
   viewportFit: "cover",
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f8f4ff" },
-    { media: "(prefers-color-scheme: dark)", color: "#10081f" },
+    { media: "(prefers-color-scheme: light)", color: "#F2F2F5" },
+    { media: "(prefers-color-scheme: dark)", color: "#0B0918" },
   ],
 };
 

@@ -2,7 +2,7 @@
 import {CopyError} from "./copy-feedback";
 import {userError} from '@/lib/ui-copy';
 import {useEffect,useRef,useState,useMemo} from 'react';
-import {animate} from 'motion';
+import AnimatedAmount from './animated-amount';
 import {Sparkles,Bookmark,Plus,ArrowRight,Wallet,Users,Settings2,Volume2,Vibrate,Check,Download,Search} from 'lucide-react';
 import {blankExpense,calculate,duplicateFingerprint,categories,currencies,ledger,money,today,unit,type Event,type Expense} from '@/lib/ledger';
 import {templateExpense,type ExpenseTemplate} from '@/lib/expense-template';
@@ -46,14 +46,8 @@ export function feedback(sound:boolean,haptics:boolean){
     }catch{/* Optional feedback must never block saving. */}
   }
 }
-export function AnimatedMoney({amount,currency='MYR'}:{amount:number;currency?:string}){
-  const ref=useRef<HTMLSpanElement>(null),previous=useRef(amount);
-  useEffect(()=>{if(!ref.current)return;const node=ref.current,from=previous.current;previous.current=amount;
-    if(window.matchMedia('(prefers-reduced-motion:reduce)').matches||document.documentElement.dataset.motionMode==='battery'){node.textContent=money(amount,currency);return}
-    const animation=animate(from,amount,{duration:.7,ease:'easeOut',onUpdate:value=>{node.textContent=money(Math.round(value),currency)}});return ()=>animation.stop();
-  },[amount,currency]);
-  return <span ref={ref}>{money(amount,currency)}</span>;
-}
+export function AnimatedMoney({amount,currency='MYR'}:{amount:number;currency?:string}){return <AnimatedAmount value={money(amount,currency)}/>}
+
 export function ExperienceSettings({workspace:w}:{workspace:ReturnType<typeof useWorkspace>}){
   const choices=[{id:'arcade',name:'Neon Arcade',detail:'Electric colour · playful energy',symbol:'✦'},{id:'cosmic',name:'Cosmic Quest',detail:'Stars · aurora · exploration',symbol:'✧'},{id:'glass',name:'Neon Glass',detail:'Luminous glass · clean focus',symbol:'◈'}];
   return <details open className="experience-settings panel"><summary><Sparkles size={18}/> Experience studio <small>{choices.find(c=>c.id===w.data.style)?.name}</small></summary><div className="style-gallery">{choices.map(c=><button key={c.id} disabled={!w.ready||w.busy} aria-pressed={w.data.style===c.id} className={'style-preview '+c.id} onClick={()=>w.save({action:'appearance',style:c.id,sound:w.data.sound,haptics:w.data.haptics})}><span className="style-art">{c.symbol}<i/><i/><i/></span><b>{c.name}</b><small>{c.detail}</small>{w.data.style===c.id&&<Check size={16}/>}</button>)}</div><div className="checks"><button className="secondary" disabled={!w.ready||w.busy} aria-pressed={w.data.sound} onClick={async()=>{const next=await w.save({action:'appearance',style:w.data.style,sound:!w.data.sound,haptics:w.data.haptics});if(next)feedback(next.sound,next.haptics)}}><Volume2 size={16}/> Sound {w.data.sound?'on':'off'}</button><button className="secondary" disabled={!w.ready||w.busy} aria-pressed={w.data.haptics} onClick={async()=>{const next=await w.save({action:'appearance',style:w.data.style,sound:w.data.sound,haptics:!w.data.haptics});if(next)feedback(next.sound,next.haptics)}}><Vibrate size={16}/> Touch feedback {w.data.haptics?'on':'off'}</button></div><p className="muted">Your style follows your account. Choose colours, light / night and motion strength from Appearance. Haptics depend on your device.</p>{w.error&&<p role="alert" className="message error"><CopyError value={w.error}/></p>}</details>;
