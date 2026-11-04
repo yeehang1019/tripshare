@@ -69,3 +69,19 @@ body{background-image:radial-gradient(45% 35% at 15% 10%,var(--blob-purple),tran
 /* Break the retained legacy workspace alias cycle; descendants must inherit a concrete semantic value. */
 :root{--approved-text-secondary:#6E6E73}:root[data-theme=night]{--approved-text-secondary:#A8A3C2}
 :root[data-visual] .workspace-app,[data-slot=dialog-content],[data-slot=alert-dialog-content]{--text-secondary:var(--approved-text-secondary);--muted-foreground:var(--approved-text-secondary);--muted:var(--approved-text-secondary);--color-text-muted:var(--approved-text-secondary)}
+
+/* Settlement layout repair: one compact surface per payment, no painted gesture gutter. */
+:root[data-visual] .workspace-app .settlement-current{background:transparent!important;border:0!important;box-shadow:none!important;padding:0!important;overflow:visible}
+:root[data-visual] .workspace-app .settlement-current::after{display:none}
+.workspace-app .settlement-compact-list .settlement-recipient{border:0;background:transparent;box-shadow:none;padding:0;margin:0 0 16px}
+.workspace-app .settlement-compact-list .settlement-recipient>summary{font-size:13px;color:var(--text-secondary);padding:4px 0;min-height:32px}
+:root[data-visual] .phase3c .settlement-compact-list .payment-card{margin:8px 0;padding:18px!important;min-height:0}
+.phase3c .payment-card>.payment-card-heading{display:flex;align-items:center;flex-wrap:wrap;gap:8px;min-width:0}
+.phase3c .payment-card>.payment-card-heading>strong{flex:0 0 auto!important;margin:0 0 0 auto!important;font-size:28px!important;line-height:36px;white-space:nowrap}
+.phase3c .payment-card>.payment-card-status{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:12px}
+.phase3c .payment-card>.payment-progress{margin:10px 0 6px}
+.phase3c .payment-card>.checks{margin:12px 0 0!important}
+.phase3c .payment-card>.pair-calculation{margin:8px 0 0!important}
+.phase3c .payment-card>.pair-calculation>summary{min-height:44px;display:flex;align-items:center;padding:0}
+.context-settlement dl{display:grid;gap:16px;margin:24px 0}.context-settlement dl>div{display:flex;align-items:baseline;justify-content:space-between;gap:16px}.context-settlement dt{font-size:13px;color:var(--text-secondary)}.context-settlement dd{margin:0;font-family:var(--font-numbers);font-variant-numeric:tabular-nums;white-space:nowrap}.context-settlement p{font-size:13px;color:var(--text-secondary)}.context-settlement>button{width:100%}
+@media(max-width:600px){.phase3c .payment-card>.payment-card-heading>strong{flex-basis:100%!important;margin:4px 0 0!important}.phase3c .payment-card>.payment-card-status{margin-top:8px}}
