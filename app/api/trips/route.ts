@@ -1,3 +1,4 @@
+import {resolveSelfMember} from '@/lib/self-member';
 import {timedJSON,stringifyJSON} from '@/lib/response-metrics';
 import {env} from 'cloudflare:workers';
 import {alternativePlan} from '@/lib/plan-alternatives';
@@ -90,10 +91,10 @@ async function getTrips(r: Request,timing:RequestTimings) {
     const snapshotIdentity=who;
     async function snapshot(metadataOnly:boolean){
       const who=snapshotIdentity;
-      const result:any=await db.prepare(`SELECT t.id,t.revision,t.owner,t.owner_email,json_extract(t.data,'$.people') AS people_json,(SELECT json_group_array(json_object('email',g.email,'permissions',g.permissions,'person',g.person,'identity_key',l.identity_key)) FROM (SELECT * FROM grants WHERE trip=t.id ORDER BY id) g LEFT JOIN account_links l ON l.email=g.email) AS grants_json,EXISTS(SELECT 1 FROM app_owner WHERE id='primary' AND (user=? OR email=?)) AS can_create${metadataOnly?'':',t.data'} FROM trips t WHERE (t.owner=? OR t.owner_email=? OR EXISTS(SELECT 1 FROM grants g WHERE g.trip=t.id AND g.email=?) OR EXISTS(SELECT 1 FROM members m WHERE m.trip=t.id AND m.user=?))${group?' AND t.id=?':''}`).bind(who.user,who.email,who.user,who.email,who.email,who.user,...(group?[group]:[])).all();
+      const result:any=await db.prepare(`SELECT t.id,t.revision,t.owner,t.owner_email,json_extract(t.data,'$.people') AS people_json,(SELECT json_group_array(json_object('email',g.email,'permissions',g.permissions,'person',g.person,'identity_key',l.identity_key)) FROM (SELECT * FROM grants WHERE trip=t.id ORDER BY id) g LEFT JOIN account_links l ON l.email=g.email) AS grants_json,(SELECT data FROM personal_workspace WHERE email=?) AS self_preferences,EXISTS(SELECT 1 FROM app_owner WHERE id='primary' AND (user=? OR email=?)) AS can_create${metadataOnly?'':',t.data'} FROM trips t WHERE (t.owner=? OR t.owner_email=? OR EXISTS(SELECT 1 FROM grants g WHERE g.trip=t.id AND g.email=?) OR EXISTS(SELECT 1 FROM members m WHERE m.trip=t.id AND m.user=?))${group?' AND t.id=?':''}`).bind(who.email,who.user,who.email,who.user,who.email,who.email,who.user,...(group?[group]:[])).all();
       const canCreate=result.results.length?result.results.some((r:any)=>r.can_create):await appOwner(who,db);
       const visible=[];for(const row of result.results){const grants=JSON.parse(row.grants_json||'[]'),grant=grants.find((g:any)=>g.email===who.email),check=metadataOnly?{...row,data:JSON.stringify({people:JSON.parse(row.people_json||'[]')})}:row,a=await access(check,who,db,{grant});if(a.blocked||!a.owner&&!a.permissions.length&&(!a.person||!JSON.parse(check.data).people.some((p:any)=>p.id===a.person)))continue;visible.push(row)}result.results=visible;
-      const version=result.results.map((r:any)=>[r.id,r.revision,r.owner,r.owner_email,r.people_json,r.grants_json]).sort((a:any,b:any)=>a[0].localeCompare(b[0]));
+      const version=result.results.map((r:any)=>[r.id,r.revision,r.owner,r.owner_email,r.people_json,r.grants_json,r.self_preferences]).sort((a:any,b:any)=>a[0].localeCompare(b[0]));
       const etag='"'+await checksum(JSON.stringify(['trip-snapshot-v2',who.user,who.email,group,canCreate,version]))+'"';
       return {rows:result,canCreate,etag};
     }
@@ -137,7 +138,7 @@ async function getTrips(r: Request,timing:RequestTimings) {
         }));
       }
       if(!a.owner&&!a.permissions.includes('plan')){const travel=timing.sync("itinerary",()=>travellerContext(data));data.activities=travel.activities;data.travel=undefined;data.checklist=undefined;}
-      trips.push({ id: row.id, revision: row.revision, data, memberKeys, ...a });
+      trips.push({ id: row.id, revision: row.revision, data, memberKeys, ...a, person:a.owner?resolveSelfMember(data.people,a.person,JSON.parse(row.self_preferences||'{}').selfMembers||{},row.id):a.person });
     }
     return trips;});
     timing.count("groupsReturned",trips.length);
@@ -377,6 +378,7 @@ async function postTrip(r: Request,context:RequestContext) {
         db.prepare('DELETE FROM grants WHERE trip=? AND EXISTS (SELECT 1 FROM trips WHERE id=? AND revision=?)').bind(row.id,row.id,b.revision),
         db.prepare('DELETE FROM members WHERE trip=? AND EXISTS (SELECT 1 FROM trips WHERE id=? AND revision=?)').bind(row.id,row.id,b.revision),
         db.prepare('DELETE FROM trips WHERE id=? AND revision=?').bind(row.id,b.revision),
+        db.prepare("UPDATE payable_delivery SET revision=revision+1,next_attempt=0 WHERE id='payables'"),
       ]);
       if(!results[3].meta.changes)return response({error:'This event changed. Refresh and review before deleting.'},409);
       return response({ok:true});
@@ -607,6 +609,7 @@ async function postTrip(r: Request,context:RequestContext) {
     const results = await db.batch([
       db.prepare('UPDATE trips SET data=?,revision=revision+1,mutation_id=? WHERE id=? AND revision=?')
         .bind(JSON.stringify(data),mutation,row.id,b.revision),
+      db.prepare("UPDATE payable_delivery SET revision=revision+1,next_attempt=0 WHERE id='payables' AND EXISTS(SELECT 1 FROM trips WHERE id=? AND revision=? AND mutation_id=?)").bind(row.id,b.revision+1,mutation),
       ...(recoverySnapshot?[db.prepare('INSERT OR IGNORE INTO trip_checkpoints(id,trip,revision,data,checksum,created_at) SELECT ?,?,?,?,?,? WHERE EXISTS(SELECT 1 FROM trips WHERE id=? AND revision=? AND mutation_id=?)').bind(recoverySnapshot.id,row.id,row.revision,row.data,recoverySnapshot.checksum,now,row.id,b.revision+1,mutation),db.prepare('DELETE FROM trip_checkpoints WHERE trip=? AND id NOT IN (SELECT id FROM trip_checkpoints WHERE trip=? ORDER BY revision DESC LIMIT 5) AND EXISTS(SELECT 1 FROM trips WHERE id=? AND revision=? AND mutation_id=?)').bind(row.id,row.id,row.id,b.revision+1,mutation)]:[]),
       db.prepare("INSERT INTO sync_changes(trip,kind,record_id,members,changed_at) SELECT ?,json_extract(value,'$.kind'),json_extract(value,'$.recordId'),json_extract(value,'$.members'),? FROM json_each(?) WHERE EXISTS (SELECT 1 FROM trips WHERE id=? AND revision=? AND mutation_id=?)").bind(row.id,now,JSON.stringify(changes),row.id,b.revision+1,mutation),
     ]);

@@ -1,3 +1,4 @@
+import {deliverPayables} from '../lib/payable-delivery';
 import {compressJSON} from '../lib/response-compression';
 import {measuredResponse} from '../lib/response-metrics';
 /** Cloudflare Worker entry point for the vinext-starter template. */
@@ -42,7 +43,9 @@ const worker = {
       }, allowedWidths);
     }
 
-    return compressJSON(request,await measuredResponse(request,()=>handler.fetch(request, env, ctx),ctx));
+    const response=await compressJSON(request,await measuredResponse(request,()=>handler.fetch(request, env, ctx),ctx));
+    ctx.waitUntil(deliverPayables(env.DB,env).catch(()=>{}));
+    return response;
   },
 };
 

@@ -1,0 +1,79 @@
+[
+  {
+    "step": "add",
+    "remaining": 10000,
+    "status": "Unpaid",
+    "sourceConsumption": 10000,
+    "consumptionUnchanged": true
+  },
+  {
+    "step": "edit",
+    "remaining": 12000,
+    "status": "Unpaid",
+    "sourceConsumption": 12000,
+    "consumptionUnchanged": true
+  },
+  {
+    "step": "partial",
+    "remaining": 10000,
+    "status": "Partly paid",
+    "sourceConsumption": 12000,
+    "consumptionUnchanged": true
+  },
+  {
+    "step": "paid",
+    "remaining": 0,
+    "status": "Paid",
+    "sourceConsumption": 12000,
+    "consumptionUnchanged": true
+  },
+  {
+    "step": "undo-full",
+    "remaining": 10000,
+    "status": "Partly paid",
+    "sourceConsumption": 12000,
+    "consumptionUnchanged": true
+  },
+  {
+    "step": "undo-partial",
+    "remaining": 12000,
+    "status": "Unpaid",
+    "sourceConsumption": 12000,
+    "consumptionUnchanged": true
+  },
+  {
+    "step": "delete",
+    "remaining": 0,
+    "status": "removed",
+    "sourceConsumption": 0,
+    "consumptionUnchanged": true
+  },
+  {
+    "step": "restore",
+    "remaining": 12000,
+    "status": "Unpaid",
+    "sourceConsumption": 12000,
+    "consumptionUnchanged": true
+  },
+  {
+    "step": "repeat1",
+    "remaining": 12000,
+    "status": "Unpaid",
+    "sourceConsumption": 12000,
+    "consumptionUnchanged": true
+  },
+  {
+    "step": "repeat2",
+    "remaining": 12000,
+    "status": "Unpaid",
+    "sourceConsumption": 12000,
+    "consumptionUnchanged": true
+  },
+  {
+    "step": "repeat3",
+    "remaining": 12000,
+    "status": "Unpaid",
+    "sourceConsumption": 12000,
+    "consumptionUnchanged": true
+  }
+]

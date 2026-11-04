@@ -4,7 +4,7 @@ import {identity} from '../trips/route';
 import {categories,currencies,cents} from '@/lib/ledger';
 export const dynamic='force-dynamic';
 const reply=(body:unknown,status=200)=>timedJSON(body,{status,headers:{'Cache-Control':'private, no-store'}});
-const defaults=()=>({style:'arcade',sound:false,haptics:false,templates:[],fx:{MYR:1}});
+const defaults=()=>({style:'arcade',sound:false,haptics:false,templates:[],fx:{MYR:1},selfMembers:{}});
 export async function GET(request:Request){
   const who=await identity(request);if(!who)return reply({error:'Sign in required'},401);
   const db=database();const row:any=await db.prepare('SELECT data,revision FROM personal_workspace WHERE email=?').bind(who.email).first();
@@ -20,7 +20,17 @@ export async function POST(request:Request){
     const row:any=await db.prepare('SELECT data,revision FROM personal_workspace WHERE email=?').bind(who.email).first();
     if(body.revision!==row.revision)return reply({error:'Your preferences changed on another device. Refresh and retry.'},409);
     const data={...defaults(),...JSON.parse(row.data)};
-    if(body.action==='appearance'){
+    if(body.action==='selfMember'){
+      const trip=await db.prepare('SELECT id,owner,owner_email,data FROM trips WHERE id=?').bind(body.group).first<any>();
+      if(!trip||(trip.owner!==who.user&&trip.owner_email!==who.email))return reply({error:'Only the space owner can confirm their own member.'},403);
+      const people=JSON.parse(trip.data).people;
+      if(typeof body.person!=='string'||!people.some((p:any)=>p.id===body.person&&p.active!==false))throw Error('Choose an active member.');
+      const binding=await db.prepare("SELECT email FROM grants WHERE trip=? AND person=? AND email<>?").bind(body.group,body.person,who.email).first();
+      if(binding)throw Error('This member is linked to another account.');
+      const own=await db.prepare('SELECT person FROM grants WHERE trip=? AND email=?').bind(body.group,who.email).first<any>();
+      if(own?.person&&own.person!==body.person)throw Error('Choose the member linked to your account.');
+      data.selfMembers={...(data.selfMembers||{}),[body.group]:body.person};
+    }else if(body.action==='appearance'){
       if(!['arcade','cosmic','glass'].includes(body.style)||typeof body.sound!=='boolean'||typeof body.haptics!=='boolean')throw Error('Invalid appearance');
       Object.assign(data,{style:body.style,sound:body.sound,haptics:body.haptics});
     }else if(body.action==='template'){

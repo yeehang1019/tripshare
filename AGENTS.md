@@ -1,5 +1,7 @@
 # TripShare engineering rules
 
+- Approved 2026-11-04 B0/B: server-confirmed self identity, per-currency separate owe/owed and incomplete-scope warnings; single-direction payable mirrors to Pocket Ledger with durable events/retries. Consumption remains by bill date; payments/Undo NEVER create/delete consumption. No ledger algorithm/real-space financial write. QA Test only. First import requires preview confirmation. A visual redesign is separate.
+
 - Current request: fix expense sheet downward scrolling and audit long forms/modals, footer reachability, multi-member/long-name overflow. Preserve accounting/API/schema/permissions and live read-only real groups. QA writes only disposable QA Test. Verify actual scroll geometry, existing regression suite/types/build before release.
 
 - Latest 2026-11-03 authorization supersedes earlier visual directions and pauses: implement attached TripShare-全功能设计.html in separately published 4b then 4c. Light neutral transparent glass with black primary; dark purple glass #0B0918; no rainbow/orange/pink decoration or strong glow. Preserve all 4a corrections, canonical ledger/schema/API/permissions, real group read-only, QA writes only QA Test. Data-supported UI only; report unsupported features instead of changing backend. Four-item mobile pill plus single add, 240/720/320 desktop. Native350ms8px entrance,600ms cubic counter, restrained pointer highlight, .97-.98 press; reduced-motion disables animation. Max3 simultaneous blur planes; cumulative newJS<=40KB gzip.

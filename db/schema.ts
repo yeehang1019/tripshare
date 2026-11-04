@@ -44,3 +44,5 @@ export const tripPrivatePreferences=sqliteTable('trip_private_preferences',{
 export const tripCheckpoints=sqliteTable('trip_checkpoints',{
  id:text('id').primaryKey(),trip:text('trip').notNull().references(()=>trips.id,{onDelete:'cascade'}),revision:integer('revision').notNull(),data:text('data').notNull(),checksum:text('checksum').notNull(),createdAt:text('created_at').notNull(),
 },t=>[index('trip_checkpoints_trip_revision').on(t.trip,t.revision)]);
+
+export const payableDelivery=sqliteTable('payable_delivery',{id:text('id').primaryKey(),revision:integer('revision').notNull().default(0),delivered:integer('delivered').notNull().default(0),attempts:integer('attempts').notNull().default(0),error:text('error').notNull().default(''),lease:text('lease').notNull().default(''),lockUntil:integer('lock_until').notNull().default(0),nextAttempt:integer('next_attempt').notNull().default(0)});
