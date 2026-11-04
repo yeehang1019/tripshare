@@ -1,5 +1,7 @@
 # TripShare engineering rules
 
+- Latest 2026-11-04 UI correction: one publication for Expenses/Settlement/shell typography, 44px targets, accessible icon names, monthly expense summary, 20-row progressive loading, whole-row details/mobile swipe, filter sheet/chips, member cards and five-second Undo feedback. Presentation/interaction only: no ledger, permissions, API or schema changes. Only targeted checks on these components at 375/1280; do not rerun accepted Trip, History, Settings, Tools or Pocket Ledger logic. Preserve Glass/purple Glass, <=40KB gzip added JS, <=3 blur layers and reduced-motion handling.
+
 - Approved 2026-11-04 B0/B: server-confirmed self identity, per-currency separate owe/owed and incomplete-scope warnings; single-direction payable mirrors to Pocket Ledger with durable events/retries. Consumption remains by bill date; payments/Undo NEVER create/delete consumption. No ledger algorithm/real-space financial write. QA Test only. First import requires preview confirmation. A visual redesign is separate.
 
 - Current request: fix expense sheet downward scrolling and audit long forms/modals, footer reachability, multi-member/long-name overflow. Preserve accounting/API/schema/permissions and live read-only real groups. QA writes only disposable QA Test. Verify actual scroll geometry, existing regression suite/types/build before release.

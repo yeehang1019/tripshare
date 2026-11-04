@@ -6,7 +6,7 @@ import {Dialog,DialogContent,DialogTitle,DialogDescription} from '@/components/u
 import {money,type PairCalculation} from '@/lib/ledger';
 import {pairSettlement,type BillSettlement} from '@/lib/settlement-display';
 
-export default function SettlementCalculation({calculation:c,currency,compact=false,showNet=true}:{calculation?:PairCalculation;currency:string;compact?:boolean;showNet?:boolean}){
+export default function SettlementCalculation({calculation:c,currency,compact=false,showNet=true,initialOpen=false}:{calculation?:PairCalculation;currency:string;compact?:boolean;showNet?:boolean;initialOpen?:boolean}){
  const [limit,setLimit]=useState(30),[offsetLimit,setOffsetLimit]=useState(30),[info,setInfo]=useState(false);
  if(!c)return null;
  const model=pairSettlement(c),open=model.rows.filter(r=>r.finalDue>0),offsetRows=model.rows.filter(r=>r.afterPayment>0&&r.finalDue===0);
@@ -16,7 +16,7 @@ export default function SettlementCalculation({calculation:c,currency,compact=fa
   <th scope="row"><b>{r.title}</b><small>{day(r.date)} · {r.from===c!.from?c!.fromName:c!.toName} → {r.to===c!.to?c!.toName:c!.fromName}</small><span className={'bill-status '+(r.status==='Paid'?'status-paid':r.status==='Unpaid'?'status-unpaid':r.status==='Settled by offset'?'status-offset':'status-partial')}>{billStatus(r.status)}</span>{r.offset>0&&r.applied>0&&<small>Payment: {billStatus(r.paymentStatus)}</small>}</th>
   <td><span>Paid toward bill</span><b>{fmt(r.applied)}</b></td><td><span>Left after payments</span><b>{fmt(r.afterPayment)}</b></td><td><span>Cancelled out</span><b>{fmt(r.offset)}</b></td><td className="bill-final-due"><span>Still to pay</span><b>{fmt(r.finalDue)}</b></td>
  </tr>)}</tbody></table>}
- return <details className="settlement-breakdown pair-calculation" data-pair={JSON.stringify([c.from,c.to].sort())}>
+ return <details open={initialOpen||undefined} className="settlement-breakdown pair-calculation" data-pair={JSON.stringify([c.from,c.to].sort())}>
   <summary aria-label={'View Calculation · '+c.fromName+' ↔ '+c.toName}>{compact?'Details':<>View Calculation · {c.fromName} ↔ {c.toName}</>}</summary>
   {showNet&&<div className="pair-net-summary"><span>Still to pay between you two{c.remainingForward||c.remainingReverse?' · '+from+' → '+to:' · All settled'}</span><b>{fmt(c.remainingForward||c.remainingReverse)}</b></div>}
   <div className="pair-offset-rule"><span>Cancelled out {fmt(model.offset)}</span><button type="button" className="icon-button" aria-label="How amounts cancel out" onClick={()=>setInfo(true)}><Info size={18}/></button><Dialog open={info} onOpenChange={setInfo}><DialogContent className="settlement-info-sheet"><DialogTitle>How amounts cancel out</DialogTitle><DialogDescription>What you owe each other cancels out, oldest bills first. Bills with the same date follow a fixed order. Changes to bills or payments can change which amounts cancel out. Left after payments minus Cancelled out equals Still to pay. Reminders and summaries include only Still to pay.</DialogDescription></DialogContent></Dialog></div>

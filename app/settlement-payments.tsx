@@ -1,5 +1,6 @@
 'use client';
 import AnimatedAmount from './animated-amount';
+import {createPortal} from 'react-dom';
 import SwipeReveal from './swipe-reveal';
 import {confirmedPairsAreSettled} from '@/lib/ui-settlement-feedback';
 import {successFeedback} from '@/lib/ui-interactions';
@@ -21,7 +22,8 @@ type Receipt={batchId:string;payments:PaymentBatch['payments'];undone:boolean};
 const pairKey=(p:Transfer)=>JSON.stringify([p.from,p.to]);
 const today=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Kuala_Lumpur',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
 const paymentId=()=>typeof crypto.randomUUID==='function'?crypto.randomUUID():Array.from(crypto.getRandomValues(new Uint8Array(16)),n=>n.toString(16).padStart(2,'0')).join('');
-export default function SettlementPayments({event:e,group,revision,session,transfers,claims,calculations,canRecord,onRefresh,payout,onRemind,onSelect,disabled=false,owner=false,transport=fetch}:{event:Event;group:string;revision:number;session:string;transfers:Transfer[];claims:DebtClaim[];calculations:PairCalculation[];canRecord:boolean;disabled?:boolean;onRefresh:()=>Promise<unknown>;payout:(to:string)=>ReactNode;onRemind?:(transfer:Transfer,bill?:{title:string})=>void;owner?:boolean;transport?:typeof fetch;onSelect?:(transfer:Transfer)=>void}){
+export default function SettlementPayments({event:e,group,revision,session,person,transfers,claims,calculations,canRecord,onRefresh,payout,onRemind,onSelect,disabled=false,owner=false,transport=fetch}:{event:Event;group:string;revision:number;session:string;person?:string;transfers:Transfer[];claims:DebtClaim[];calculations:PairCalculation[];canRecord:boolean;disabled?:boolean;onRefresh:()=>Promise<unknown>;payout:(to:string)=>ReactNode;onRemind?:(transfer:Transfer,bill?:{title:string})=>void;owner?:boolean;transport?:typeof fetch;onSelect?:(transfer:Transfer)=>void}){
+ const [expanded,setExpanded]=useState(''),[undoVisible,setUndoVisible]=useState(false),[receiptOpen,setReceiptOpen]=useState(false);useEffect(()=>{if(!undoVisible)return;const timer=setTimeout(()=>setUndoVisible(false),5000);return()=>clearTimeout(timer)},[undoVisible]);
  const [filter,setFilter]=useState(''),[selected,setSelected]=useState<string[]>([]),[draft,setDraft]=useState<Draft|null>(null),[receipt,setReceipt]=useState<Receipt|null>(null),[error,setError]=useState(''),[working,setWorking]=useState(false),[uncertain,setUncertain]=useState(false),[needsReview,setNeedsReview]=useState(false),[copyText,setCopyText]=useState('');
  const lock=useRef(false),frozen=useRef<{action:string;entity:any;revision:number}|null>(null),scroll=useRef(0);
  const fmt=(n:number)=>money(n,e.settlement),name=(id:string)=>e.people.find(p=>p.id===id)?.name||id;
@@ -35,11 +37,11 @@ export default function SettlementPayments({event:e,group,revision,session,trans
  const total=chosen.reduce((n,t)=>n+choices(t).reduce((s,b)=>s+b.amount,0),0);
  useEffect(()=>{if(draft&&revision!==draft.revision&&!uncertain)setNeedsReview(true)},[revision,draft,uncertain]);
  function toggle(key:string){setSelected(v=>v.includes(key)?v.filter(x=>x!==key):[...v,key])}
- function close(){if(working||uncertain)return;setDraft(null);setReceipt(null);setError('');frozen.current=null;requestAnimationFrame(()=>window.scrollTo({top:scroll.current,behavior:'instant'}))}
+ function close(){if(working||uncertain)return;setUndoVisible(false);setDraft(null);setReceipt(null);setError('');frozen.current=null;requestAnimationFrame(()=>window.scrollTo({top:scroll.current,behavior:'instant'}))}
  function open(rows:Transfer[]){
   if(disabled)return;
   if(!rows.length||rows.length>100){setError('Select 1–100 payments.');return}
-  scroll.current=window.scrollY;setError('');setNeedsReview(false);setReceipt(null);setUncertain(false);frozen.current=null;
+  scroll.current=window.scrollY;setUndoVisible(false);setError('');setNeedsReview(false);setReceipt(null);setUncertain(false);frozen.current=null;
   setDraft({revision,batch:{id:paymentId(),payments:rows.map(t=>{const options=choices(t);return {id:paymentId(),from:t.from,to:t.to,amount:options.reduce((n,b)=>n+b.amount,0),expenseIds:options.map(b=>b.id),date:today(),note:''}})}});
  }
  function update(id:string,patch:Partial<PaymentBatch['payments'][number]>){if(uncertain||working)return;setDraft(d=>d?{...d,batch:{...d.batch,payments:d.batch.payments.map(p=>p.id===id?{...p,...patch}:p)}}:d)}
@@ -69,24 +71,27 @@ export default function SettlementPayments({event:e,group,revision,session,trans
    if(result.ok!==true)throw Error("We couldn't confirm this payment was saved. Check it before recording it again.");
    frozen.current=null;setUncertain(false);setNeedsReview(false);
    let clearsPair=false;
-   if(request.action==='paymentBatch'){setReceipt({batchId:request.entity.id,payments:request.entity.payments,undone:false});setDraft(null);setSelected([])}else setReceipt(v=>v?{...v,undone:true}:v);
+   if(request.action==='paymentBatch'){setReceipt({batchId:request.entity.id,payments:request.entity.payments,undone:false});setReceiptOpen(false);setDraft(null);setSelected([])}else setReceipt(v=>v?{...v,undone:true}:v);
    try{const loaded=await onRefresh();if(request.action==='paymentBatch')clearsPair=confirmedPairsAreSettled(loaded,request.entity.payments);if(!loaded)setError("We couldn't load your updated balances. Your payment is saved. Refresh before recording another payment.")}catch{setError('Saved. Refresh to load the latest balances.')}
+   if(request.action==='paymentBatch')setUndoVisible(true);
    successFeedback(request.action==='paymentBatch'?'Payment recorded.':'Payment undone.',request.action!=='paymentBatch'?'undo':clearsPair?'settled':'payment');
   }catch(err){setUncertain(true);setError("We couldn't confirm this payment was saved. Check it before recording it again.")}
   finally{lock.current=false;setWorking(false)}
  }
  const invalid=!!draft&&(!draft.batch.payments.length||draft.batch.payments.some(p=>{const available=(sources.get(pairKey(p))||[]).filter(b=>p.expenseIds.includes(b.id)).reduce((n,b)=>n+b.amount,0);return !p.expenseIds.length||!Number.isSafeInteger(p.amount)||p.amount<=0||p.amount>available||!p.date}));
  return <div className="settlement-compact-list">
+  {undoVisible&&receipt&&!receipt.undone&&typeof document!=='undefined'&&createPortal(<div className="payment-undo-toast" role="status"><span>Payment recorded.</span><button className="secondary" disabled={working} onClick={()=>{setUndoVisible(false);setReceiptOpen(true);void submit('undoPaymentBatch')}}>Undo</button></div>,document.body)}
   {chosen.length>100&&<p role="alert">Select at most 100 payments per batch.</p>}
-  {error&&!draft&&!receipt&&<p role="alert"><CopyError value={error}/></p>}
+  {error&&!draft&&(!receipt||!receiptOpen)&&<p role="alert"><CopyError value={error}/></p>}
   {copyText&&<div role="status" className="settlement-copy-result">{copyText==='Copied.'?copyText:<textarea readOnly aria-label="Copy payment list" value={copyText} onFocus={v=>v.target.select()}/>}</div>}
   {recipients.map(to=><details open className="settlement-recipient" key={to}>
    <summary>Pay {name(to)} · {recipientBills(to)} bill{recipientBills(to)===1?"":"s"}</summary>
-   {visible.filter(t=>t.to===to).map(t=>{const key=pairKey(t),c=calculations.find(c=>c.from===t.from&&c.to===t.to||c.from===t.to&&c.to===t.from),amount=selectedFinalDue(t,choices(t));const paid=choices(t).reduce((n,b)=>n+b.applied,0),cancelled=choices(t).reduce((n,b)=>n+b.offset,0),progress=Math.max(0,Math.min(100,Math.round(paid/Math.max(1,paid+cancelled+t.amount)*100)));return <SwipeReveal key={key} label={name(t.to)} onRight={canRecord&&!disabled?()=>open([t]):undefined}><article className="transfer payment-card" key={key} onClick={()=>onSelect?.(t)}>
-    <div className="payment-card-heading">{canRecord&&<input type="checkbox" aria-label={'Select '+name(t.from)+' to '+name(t.to)} checked={selected.includes(key)} onChange={()=>toggle(key)}/>}<MemberAvatar id={t.from} name={name(t.from)}/><b>{name(t.from)}</b><span className="payment-flow-arrow" aria-hidden="true">→</span><MemberAvatar id={t.to} name={name(t.to)}/><b>{name(t.to)}</b><strong><AnimatedAmount value={fmt(t.amount)}/></strong></div><div className="payment-card-status"><span className="bill-count-badge">{choices(t).length} bill{choices(t).length===1?"":"s"} still to pay</span><span className={"bill-status "+(choices(t).some(b=>b.applied>0||b.offset>0)?"status-partial":"status-unpaid")}>{choices(t).some(b=>b.offset>0)?"Partly cancelled out":choices(t).some(b=>b.applied>0)?"Partly paid":"Unpaid"}</span></div>
-    <div className="payment-progress" role="progressbar" aria-label="Paid toward these unpaid bills" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress}><span style={{transform:`scaleX(${progress/100})`}}/></div><p className="payment-progress-caption">Paid {fmt(paid)} · Still to pay {fmt(t.amount)}</p>
+   {visible.filter(t=>t.to===to).map(t=>{const key=pairKey(t),c=calculations.find(c=>c.from===t.from&&c.to===t.to||c.from===t.to&&c.to===t.from),amount=selectedFinalDue(t,choices(t));const paid=choices(t).reduce((n,b)=>n+b.applied,0),cancelled=choices(t).reduce((n,b)=>n+b.offset,0),progress=Math.max(0,Math.min(100,Math.round(paid/Math.max(1,paid+cancelled+t.amount)*100)));return <SwipeReveal key={key} label={name(t.to)} onRight={canRecord&&!disabled?()=>open([t]):undefined}><article className="transfer payment-card" key={key} onClick={event=>{onSelect?.(t);if(!(event.target as Element).closest('button,input,a,summary,details'))setExpanded(v=>v===key?'':key)}}>
+    <div className="payment-person-heading">{canRecord&&<input type="checkbox" aria-label={'Select '+name(t.from)+' to '+name(t.to)} checked={selected.includes(key)} onChange={()=>toggle(key)}/>}<button className="payment-person-trigger" aria-expanded={expanded===key} aria-label={'Payment with '+name(person===t.to?t.from:t.to)+', '+fmt(t.amount)+', '+(person===t.to?'you receive':'to pay')} onClick={()=>{setExpanded(v=>v===key?'':key);onSelect?.(t)}}><MemberAvatar id={person===t.to?t.from:t.to} name={name(person===t.to?t.from:t.to)}/><span><b>{name(person===t.to?t.from:t.to)}</b><small>{person===t.to?'Owes you':person===t.from?'You owe':name(t.from)+' pays'}</small></span><strong className={person===t.to?'amount-receive':'amount-pay'}><span aria-hidden="true">{person===t.to?'↓':'↑'} </span><AnimatedAmount value={fmt(t.amount)}/></strong></button></div>
+    <div className="payment-card-status"><span className="bill-count-badge">{choices(t).length} bill{choices(t).length===1?"":"s"} still to pay</span><span className={"bill-status "+(choices(t).some(b=>b.applied>0||b.offset>0)?"status-partial":"status-unpaid")}>{choices(t).some(b=>b.offset>0)?"Partly cancelled out":choices(t).some(b=>b.applied>0)?"Partly paid":"Unpaid"}</span></div>
     <div className="checks">{filter&&<small>Selected bill · Still to pay {fmt(amount)}</small>}{canRecord&&<button className="primary" disabled={disabled} onClick={()=>open([t])}>Record payment</button>}{onRemind&&<button className="text-button" onClick={()=>onRemind({...t,amount:filter?amount:t.amount},filter?bills.find(b=>b.id===filter):undefined)}>Prepare reminder</button>}</div>
-    <Calculation calculation={c} currency={e.settlement} compact showNet={false}/>
+    {expanded===key&&<div className="payment-expanded"><p className="payment-progress-caption">Paid {fmt(paid)} · Still to pay {fmt(t.amount)}</p><Calculation calculation={c} currency={e.settlement} showNet={false} initialOpen/></div>}
+
    </article></SwipeReveal>})}
 <details className="settlement-bulk-menu recipient-menu"><summary aria-label={"Actions for payments to "+name(to)}>⋯</summary><div className="checks settlement-recipient-actions">{canRecord&&<button className="text-button" onClick={()=>{const keys=visible.filter(t=>t.to===to).map(pairKey);setSelected(v=>keys.every(k=>v.includes(k))?v.filter(k=>!keys.includes(k)):[...new Set([...v,...keys])])}}>Select / clear all</button>}<button className="text-button" onClick={()=>copy(to)}>Copy payment list</button></div></details>
    {payout(to)}
@@ -95,7 +100,7 @@ export default function SettlementPayments({event:e,group,revision,session,trans
   <div className="settlement-record-toolbar"><Field label="Bill"><select value={filter} onChange={v=>{setFilter(v.target.value);setSelected([])}}><option value="">All unpaid bills</option>{bills.map(b=><option key={b.id} value={b.id}>{b.title} · {b.date.split('-').reverse().join('/')}</option>)}</select></Field>
    <details className="settlement-bulk-menu"><summary aria-label="Payment batch actions">⋯</summary><div>{canRecord&&<button className="primary" disabled={disabled||!chosen.length||chosen.length>100} onClick={()=>open(chosen)}>Record selected · {chosen.length}{chosen.length?' · '+fmt(total):''}</button>}</div></details>
   </div>
-  {(draft||receipt)&&<Dialog open onOpenChange={v=>{if(!v)close()}}><DialogContent className="settlement-record-dialog" onCloseAutoFocus={v=>v.preventDefault()} onInteractOutside={v=>v.preventDefault()} onEscapeKeyDown={v=>{if(working||uncertain)v.preventDefault()}} showCloseButton={!working&&!uncertain}>
+  {(draft||receipt&&receiptOpen)&&<Dialog open onOpenChange={v=>{if(!v)close()}}><DialogContent className="settlement-record-dialog" onCloseAutoFocus={v=>v.preventDefault()} onInteractOutside={v=>v.preventDefault()} onEscapeKeyDown={v=>{if(working||uncertain)v.preventDefault()}} showCloseButton={!working&&!uncertain}>
    <header><DialogTitle>{receipt?(receipt.undone?"Payments undone.":"Payments recorded."):'Record payments'}</DialogTitle><DialogDescription>{receipt?"Each payment stays in history.":"Choose the bills and check each amount. Record only money that was actually paid."}</DialogDescription></header>
    {error&&<p role="alert" className="message error"><CopyError value={error}/></p>}
    {needsReview&&!uncertain&&<p role="alert">The space changed. <button className="secondary" disabled={working} onClick={review}>Review latest amounts</button></p>}

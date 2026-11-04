@@ -1,0 +1,38 @@
+/* Shared legibility and target tokens. Financial values remain presentation only. */
+:root{--fs-xs:12px;--fs-sm:13px;--fs-body:15px;--fs-amount:15px}
+body :where(*){font-size:var(--fs-body)!important}
+body :is(small,kbd,.eyebrow,.bill-count-badge,.expense-date h3,.payment-progress-caption,.notification-bell>span,.sidebar-workspace-label,.sidebar-section,.amount-currency){font-size:var(--fs-xs)!important}
+body :is(h1){font-size:28px!important}body :is(h2){font-size:20px!important}body :is(h3){font-size:17px!important}
+body :is(.animated-amount,.amount-number,.stream-money b,.expense-date strong){font-size:max(var(--fs-amount),1em)!important}
+body :is(button,a,input:not([type=hidden]),select,[role=button],summary){min-width:44px!important;min-height:44px!important;box-sizing:border-box}
+body :is(a,summary){align-content:center}body :is(button,input,select){max-width:100%}
+body :is(.checks,.header-right,.sidebar-navigation,.expense-filter-chips,.selected-expense-filters,.scope-switch,.payment-amount-mode){gap:8px!important}
+body :is(.icon-button,.profile-trigger,.notification-bell){width:44px!important;height:44px!important;padding:10px!important;flex-shrink:0}
+body :is(.payment-person-trigger,.stream-row){text-align:left}.stream-row{width:100%;min-width:0!important;padding:10px 0!important;gap:8px;align-items:center}
+.stream-line{display:block}.stream-title{min-width:0;flex:1}.stream-title b{font-size:14px!important}.stream-title small,.stream-money small{font-size:12px!important}.stream-money{margin-left:auto;flex-shrink:0}.stream-money b{font-size:15px!important}.stream-title b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.expense-month-summary{display:flex;align-items:center;flex-wrap:wrap;gap:8px 16px;margin:0 0 8px;padding:8px 12px;border:1px solid var(--border);border-radius:14px;background:var(--surface-row)}
+.expense-month-summary h2{font-size:15px!important;margin:0}.expense-month-summary>span{display:flex;gap:8px;align-items:center;color:var(--text-secondary);font-size:12px!important}.expense-month-summary b{font-size:15px!important;color:var(--text)}
+.expense-search .field>span{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}.expense-search input{margin:0}.expense-filter-chips{display:flex!important;flex-wrap:wrap!important;margin:8px 0}.expense-filter-chips>button{padding:8px!important;flex:1 1 auto;font-size:13px!important}.selected-expense-filters{display:flex;flex-wrap:wrap;margin-bottom:8px}.selected-expense-filters:empty{display:none}.selected-expense-filters>button{border:1px solid var(--border);border-radius:999px;background:var(--surface-row);padding:8px 12px;color:var(--text)}
+.expense-list-panel{padding:0!important;background:transparent!important;border:0!important;overflow:visible!important;box-shadow:none!important}.expense-list-panel>.section-title{display:none}.expense-date{position:sticky;top:64px;z-index:3;background:var(--surface-solid);padding:8px 0!important;min-height:36px;display:flex;align-items:center;gap:8px}.expense-date h3{margin:0}.expense-row-skeleton{height:64px;border-radius:12px;margin:8px 0}.expense-pagination{min-height:44px}.expense-filters-sheet .expense-filters{display:grid!important;grid-template-columns:1fr;gap:12px;padding:0!important}.expense-filters-sheet{max-height:90dvh;overflow:auto}
+.swipe-actions{background:transparent}.swipe-shell:has(.swipe-actions button) .swipe-actions{background:var(--surface-solid)}
+.payment-person-heading{display:flex;align-items:center;gap:8px}.payment-person-trigger{display:flex;align-items:center;gap:8px;flex:1;min-width:0!important;border:0;background:transparent;padding:0;color:var(--text)}.payment-person-trigger>span{min-width:0}.payment-person-trigger b,.payment-person-trigger small{display:block}.payment-person-trigger small{color:var(--text-secondary);font-size:12px!important}.payment-person-trigger>strong{margin-left:auto;white-space:nowrap;font-size:24px!important}.payment-person-trigger .amount-number{font-size:24px!important}.amount-receive{color:var(--positive)}.amount-pay{color:var(--negative)}.payment-expanded{border-top:1px solid var(--border);padding-top:12px;margin-top:12px}
+.settlement-recipient>summary{display:none!important}.phase3c .payment-card>.checks{margin-top:12px!important}.payment-undo-toast{position:fixed;z-index:120;left:50%;bottom:calc(100px + env(safe-area-inset-bottom));transform:translateX(-50%);display:flex;align-items:center;gap:16px;padding:12px 16px;background:var(--surface-solid);color:var(--text);border:1px solid var(--border);border-radius:16px;box-shadow:var(--surface-shadow)}
+.workspace-app .sidebar-navigation>button{padding:8px 12px!important}.workspace-app .sidebar-navigation{display:flex;flex-direction:column}.workspace-app .sidebar-navigation>button>svg{flex-shrink:0}.context-rail{overflow:auto}
+@media(max-width:1023px){.expense-month-summary{gap:4px 12px;padding:8px}.expense-month-summary h2{display:none}.expense-month-summary>span{flex:1;flex-direction:column;align-items:flex-start;gap:2px}.expense-search input{min-height:44px!important}.payment-person-trigger>strong,.payment-person-trigger .amount-number{font-size:20px!important}.payment-person-trigger{flex-wrap:wrap}.payment-person-trigger>strong{margin-left:auto}.shell-header .quick-launch{width:44px!important;padding:10px!important;min-width:44px!important}.shell-header .quick-launch :is(span,kbd){display:none!important}.shell-header .space-title{min-width:0!important;flex:1;overflow:hidden}.shell-header .space-title>span:first-of-type{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.shell-header .space-title>svg{flex-shrink:0}.shell-header .header-right{flex:0 0 auto}.phase3c .scope-switch button{padding:8px!important}.expense-date{top:56px}}
+@media(min-width:1024px) and (hover:hover){.shell-header .quick-launch kbd{display:inline-block}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
+/* The retained navigation and caption rules previously used !important sizes. */
+.workspace-app .money-bottom-nav>button,.workspace-app .sidebar-navigation>button,.workspace-app .sidebar-navigation>button>span,.workspace-app .sidebar-workspace-label,.workspace-app .sidebar-section,.workspace-app .sidebar-insignia>span,.workspace-app .group-orbit,.workspace-app .saved,.workspace-app .save-status-compact,.workspace-app .save-status-compact :is(span,time),.workspace-app .field>span,.workspace-app .bill-status,.workspace-app .context-rail small,.workspace-app .amount-currency{font-size:var(--fs-xs)!important}
+body .shell-header .notification-bell>span{font-size:12px!important}
+body .stream-money .animated-amount,body .stream-money .amount-number{font-size:15px!important}
+body .workspace-sidebar .sidebar-navigation>button{font-size:14px!important}
+body .expense-list-panel .expense-date>strong{margin-left:auto}
+/* Keep at most header, mobile navigation and one open sheet blurred. */
+.workspace-sidebar,.context-rail,[data-slot=dialog-overlay],[data-slot=alert-dialog-overlay]{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+/* Undo must stay operable while the success check is visible. */
+.payment-undo-toast{z-index:1100}
+body .workspace-app .animated-amount .amount-currency{font-size:15px!important}
+body .money-bottom-nav>button>span:last-child{font-size:12px!important}
+body .workspace-sidebar .sidebar-insignia>span{font-size:20px!important}
+@media(prefers-reduced-motion:no-preference){body :is(a,summary,[role=button]){transition:scale 120ms ease-out}body :is(a,summary,[role=button]):active{scale:.97}}

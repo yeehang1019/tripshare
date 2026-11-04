@@ -1,6 +1,7 @@
 "use client";
 import {successFeedback,type SuccessKind} from '@/lib/ui-interactions';
 import ExpenseStream from './expense-stream';
+import ExpenseFilterBar from './expense-filter-bar';
 import HomeCharts from "./home-charts";
 import PocketSyncStatus from './pocket-sync-status';
 import MoneyHome,{HomeSkeleton} from "./money-home";
@@ -1391,16 +1392,9 @@ setPlannerDirty(false);setTemplateDirty(false);
                 )}
                 {((tab === "Expenses" && canViewGroup) || (tab === "My spending" && hasPersonalAccess)) && (
                   <>
-                    <section className="expense-overview">
-                      <div>
-                        <p className="eyebrow">{tab === "Expenses" ? "SHARED SPENDING" : "YOUR SPENDING"}</p>
-                        <h2>{tab === "Expenses" ? "Expenses" : name(me)}</h2>
-                        <p>{tab === "My spending" ? filtered.filter(item => (billCalc(item).consumed[me] || 0) > 0).length : filtered.length} records · {fmt(filtered.reduce((total, item) => total + (tab === "My spending" ? billCalc(item).consumed[me] || 0 : billCalc(item).total), 0))}</p>
-                      </div>
-                      
-                    </section>
+                    {tab==='Expenses'?(()=>{const [from,to]=monthBounds(),rows=e.expenses.filter(b=>!b.deleted&&b.date>=from&&b.date<=to);return <section className="expense-month-summary" aria-label="This month spending"><h2>Expenses</h2><span>This month <b>{fmt(rows.reduce((n,b)=>n+billCalc(b).total,0))}</b></span><span>My share <b>{hasPersonalAccess?fmt(rows.reduce((n,b)=>n+(billCalc(b).consumed[me]||0),0)):'Confirm your member'}</b></span></section>})():<section className="expense-overview"><div><h2>{name(me)}</h2><p>{filtered.filter(b=>(billCalc(b).consumed[me]||0)>0).length} records · {fmt(filtered.reduce((n,b)=>n+(billCalc(b).consumed[me]||0),0))}</p></div></section>}
                     {activityFilter&&<div className="space-link-note activity-filter"><MapPinned size={16}/><span>Linked to {e.activities.find(a=>a.id===activityFilter)?.name||'a trip plan'}</span><button className="text-button" onClick={()=>switchSpace('trip',activityFilter)}>View plan</button><button className="text-button" onClick={()=>setActivityFilter('')}>Show all expenses</button></div>}
-                    {tab==='Expenses'?<>                    <div className="expense-search"><Field label="Search expenses"><input placeholder="Search expenses…" value={merchant} onChange={event=>setMerchant(event.target.value)}/></Field></div><div className="expense-filter-chips" aria-label="Expense filters"><button className="secondary" aria-pressed={cat==='All'&&!start&&!end&&!expenseMine&&!payerFilter&&statusFilter==='All'&&!activityFilter} onClick={()=>{setCat('All');setStart('');setEnd('');setExpenseMine(false);setPayerFilter('');setStatusFilter('All');setActivityFilter('')}}>All</button><button className="secondary" aria-pressed={expenseMine} onClick={()=>setExpenseMine(v=>!v)}>Mine</button><button className="secondary" aria-pressed={start===monthBounds()[0]&&end===monthBounds()[1]} onClick={()=>{const [a,b]=monthBounds();setStart(a);setEnd(b)}}>This month</button>{categories.map(category=><button className="secondary" key={category} aria-pressed={cat===category} onClick={()=>setCat(category)}>{category}</button>)}</div><details className="expense-filter-advanced"><summary>More filters</summary>{expenseFilters(false)}                    </details></>:expenseFilters(true)}
+                    {tab==='Expenses'?<>                    <div className="expense-search"><Field label="Search expenses"><input placeholder="Search expenses…" value={merchant} onChange={event=>setMerchant(event.target.value)}/></Field></div><ExpenseFilterBar all={cat==='All'&&!start&&!end&&!expenseMine&&!payerFilter&&statusFilter==='All'&&!activityFilter} mine={expenseMine} thisMonth={start===monthBounds()[0]&&end===monthBounds()[1]} onAll={()=>{setCat('All');setStart('');setEnd('');setExpenseMine(false);setPayerFilter('');setStatusFilter('All');setActivityFilter('')}} onMine={()=>setExpenseMine(v=>!v)} onThisMonth={()=>{const [a,b]=monthBounds();setStart(a);setEnd(b)}} chips={[...(cat!=='All'?[{id:'category',label:cat,remove:()=>setCat('All')}]:[]),...(start?[{id:'from',label:'From '+start.split('-').reverse().join('/'),remove:()=>setStart('')}]:[]),...(end?[{id:'until',label:'Until '+end.split('-').reverse().join('/'),remove:()=>setEnd('')}]:[]),...(payerFilter?[{id:'payer',label:'Paid by '+name(payerFilter),remove:()=>setPayerFilter('')}]:[]),...(statusFilter!=='All'?[{id:'timing',label:statusFilter==='prepaid'?'Paid in advance · not used yet':statusFilter==='postpaid'?'Used · not paid yet':'Paid',remove:()=>setStatusFilter('All')}]:[]),...(activityFilter?[{id:'activity',label:'Trip activity',remove:()=>setActivityFilter('')}]:[])]}>{expenseFilters(false)}</ExpenseFilterBar></>:expenseFilters(true)}
                     {tab === "My spending" && (
                       <>
                         <p>In {e.name}</p><section className="stats personal-stats">
@@ -1412,7 +1406,7 @@ setPlannerDirty(false);setTemplateDirty(false);
 <details className='focus-analytics'><summary>Spending insights · charts</summary><FocusSections label='Personal spending insights' sections={[{id:'insight-0',label:'Spending mix',render:()=> <div className='panel'><h2 className='card-title'><ChartPie size={20}/>My spending mix</h2>{donut(true)}</div>},{id:'insight-1',label:'Daily spending',render:()=> <div className='panel'><h2 className='card-title'><ChartColumn size={20}/>My daily spending</h2>{bars("date", true)}</div>},{id:'insight-2',label:'Top merchants',render:()=> <div className='panel'><h2 className='card-title'><Store size={20}/>My top merchants</h2>{bars("merchant", true)}</div>}]}/></details>
                       </>
                     )}
-                    <section className={`panel ${tab === "My spending" ? "personal-activity" : ""}`}>
+                    <section className={`panel ${tab === "My spending" ? "personal-activity" : "expense-list-panel"}`}>
                       <div className="section-title">
                         <h2><ReceiptText size={20}/>Activity</h2>
                         
@@ -1441,7 +1435,7 @@ setPlannerDirty(false);setTemplateDirty(false);
                     {sum!.calculations.some(c=>(settlementScope==='everyone'||c.from===me||c.to===me)&&(c.unappliedForward||c.unappliedReverse))&&<section className="panel"><h3>Payments to check</h3><p>A recorded payment no longer matches its original bill. It hasn't reduced a newer bill. Check it before paying again.</p>{sum!.calculations.filter(c=>(settlementScope==='everyone'||c.from===me||c.to===me)&&(c.unappliedForward||c.unappliedReverse)).map(c=><SettlementCalculation key={JSON.stringify([c.from,c.to])} calculation={c} currency={e.settlement}/>)}</section>}
                     {settlementDirection!=='all'&&<p className="settlement-direction">{settlementDirection==='owe'?'You owe':"You're owed"}<button className="text-button" onClick={()=>setSettlementDirection('all')}>Show all</button></p>}<div className="settlement-layout">
                     <div className="panel settlement-current">
-                      <SettlementPayments onSelect={t=>setSelectedSettlement(JSON.stringify([t.from,t.to]))} owner={rec.owner} key={rec.id+settlementScope} event={e} group={rec.id} revision={rec.revision} session={authenticatedSession} transfers={visibleTransfers} claims={sum!.claims} calculations={sum!.calculations} canRecord={can('settle')} disabled={busy} onRemind={(t,b)=>whatsapp(`${e.name}${b?' · '+b.title:''}\n${finalDueLines([t],name,fmt)}\nPlease check the shared event for the current balance.`)} onRefresh={async()=>{const ok=await load(true);return ok?groupMemory.current.get(rec.id)?.record||false:false}} payout={to=>!shared?<PayoutDetails group={rec.id} person={to} event={e} session={authenticatedSession} editable={to===rec.person}/>:null}/>
+                      <SettlementPayments person={settlementScope==='mine'?me:undefined} onSelect={t=>setSelectedSettlement(JSON.stringify([t.from,t.to]))} owner={rec.owner} key={rec.id+settlementScope} event={e} group={rec.id} revision={rec.revision} session={authenticatedSession} transfers={visibleTransfers} claims={sum!.claims} calculations={sum!.calculations} canRecord={can('settle')} disabled={busy} onRemind={(t,b)=>whatsapp(`${e.name}${b?' · '+b.title:''}\n${finalDueLines([t],name,fmt)}\nPlease check the shared event for the current balance.`)} onRefresh={async()=>{const ok=await load(true);return ok?groupMemory.current.get(rec.id)?.record||false:false}} payout={to=>!shared?<PayoutDetails group={rec.id} person={to} event={e} session={authenticatedSession} editable={to===rec.person}/>:null}/>
 
                     </div>
                     <div className="panel settlement-side">
