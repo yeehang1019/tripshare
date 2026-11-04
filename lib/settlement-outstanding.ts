@@ -29,7 +29,7 @@ export function outstandingSummary(e:Event,transfers:SheetTransfer[],scope:Sheet
 }
 export function outstandingText(model:OutstandingSummary){
  if(!model.rows.length)return '';
- const lines=model.rows.map(t=>`${t.fromName} → ${t.toName}\n`+(t.values?model.columns.filter(c=>(t.values?.[c.id]||0)>0).map(c=>`- ${c.title} · ${c.date.split('-').reverse().join('/')}  ${money(t.values![c.id],model.currency)}`).join('\n'):'Bill details unavailable'));
+ const lines=model.rows.map(t=>`${t.fromName} → ${t.toName} · Total: ${money(t.amount,model.currency)}\n`+(t.values?model.columns.filter(c=>(t.values?.[c.id]||0)>0).map(c=>`- ${c.title} · ${c.date.split('-').reverse().join('/')}  ${money(t.values![c.id],model.currency)}`).join('\n'):'Bill details unavailable'));
  return [...lines,`Total still to pay: ${money(model.total,model.currency)}`].join('\n');
 }
 

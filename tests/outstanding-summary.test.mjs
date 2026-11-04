@@ -71,7 +71,7 @@ test('KL House summary/export only includes food final due and disappears after 
  const print=outstandingPrintHTML(m),csv=outstandingCSVRows(m),shared=outstandingText(m);
  assert.match(print,/Total still to pay<\/th><td>RM 16.40/);
  assert.deepEqual(csv.at(-1),['Total still to pay','','MYR','',16.4]);
- assert.equal(shared,'ET → YH\n- food · 20/10/2026  RM 16.40\nTotal still to pay: RM 16.40');
+ assert.equal(shared,'ET → YH · Total: RM 16.40\n- food · 20/10/2026  RM 16.40\nTotal still to pay: RM 16.40');
  assert.doesNotMatch(shared,/toll|fee|RM -/);
  for(const text of [html,print,JSON.stringify(csv)]){assert.doesNotMatch(text,/Repayment adjustment|fee|toll|RM -/);assert.match(text,/food/)}
  assert.equal(JSON.stringify(e),before);pay(e,'ET','YH',1640);

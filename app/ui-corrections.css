@@ -45,3 +45,5 @@ body .workspace-sidebar .sidebar-insignia>span{font-size:20px!important}
  :root[data-visual] .workspace-app.expenses-wide:not(.simple-member-app)>main{width:calc(100% - 240px)!important;max-width:none!important;margin-left:240px!important;margin-right:0!important;padding:24px 32px!important}
  .expenses-wide .expense-filter-chips>button{flex:0 0 auto;min-width:88px!important;padding:8px 20px!important}
 }
+
+.settlement-totals{margin:16px 0;padding:16px;border:1px solid var(--border);border-radius:16px;background:var(--surface-row)}.settlement-totals h3{margin:0 0 4px}.settlement-totals>p{font-size:var(--fs-xs)!important;margin:0 0 12px}.settlement-totals dl{margin:0;display:grid;gap:12px}.settlement-totals dl>div,.settlement-grand-total{display:flex;align-items:baseline;justify-content:space-between;gap:12px}.settlement-totals dt{min-width:0;overflow-wrap:anywhere}.settlement-totals dd{margin:0;white-space:nowrap;font-family:var(--font-numbers);font-variant-numeric:tabular-nums}.settlement-grand-total{margin-top:16px;padding-top:12px;border-top:1px solid var(--border)}.settlement-grand-total>strong:last-child{white-space:nowrap;font-family:var(--font-numbers)}
