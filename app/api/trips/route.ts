@@ -138,7 +138,7 @@ async function getTrips(r: Request,timing:RequestTimings) {
         }));
       }
       if(!a.owner&&!a.permissions.includes('plan')){const travel=timing.sync("itinerary",()=>travellerContext(data));data.activities=travel.activities;data.travel=undefined;data.checklist=undefined;}
-      trips.push({ id: row.id, revision: row.revision, data, memberKeys, ...a, person:a.owner?resolveSelfMember(data.people,a.person,JSON.parse(row.self_preferences||'{}').selfMembers||{},row.id):a.person });
+      trips.push({ id: row.id, revision: row.revision, data, memberKeys, ...a, person:a.owner?resolveSelfMember(data.people,a.person,JSON.parse(row.self_preferences||'{}').selfMembers||{},row.id,JSON.parse(row.grants_json||'[]').filter((g:any)=>g.email!==who.email&&g.person).map((g:any)=>g.person)):a.person });
     }
     return trips;});
     timing.count("groupsReturned",trips.length);
