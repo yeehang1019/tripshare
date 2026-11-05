@@ -122,6 +122,23 @@ export default function ExpenseEditor({
             Close
           </button>
         </div>
+        <Tabs className="editor-entry-mode"
+          value={b.mode}
+          onValueChange={(v) => {
+            if (v === "itemized" || b.items.length === 1) {
+              const mode = v as "simple" | "itemized";
+              update({
+                mode,
+                items: b.items,
+              });
+            }
+          }}
+        >
+          <TabsList aria-label="Entry type">
+            <TabsTrigger value="simple" disabled={b.items.length>1} title={b.items.length>1?"Keep one item to use Quick entry.":undefined}>Quick entry</TabsTrigger>
+            <TabsTrigger value="itemized">Itemized bill</TabsTrigger>
+          </TabsList>
+        </Tabs>
         <div className="hero-amount"><Field label={b.mode==='simple'?`Amount (${b.currency})`:`Receipt total (${b.currency})`}><Amount primary value={b.mode==='simple'?b.items[0].amount:b.receipt} currency={b.currency} onChange={amount=>b.mode==='simple'?item(0,{amount:amount||0}):update({receipt:amount})}/></Field></div></div>
         {localStatus&&<p className="muted" role="status">{localStatus}</p>}
 
@@ -348,23 +365,7 @@ export default function ExpenseEditor({
           </button>
         )}
         <details className="advanced-options" open={undefined}>
-          <summary>More options <small>Currency, itemized split, advance payments and refunds</small></summary>        <Tabs
-          value={b.mode}
-          onValueChange={(v) => {
-            if (v === "itemized" || b.items.length === 1) {
-              const mode = v as "simple" | "itemized";
-              update({
-                mode,
-                items: b.items,
-              });
-            }
-          }}
-        >
-          <TabsList>
-            <TabsTrigger value="simple">Quick entry</TabsTrigger>
-            <TabsTrigger value="itemized">Itemized bill</TabsTrigger>
-          </TabsList>
-        </Tabs><div className="fields">          <Field label="Currency">
+          <summary>More options <small>Currency, advance payments and refunds</small></summary><div className="fields">          <Field label="Currency">
             <Pick
               label="Currency"
               value={b.currency}
