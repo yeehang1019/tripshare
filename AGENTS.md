@@ -90,3 +90,6 @@ Remove only MoneyHome's duplicate design-balance-hero. Retain independent owe/ow
 
 ## v119 sync and settlement clarity
 User explicitly confirmed Thailand identity YH. Update v1 consumption-export scope to the same confirmed-owner/legacy-grant identity resolver as v2, keeping signed cursor scope invalidation, authorization and consumed/payment date semantics unchanged. Do not activate payable import without preview confirmation. Settlement Everyone cards show payer → recipient in neutral color; only personal receivables/payables use green/red. Collapse recipient payout details, retain all actions and 44px checkbox targets. Only targeted direction/identity tests and affected UI checks.
+
+## v120 compact settlement
+One flat settlement list, no nested recipient/card surfaces. Row reveals payment/reminder/details; batch selection is opt-in. Keep visible total disclosure and put bill filters, recipient payout/copy and bulk actions in tools disclosure. Empty scopes have no empty filter bar. Preserve canonical totals, payment writes, permissions, and all existing operations. Fix receive amount inheritance, wrapping, row inset and avatar geometry. Only targeted settlement tests and phone/desktop visual checks.
