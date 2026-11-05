@@ -1,4 +1,5 @@
 "use client";
+import SettlementFocus from './settlement-focus';
 import {successFeedback,type SuccessKind} from '@/lib/ui-interactions';
 import ExpenseStream from './expense-stream';
 import ExpenseFilterBar from './expense-filter-bar';
@@ -218,7 +219,7 @@ export default function TripApp({ shared = false, authenticatedEmail = "", authe
   const [focusActivity,setFocusActivity]=useState("");
   const [expenseMine,setExpenseMine]=useState(false);
   const [selectedSettlement,setSelectedSettlement]=useState('');
-  const [settlementDirection,setSettlementDirection]=useState<'all'|'owe'|'owed'>('all');
+  const [settlementDirection,setSettlementDirection]=useState<'all'|'owe'|'owed'>('owe');
   const [focusExpense,setFocusExpense]=useState(''),[jumpEpoch,setJumpEpoch]=useState(0);
   const pendingJump=useRef<SearchHit|null>(null);
   const baselineBill=useRef<Expense|null>(null),sending=useRef(false);
@@ -655,7 +656,7 @@ setPlannerDirty(false);setTemplateDirty(false);
       ? sum.transfers.filter((transfer) => transfer.from === me || transfer.to === me)
       : sum.transfers
     : [];
-  const visibleTransfers=scopedTransfers.filter(t=>settlementDirection==='all'||settlementDirection==='owe'&&t.from===me||settlementDirection==='owed'&&t.to===me);
+  const visibleTransfers=scopedTransfers.filter(t=>settlementScope==='everyone'||!hasPersonalAccess||settlementDirection==='all'||settlementDirection==='owe'&&t.from===me||settlementDirection==='owed'&&t.to===me);
   const settlementReviews=(sum?.calculations||[]).filter(c=>(settlementScope==='everyone'||c.from===me||c.to===me)&&(c.unappliedForward||c.unappliedReverse));
   const visiblePayments = e
     ? e.payments.filter((p) => !isMember || p.from === me || p.to === me)
@@ -688,8 +689,8 @@ setPlannerDirty(false);setTemplateDirty(false);
     return totals;
   }, {}));
   const unselectedOwnerGroups = !shared ? records.filter(record=>record.owner&&!crossGroupBalances.some(group=>group.id===record.id)).length:0;
-  useEffect(()=>{setExpenseMine(false);setSettlementDirection('all');setSelectedSettlement('')},[rec?.id]);
-  useEffect(()=>{if(tab!=='Expenses')setExpenseMine(false);if(tab!=='Settlement'){setSelectedSettlement('');setSettlementDirection('all')}},[tab]);
+  useEffect(()=>{setExpenseMine(false);setSettlementDirection('owe');setSelectedSettlement('')},[rec?.id]);
+  useEffect(()=>{if(tab!=='Expenses')setExpenseMine(false);if(tab!=='Settlement'){setSelectedSettlement('');setSettlementDirection('owe')}},[tab]);
   const filtered =
     e?.expenses.filter(
       (b) =>
@@ -935,7 +936,7 @@ setPlannerDirty(false);setTemplateDirty(false);
                       </button>
                     </section>);}
   function navigate(next:string){
-    if(next==='Settlement')setSettlementDirection('all');
+    if(next==='Settlement'){setSettlementDirection('owe');setSettlementScope(hasPersonalAccess?'mine':'everyone')}
     if(!(space==='trip'||isTripSection(next)?allowedTrip(rec):allowedMoney(rec)).includes(next))return;
     const run=()=>{clearUnsavedInput();setFocusExpense('');setActivityFilter('');setFocusActivity('');setTab(next)};
     if(editing.current)setConfirm({title:'Leave unsaved input?',description:'Open editors will close. Expense and plan drafts remain recoverable on this browser.',run});else run();
@@ -1400,8 +1401,8 @@ setPlannerDirty(false);setTemplateDirty(false);
                         <p>In {e.name}</p><section className="stats personal-stats">
                           <button className="stat featured interactive-stat" onClick={()=>document.querySelector(".personal-activity")?.scrollIntoView({behavior:"smooth"})}><span><Receipt size={17}/> Total consumed</span><strong>{fmt(filtered.reduce((s,b)=>s+(billCalc(b).consumed[me]||0),0))}</strong><small>Open personal expense details →</small></button>
                           <button className="stat interactive-stat" onClick={()=>document.querySelector(".personal-activity")?.scrollIntoView({behavior:"smooth"})}><span><Wallet size={17}/> Actually paid</span><strong>{fmt(filtered.reduce((s,b)=>s+(billCalc(b).paid[me]||0),0))}</strong><small>Review expenses paid upfront →</small></button>
-                          <button className="stat interactive-stat" onClick={()=>{setSettlementDirection('all');setSettlementScope("mine");setTab("Settlement")}}><span><HandCoins size={17}/> You owe · this space</span><strong>{fmt(sum!.transfers.filter(t=>t.from===me).reduce((s,t)=>s+t.amount,0))}</strong><small>Open My Settlement →</small></button>
-                          <button className="stat interactive-stat" onClick={()=>{setSettlementDirection('all');setSettlementScope("mine");setTab("Settlement")}}><span><UserRound size={17}/> You're owed · this space</span><strong>{fmt(sum!.transfers.filter(t=>t.to===me).reduce((s,t)=>s+t.amount,0))}</strong><small>Open My Settlement →</small></button>
+                          <button className="stat interactive-stat" onClick={()=>{setSettlementDirection('owe');setSettlementScope("mine");setTab("Settlement")}}><span><HandCoins size={17}/> You owe · this space</span><strong>{fmt(sum!.transfers.filter(t=>t.from===me).reduce((s,t)=>s+t.amount,0))}</strong><small>Open My Settlement →</small></button>
+                          <button className="stat interactive-stat" onClick={()=>{setSettlementDirection('owed');setSettlementScope("mine");setTab("Settlement")}}><span><UserRound size={17}/> You're owed · this space</span><strong>{fmt(sum!.transfers.filter(t=>t.to===me).reduce((s,t)=>s+t.amount,0))}</strong><small>Open My Settlement →</small></button>
                         </section>
 <details className='focus-analytics'><summary>Spending insights · charts</summary><FocusSections label='Personal spending insights' sections={[{id:'insight-0',label:'Spending mix',render:()=> <div className='panel'><h2 className='card-title'><ChartPie size={20}/>My spending mix</h2>{donut(true)}</div>},{id:'insight-1',label:'Daily spending',render:()=> <div className='panel'><h2 className='card-title'><ChartColumn size={20}/>My daily spending</h2>{bars("date", true)}</div>},{id:'insight-2',label:'Top merchants',render:()=> <div className='panel'><h2 className='card-title'><Store size={20}/>My top merchants</h2>{bars("merchant", true)}</div>}]}/></details>
                       </>
@@ -1423,17 +1424,14 @@ setPlannerDirty(false);setTemplateDirty(false);
                     <div className="settlement-hero">
                       <div>
                         <p className="eyebrow">{settlementScope === "mine" ? "MY SETTLEMENT" : "Payments to settle"}</p>
-                        <h2>{visibleTransfers.length ? `${visibleTransfers.length} payment${visibleTransfers.length > 1 ? "s" : ""} remaining · ${fmt(visibleTransfers.reduce((total,p)=>total+p.amount,0))} left to settle` : settlementReviews.length ? "Check recorded payments" : settlementScope === "mine" ? `${name(me)} has nothing left to settle.` : "Everyone is settled."}</h2>
+                        <h2>{visibleTransfers.length ? `${visibleTransfers.length} payment${visibleTransfers.length > 1 ? "s" : ""} remaining · ${fmt(visibleTransfers.reduce((total,p)=>total+p.amount,0))} left to settle` : settlementReviews.length ? "Check recorded payments" : settlementScope === "mine" ? settlementDirection==='owe'?"You have no payments to make.":settlementDirection==='owed'?"No one owes you a payment.":`${name(me)} has nothing left to settle.` : "Everyone is settled."}</h2>
                         <p className={visibleTransfers.length?"settlement-summary-note":""}>{visibleTransfers.length ? "" : settlementReviews.length ? "Check the recorded payments below before paying again." : "Amounts update when expenses change."}</p>
                       </div>
 
                     </div>
-                    <div className="scope-switch" role="group" aria-label="Settlement view">
-                      {hasPersonalAccess && <button className={settlementScope === "mine" ? "active" : ""} onClick={()=>{setSettlementDirection('all');setSettlementScope("mine")}}><UserRound size={17}/> Mine</button>}
-                      {!isMember && <button className={settlementScope === "everyone" ? "active" : ""} onClick={()=>{setSettlementDirection('all');setSettlementScope("everyone")}}><UsersRound size={17}/> Everyone</button>}
-                    </div>
+                    <SettlementFocus scope={settlementScope} direction={settlementDirection} personal={hasPersonalAccess} member={isMember} onChange={(scope,direction)=>{setSettlementScope(scope);setSettlementDirection(direction);setSelectedSettlement('')}}/>
                     {sum!.calculations.some(c=>(settlementScope==='everyone'||c.from===me||c.to===me)&&(c.unappliedForward||c.unappliedReverse))&&<section className="panel"><h3>Payments to check</h3><p>A recorded payment no longer matches its original bill. It hasn't reduced a newer bill. Check it before paying again.</p>{sum!.calculations.filter(c=>(settlementScope==='everyone'||c.from===me||c.to===me)&&(c.unappliedForward||c.unappliedReverse)).map(c=><SettlementCalculation key={JSON.stringify([c.from,c.to])} calculation={c} currency={e.settlement}/>)}</section>}
-                    {settlementDirection!=='all'&&<p className="settlement-direction">{settlementDirection==='owe'?'You owe':"You're owed"}<button className="text-button" onClick={()=>setSettlementDirection('all')}>Show all</button></p>}<div className="settlement-layout">
+<div className="settlement-layout">
                     <div className="panel settlement-current">
                       <SettlementPayments person={settlementScope==='mine'?me:undefined} onSelect={t=>setSelectedSettlement(JSON.stringify([t.from,t.to]))} owner={rec.owner} key={rec.id+settlementScope} event={e} group={rec.id} revision={rec.revision} session={authenticatedSession} transfers={visibleTransfers} claims={sum!.claims} calculations={sum!.calculations} canRecord={can('settle')} disabled={busy} onRemind={(t,b)=>whatsapp(`${e.name}${b?' · '+b.title:''}\n${finalDueLines([t],name,fmt)}\nPlease check the shared event for the current balance.`)} onRefresh={async()=>{const ok=await load(true);return ok?groupMemory.current.get(rec.id)?.record||false:false}} payout={to=>!shared?<PayoutDetails group={rec.id} person={to} event={e} session={authenticatedSession} editable={to===rec.person}/>:null}/>
 

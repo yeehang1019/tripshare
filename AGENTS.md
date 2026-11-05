@@ -84,3 +84,6 @@ Validation: synthetic, memory-only component harness at 375x812 and 1280x800, Li
 
 ## v117 follow-up
 Entry type Quick entry / Itemized bill is always in the sticky form header, before Amount / Receipt total, rather than More options. Preserve the existing multi-item guard and visibly disable Quick entry when more than one item exists. Compact desktop header uses a mode/amount row. Page background, side rails, header/nav and main cards share neutral/purple glass surfaces; no new blur planes or animations. Test only changed form and page shell; no real data writes or ledger changes.
+
+## Approved first samples and settlement focus
+Remove only MoneyHome's duplicate design-balance-hero. Retain independent owe/owed cards and their existing directional actions. Add modest editor spacing without replacing the v117 glass layout. Default settlement to outgoing self payments; expose You owe / You're owed / Everyone as explicit filters, preserve all existing exports and details. No accounting/API/permission changes. Consumption-sync investigation: v1 entries still scopes to grants; v2 uses resolveSelfMember with confirmed owner preferences. Live account confirmation required before claiming root cause or performing real imports.
