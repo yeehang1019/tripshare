@@ -151,6 +151,8 @@ export function People({
   primaryPerson?: string;amounts?:Record<string,number>;currency?:string;quickLabels?:boolean;
 }) {
   const primary = people.find((p) => p.id === primaryPerson);
+  if(quickLabels)return <div className="consumers split-picker"><div className="split-shortcuts"><button type="button" className="text-button" onClick={()=>onChange(people.filter(p=>p.active).map(p=>p.id))}><Users size={15}/>Everyone</button><button type="button" className="text-button" onClick={()=>onChange([])}><X size={15}/>Clear all</button>{primary&&<button type="button" className="text-button" onClick={()=>onChange([primary.id])}><UserRound size={15}/>Just me</button>}</div><div className="people-chip-grid">{people.map(p=>{const checked=selected.includes(p.id);return <button type="button" role="checkbox" aria-checked={checked} aria-label={p.name+(amounts?' · '+money(amounts[p.id]||0,currency):'')} key={p.id} className={'person split-person'+(checked?' selected':'')} onClick={()=>onChange(checked?selected.filter(id=>id!==p.id):[...selected,p.id])}><span className="split-check" aria-hidden="true">{checked?'✓':''}</span><MemberAvatar id={p.id} name={p.name}/><span className="person-copy">{p.name}{amounts&&<small><AnimatedAmount value={money(amounts[p.id]||0,currency)}/></small>}{!p.active&&<small>Inactive</small>}</span></button>})}</div></div>;
+
   return (
     <div className="consumers">
       <button

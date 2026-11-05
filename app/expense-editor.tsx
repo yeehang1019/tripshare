@@ -29,6 +29,7 @@ import { UsersRound, Sparkles, ArrowRight, Utensils, Car, Ticket, ShoppingBag, S
 export default function ExpenseEditor({
   event: e,
   initial,
+  selfPerson,
   busy,
   onSave,
   onCancel,
@@ -41,6 +42,7 @@ export default function ExpenseEditor({
 }: {
   event: Event;
   initial: Expense;
+  selfPerson?:string;
   busy: boolean;
   onSave: (b: Expense) => Promise<boolean>;
   onCancel: () => void;
@@ -114,20 +116,23 @@ export default function ExpenseEditor({
   return (
     <div className="entry-grid" onKeyDownCapture={event=>{if(event.key==="Escape"&&!event.defaultPrevented&&!event.nativeEvent.isComposing){event.preventDefault();event.stopPropagation();onCancel()}}}>
       <SheetDragHandle onClose={onCancel}/><div className="editor-content-grid"><section className={`panel expense-editor ${b.mode}`}>
-        <div className="section-title">
+        <div className="editor-form-header"><div className="section-title">
           <h2>{edit ? "Edit expense" : "Add expense"}</h2>
           <button className="text-button" onClick={onCancel}>
             Close
           </button>
         </div>
-        <div className="hero-amount"><Field label={b.mode==='simple'?`Amount (${b.currency})`:`Receipt total (${b.currency})`}><Amount primary value={b.mode==='simple'?b.items[0].amount:b.receipt} currency={b.currency} onChange={amount=>b.mode==='simple'?item(0,{amount:amount||0}):update({receipt:amount})}/></Field></div>
+        <div className="hero-amount"><Field label={b.mode==='simple'?`Amount (${b.currency})`:`Receipt total (${b.currency})`}><Amount primary value={b.mode==='simple'?b.items[0].amount:b.receipt} currency={b.currency} onChange={amount=>b.mode==='simple'?item(0,{amount:amount||0}):update({receipt:amount})}/></Field></div></div>
         {localStatus&&<p className="muted" role="status">{localStatus}</p>}
 
+        <details className="editor-quick-picks"><summary>Quick picks</summary>        {quickPicks}
+        {!edit&&onPreset&&<div className="checks expense-presets">{[['Toll','Transport'],['Petrol','Transport'],['Ticket','Activity'],['Meal','Food']].map(([name,category])=><button type="button" className="secondary" key={name} onClick={()=>{const next=blankExpense(e,b.payers[0]?.person||'');next.merchant=name;next.category=category;onPreset(next)}}>{name}</button>)}{e.expenses.some(x=>!x.deleted)&&<button type="button" className="secondary" onClick={()=>onPreset(repeatExpense(e.expenses.filter(x=>!x.deleted).at(-1)!))}>Repeat last</button>}</div>}
+</details>
         <div className="entry-step-heading">
           <span>1</span>
           <div><b>Expense details</b><small>What was paid, and when?</small></div>
         </div>
-        <div className="fields">
+        <div className="fields expense-details-fields">
 
           <Field label="What was it for?" error={!b.merchant.trim()&&JSON.stringify(b)!==JSON.stringify(initial)?"Enter an expense name.":undefined}>
             <input
@@ -155,6 +160,13 @@ export default function ExpenseEditor({
               }}
             />
           </Field>
+          <Field label="Date" error={!b.date?"Choose a valid date.":undefined}>
+            <input
+              type="date"
+              value={b.date}
+              onChange={(v) => update({ date: v.target.value })}
+            />
+          </Field>
           <Field label={b.supplierPayments?"Default payer for new business payments":b.paymentStatus === 'postpaid' ? "Will be paid by" : "Paid by"}>
             <div className="payer-avatar-row" aria-label="Who paid?">{e.people.map(p=><button type="button" className="payer-chip secondary" key={p.id} aria-pressed={b.payers[0]?.person===p.id} onClick={()=>update({payers:b.payers.map((payer,i)=>i===0?{...payer,person:p.id}:payer)})}><MemberAvatar id={p.id} name={p.name}/><span>{p.name}</span></button>)}</div>
             <span className="payer-select-alternative"><Pick
@@ -169,13 +181,6 @@ export default function ExpenseEditor({
                 })
               }
             /></span>
-          </Field>
-          <Field label="Date" error={!b.date?"Choose a valid date.":undefined}>
-            <input
-              type="date"
-              value={b.date}
-              onChange={(v) => update({ date: v.target.value })}
-            />
           </Field>
         </div>
         <section className="editor-category-section"><h3>Category</h3><div className="editor-category-chips" role="group" aria-label="Expense category">{categories.map(category=>{const Icon=({Food:Utensils,Transport:Car,Activity:Ticket,Shopping:ShoppingBag,Grocery:ShoppingBasket,Accommodation:BedDouble} as Record<string,typeof Receipt>)[category]||Receipt;return <button type="button" className="secondary" key={category} aria-pressed={b.category===category} onClick={()=>update({category})}><Icon size={20}/><span>{category}</span></button>})}</div></section>
@@ -204,7 +209,7 @@ export default function ExpenseEditor({
               quickLabels amounts={b.mode==='simple'?c?.consumed:c?Object.fromEntries((c.lines[i]?.people||[]).map((id,j)=>[id,c!.lines[i].values[j]])):undefined} currency={b.mode==='simple'?e.settlement:b.currency}
               people={e.people}
               selected={it.people}
-              primaryPerson={b.payers[0]?.person}
+              primaryPerson={selfPerson}
               onChange={(people) => setPeople(i, people)}
             />
             <div className="checks">
@@ -342,21 +347,15 @@ export default function ExpenseEditor({
             + Add item
           </button>
         )}
-        {quickPicks}
-        {!edit&&onPreset&&<div className="checks expense-presets">{[['Toll','Transport'],['Petrol','Transport'],['Ticket','Activity'],['Meal','Food']].map(([name,category])=><button type="button" className="secondary" key={name} onClick={()=>{const next=blankExpense(e,b.payers[0]?.person||'');next.merchant=name;next.category=category;onPreset(next)}}>{name}</button>)}{e.expenses.some(x=>!x.deleted)&&<button type="button" className="secondary" onClick={()=>onPreset(repeatExpense(e.expenses.filter(x=>!x.deleted).at(-1)!))}>Repeat last</button>}</div>}
         <details className="advanced-options" open={undefined}>
           <summary>More options <small>Currency, itemized split, advance payments and refunds</small></summary>        <Tabs
           value={b.mode}
           onValueChange={(v) => {
             if (v === "itemized" || b.items.length === 1) {
-              const mode = v as "simple" | "itemized",
-                first = b.items[0];
+              const mode = v as "simple" | "itemized";
               update({
                 mode,
-                items:
-                  mode === "itemized" && first.people.length > 1
-                    ? [{ ...first, people: [b.payers[0].person], weights: [1] }]
-                    : b.items,
+                items: b.items,
               });
             }
           }}
