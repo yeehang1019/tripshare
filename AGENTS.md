@@ -93,3 +93,6 @@ User explicitly confirmed Thailand identity YH. Update v1 consumption-export sco
 
 ## v120 compact settlement
 One flat settlement list, no nested recipient/card surfaces. Row reveals payment/reminder/details; batch selection is opt-in. Keep visible total disclosure and put bill filters, recipient payout/copy and bulk actions in tools disclosure. Empty scopes have no empty filter bar. Preserve canonical totals, payment writes, permissions, and all existing operations. Fix receive amount inheritance, wrapping, row inset and avatar geometry. Only targeted settlement tests and phone/desktop visual checks.
+
+## v121 batch visibility and single options rail
+Owner default Everyone; preserve personal member scope and server permissions. Always-visible Select payments toolbar reveals checkboxes and Record selected count/amount plus Select all. One Settlement options panel consolidates bill filter, recipient payout/copy, WhatsApp, export and cross-space totals. Desktop portal uses existing context rail, mobile stays in normal flow. Remove duplicate self payout entry and the second tool panel. QA verified selecting two pairs opens a two-payment draft for RM60 without submitting; 375/1280 Light/Dark overflow and click-size checks pass. No financial writes or algorithm changes.
