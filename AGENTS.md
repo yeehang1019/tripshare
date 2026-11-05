@@ -87,3 +87,6 @@ Entry type Quick entry / Itemized bill is always in the sticky form header, befo
 
 ## Approved first samples and settlement focus
 Remove only MoneyHome's duplicate design-balance-hero. Retain independent owe/owed cards and their existing directional actions. Add modest editor spacing without replacing the v117 glass layout. Default settlement to outgoing self payments; expose You owe / You're owed / Everyone as explicit filters, preserve all existing exports and details. No accounting/API/permission changes. Consumption-sync investigation: v1 entries still scopes to grants; v2 uses resolveSelfMember with confirmed owner preferences. Live account confirmation required before claiming root cause or performing real imports.
+
+## v119 sync and settlement clarity
+User explicitly confirmed Thailand identity YH. Update v1 consumption-export scope to the same confirmed-owner/legacy-grant identity resolver as v2, keeping signed cursor scope invalidation, authorization and consumed/payment date semantics unchanged. Do not activate payable import without preview confirmation. Settlement Everyone cards show payer → recipient in neutral color; only personal receivables/payables use green/red. Collapse recipient payout details, retain all actions and 44px checkbox targets. Only targeted direction/identity tests and affected UI checks.

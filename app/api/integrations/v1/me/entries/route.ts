@@ -1,3 +1,4 @@
+import {resolveSelfMember} from '@/lib/self-member';
 import {timedJSON} from '@/lib/response-metrics';
 import {env} from 'cloudflare:workers';
 import {database} from '@/db/raw';
@@ -75,10 +76,11 @@ export async function GET(request:Request){
     const url=new URL(request.url),limitRaw=url.searchParams.get('limit')||'50';
     if(!/^\d+$/.test(limitRaw)||Number(limitRaw)<1||Number(limitRaw)>100)return reply({error:'invalid_limit'},400);
     const size=Number(limitRaw);
-    const rows=await db.prepare('SELECT t.id,t.data,g.person FROM grants g JOIN trips t ON t.id=g.trip WHERE g.email=? AND g.person<>? ORDER BY t.id').bind(email,'').all();
+    const rows=await db.prepare(`SELECT t.id,t.data,t.owner_email,g.person,(SELECT json_group_array(person) FROM grants WHERE trip=t.id AND email<>?) AS other_people,(SELECT data FROM personal_workspace WHERE email=?) AS preferences FROM trips t LEFT JOIN grants g ON g.trip=t.id AND g.email=? WHERE t.owner_email=? OR g.person<>'' ORDER BY t.id`).bind(email,email,email,email).all();
     const scopes=(rows.results as any[]).flatMap(row=>{
       const data=normalize(JSON.parse(row.data));
-      return data.people.some(p=>p.id===row.person)?[{id:row.id,person:row.person,data}]:[];
+      const person=resolveSelfMember(data.people,row.person||'',row.owner_email===email?JSON.parse(row.preferences||'{}').selfMembers||{}:{},row.id,JSON.parse(row.other_people||'[]'));
+      return person?[{id:row.id,person,data}]:[];
     }) as Scope[];
     const scope=await signature(scopes.map(s=>s.id+'\u0000'+s.person).join('\u0001')+'\u0002'+email,config.POCKET_SYNC_TOKEN);
     const raw=url.searchParams.get('cursor');
