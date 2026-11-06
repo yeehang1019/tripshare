@@ -1,5 +1,5 @@
 'use client';
-import {ListFilter,Wallet} from 'lucide-react';
+import {ListFilter,Wallet,ChevronLeft,ChevronRight} from 'lucide-react';
 import AnimatedAmount from './animated-amount';
 import {createPortal} from 'react-dom';
 import SwipeReveal from './swipe-reveal';
@@ -27,6 +27,7 @@ export default function SettlementPayments({event:e,group,revision,session,perso
  const [desktop,setDesktop]=useState(false);
  const [toolsTarget,setToolsTarget]=useState<HTMLElement|null>(null);useEffect(()=>{const media=matchMedia('(min-width:1024px)'),sync=()=>{setDesktop(media.matches);setToolsTarget(media.matches?document.getElementById('settlement-tools-slot'):null)};sync();media.addEventListener('change',sync);return()=>media.removeEventListener('change',sync)},[]);
  const [batchMode,setBatchMode]=useState(false);
+ const [activePayment,setActivePayment]=useState('');
  const [expanded,setExpanded]=useState(''),[undoVisible,setUndoVisible]=useState(false),[receiptOpen,setReceiptOpen]=useState(false);useEffect(()=>{if(!undoVisible)return;const timer=setTimeout(()=>setUndoVisible(false),5000);return()=>clearTimeout(timer)},[undoVisible]);
  const [filter,setFilter]=useState(''),[selected,setSelected]=useState<string[]>([]),[draft,setDraft]=useState<Draft|null>(null),[receipt,setReceipt]=useState<Receipt|null>(null),[error,setError]=useState(''),[working,setWorking]=useState(false),[uncertain,setUncertain]=useState(false),[needsReview,setNeedsReview]=useState(false),[copyText,setCopyText]=useState('');
  const lock=useRef(false),frozen=useRef<{action:string;entity:any;revision:number}|null>(null),scroll=useRef(0);
@@ -45,7 +46,7 @@ export default function SettlementPayments({event:e,group,revision,session,perso
  function open(rows:Transfer[]){
   if(disabled)return;
   if(!rows.length||rows.length>100){setError('Select 1–100 payments.');return}
-  scroll.current=window.scrollY;setUndoVisible(false);setError('');setNeedsReview(false);setReceipt(null);setUncertain(false);frozen.current=null;
+  setActivePayment('');scroll.current=window.scrollY;setUndoVisible(false);setError('');setNeedsReview(false);setReceipt(null);setUncertain(false);frozen.current=null;
   setDraft({revision,batch:{id:paymentId(),payments:rows.map(t=>{const options=choices(t);return {id:paymentId(),from:t.from,to:t.to,amount:options.reduce((n,b)=>n+b.amount,0),expenseIds:options.map(b=>b.id),date:today(),note:''}})}});
  }
  function update(id:string,patch:Partial<PaymentBatch['payments'][number]>){if(uncertain||working)return;setDraft(d=>d?{...d,batch:{...d.batch,payments:d.batch.payments.map(p=>p.id===id?{...p,...patch}:p)}}:d)}
@@ -83,6 +84,8 @@ export default function SettlementPayments({event:e,group,revision,session,perso
   finally{lock.current=false;setWorking(false)}
  }
  const invalid=!!draft&&(!draft.batch.payments.length||draft.batch.payments.some(p=>{const available=(sources.get(pairKey(p))||[]).filter(b=>p.expenseIds.includes(b.id)).reduce((n,b)=>n+b.amount,0);return !p.expenseIds.length||!Number.isSafeInteger(p.amount)||p.amount<=0||p.amount>available||!p.date}));
+ const activeIndex=draft?Math.max(0,draft.batch.payments.findIndex(p=>p.id===activePayment)):0;
+ const multi=!!draft&&draft.batch.payments.length>1;
  const toolPanel=<details className="settlement-options ios-settlement-options" open={toolsTarget?true:undefined}><summary>Settlement options</summary><div className="settlement-option-rows">{transfers.length>0&&<div className="settlement-option-filter"><ListFilter size={20}/><Field label="Bill filter"><select value={filter} onChange={v=>{setFilter(v.target.value);setSelected([])}}><option value="">All unpaid bills</option>{bills.map(b=><option key={b.id} value={b.id}>{b.title} · {b.date.split('-').reverse().join('/')}</option>)}</select></Field></div>}{recipients.map(to=><details className="payment-payout-details" key={to}><summary><Wallet size={20}/><span>{to===selfPerson?"Your payment details":"Payment details for "+name(to)}</span></summary>{payout(to)}<button className="text-button" onClick={()=>copy(to)}>Copy payment list</button></details>)}{tools}</div></details>;
  return <div className="settlement-compact-list">
  {canRecord&&transfers.length>0&&<div className="settlement-selection-toolbar"><button className="secondary" onClick={()=>{setBatchMode(v=>!v);setSelected([])}}>{batchMode?'Done selecting':'Select payments'}</button>{batchMode&&<><button className="text-button" onClick={()=>setSelected(visible.map(pairKey))}>Select all</button><button className="primary" disabled={disabled||!chosen.length||chosen.length>100} onClick={()=>open(chosen)}>Record selected · {chosen.length}{chosen.length?' · '+fmt(total):''}</button></>}</div>}
@@ -103,12 +106,14 @@ export default function SettlementPayments({event:e,group,revision,session,perso
   {visible.length>0&&<details className="settlement-summary-details"><summary>Total still to pay · {fmt(visible.reduce((n,t)=>n+(filter?selectedFinalDue(t,choices(t)):t.amount),0))}</summary><section className="settlement-totals" aria-label="Total settlement"><h3>Total settlement</h3><p className="muted">{person?'Your payments':'Everyone'}{filter?' · Selected bill':''}</p><dl>{visible.map(t=><div key={pairKey(t)}><dt>{name(t.from)} → {name(t.to)}</dt><dd>{fmt(filter?selectedFinalDue(t,choices(t)):t.amount)}</dd></div>)}</dl><div className="settlement-grand-total"><strong>Total still to pay</strong><strong>{fmt(visible.reduce((n,t)=>n+(filter?selectedFinalDue(t,choices(t)):t.amount),0))}</strong></div></section></details>}
   {!visible.length&&<p>You have nothing left to pay for these bills.</p>}
   {toolsTarget?createPortal(toolPanel,toolsTarget):toolPanel}
-  {(draft||receipt&&receiptOpen)&&<Dialog open onOpenChange={v=>{if(!v)close()}}><DialogContent className="settlement-record-dialog" onCloseAutoFocus={v=>v.preventDefault()} onInteractOutside={v=>v.preventDefault()} onEscapeKeyDown={v=>{if(working||uncertain)v.preventDefault()}} showCloseButton={!working&&!uncertain}>
-   <header><DialogTitle>{receipt?(receipt.undone?"Payments undone.":"Payments recorded."):'Record payments'}</DialogTitle><DialogDescription className="sr-only">{receipt?"Each payment stays in history.":"Review selected bills and payment amounts."}</DialogDescription></header>
+  {(draft||receipt&&receiptOpen)&&<Dialog open onOpenChange={v=>{if(!v)close()}}><DialogContent className={"settlement-record-dialog payment-refined "+(multi?"payment-batch":"payment-single")} onCloseAutoFocus={v=>v.preventDefault()} onInteractOutside={v=>v.preventDefault()} onEscapeKeyDown={v=>{if(working||uncertain)v.preventDefault()}} showCloseButton={!working&&!uncertain}>
+   <header><DialogTitle>{receipt?(receipt.undone?"Payments undone.":"Payments recorded."):(multi?'Record payments':'Record payment')}</DialogTitle><DialogDescription className="sr-only">{receipt?"Each payment stays in history.":"Review selected bills and payment amounts."}</DialogDescription></header>
    {error&&<p role="alert" className="message error"><CopyError value={error}/></p>}
    {needsReview&&!uncertain&&<p role="alert">The space changed. <button className="secondary" disabled={working} onClick={review}>Review latest amounts</button></p>}
    <div className="settlement-record-body">
-   {draft&&draft.batch.payments.map(p=>{const options=sources.get(pairKey(p))||[],available=options.filter(b=>p.expenseIds.includes(b.id)).reduce((n,b)=>n+b.amount,0);return <fieldset className="payment-review-group" key={p.id} disabled={working||uncertain||needsReview}><legend>{name(p.from)} → {name(p.to)}</legend>
+   {multi&&draft&&<nav className="payment-group-nav" aria-label="Selected payments"><div className="payment-group-mobile"><button type="button" aria-label="Previous payment" disabled={activeIndex===0} onClick={()=>setActivePayment(draft.batch.payments[activeIndex-1].id)}><ChevronLeft size={18}/></button><span>{name(draft.batch.payments[activeIndex].from)} → {name(draft.batch.payments[activeIndex].to)}<small>{activeIndex+1} of {draft.batch.payments.length}</small></span><button type="button" aria-label="Next payment" disabled={activeIndex===draft.batch.payments.length-1} onClick={()=>setActivePayment(draft.batch.payments[activeIndex+1].id)}><ChevronRight size={18}/></button></div><div className="payment-group-desktop">{draft.batch.payments.map((p,i)=><button type="button" key={p.id} aria-pressed={i===activeIndex} onClick={()=>setActivePayment(p.id)}><span>{name(p.from)} → {name(p.to)}</span><b>{fmt(p.amount)}</b>{(!p.expenseIds.length||p.amount<=0)&&<small>Check selection</small>}</button>)}</div></nav>}
+   <div className="payment-active-review">
+   {draft&&draft.batch.payments.filter((_,i)=>i===activeIndex).map(p=>{const options=sources.get(pairKey(p))||[],available=options.filter(b=>p.expenseIds.includes(b.id)).reduce((n,b)=>n+b.amount,0);return <fieldset className="payment-review-group" key={p.id} disabled={working||uncertain||needsReview}><legend>{name(p.from)} → {name(p.to)}</legend>
     <div className="payment-review-layout"><div className="payment-review-amount">
      <Field label={'Amount · '+e.settlement} error={p.amount<=0?"Enter an amount above 0.":p.amount>available?`This is more than you owe ${name(p.to)} (${fmt(available)}).`:undefined}><Amount value={p.amount} currency={e.settlement} onChange={amount=>update(p.id,{amount:amount||0})}/></Field>
      <Field label="Date"><input type="date" value={p.date} onChange={v=>update(p.id,{date:v.target.value})}/></Field>
@@ -119,8 +124,8 @@ export default function SettlementPayments({event:e,group,revision,session,perso
     {(!p.expenseIds.length||p.amount<=0||p.amount>available||!p.date)&&<p role="alert">{!options.length?"These two people have no unpaid bills left. Remove them from the selection.":!p.expenseIds.length?'Select at least one unpaid bill.':!p.date?'Choose the payment date.':p.amount<=0?'Enter an amount above 0.':'This is more than you owe '+name(p.to)+' ('+fmt(available)+').'}</p>}
    </fieldset>})}
    {receipt&&<div role="status"><h3>{receipt.payments.length} payment{receipt.payments.length>1?'s':''} · {fmt(receipt.payments.reduce((n,p)=>n+p.amount,0))} {receipt.undone?'reversed':'recorded'}</h3>{receipt.payments.map(p=><div className="split-row" key={p.id}><span>{name(p.from)} → {name(p.to)}</span><b>{fmt(p.amount)} · {receipt.undone?'Reversed':'Saved'}</b></div>)}</div>}
-   </div>
-   <footer>{uncertain?<button className="primary" disabled={working} onClick={()=>submit()}>{working?'Checking…':"Check payment"}</button>:draft?<><strong>{draft.batch.payments.length} payment{draft.batch.payments.length===1?'':'s'} · {fmt(draft.batch.payments.reduce((n,p)=>n+p.amount,0))}</strong><button className="primary" disabled={working||invalid||needsReview} onClick={()=>submit()}>{working?'Recording…':'Confirm payments'}</button></>:receipt&&!receipt.undone&&<button className="secondary" disabled={working||needsReview} onClick={()=>submit('undoPaymentBatch')}>{working?'Reversing…':'Undo these payments'}</button>}<button className="secondary" disabled={working||uncertain} onClick={close}>{receipt?'Done':'Cancel'}</button></footer>
+   </div></div>
+   <footer>{uncertain?<button className="primary" disabled={working} onClick={()=>submit()}>{working?'Checking…':"Check payment"}</button>:draft?<><strong>{draft.batch.payments.length} payment{draft.batch.payments.length===1?'':'s'} · {fmt(draft.batch.payments.reduce((n,p)=>n+p.amount,0))}</strong><button className="primary" disabled={working||invalid||needsReview} onClick={()=>submit()}>{working?'Recording…':multi?'Confirm payments':'Confirm payment'}</button></>:receipt&&!receipt.undone&&<button className="secondary" disabled={working||needsReview} onClick={()=>submit('undoPaymentBatch')}>{working?'Reversing…':'Undo these payments'}</button>}<button className="secondary" disabled={working||uncertain} onClick={close}>{receipt?'Done':'Cancel'}</button></footer>
   </DialogContent></Dialog>}
  </div>;
 }

@@ -1,5 +1,4 @@
 "use client";
-import SettlementFocus from './settlement-focus';
 import {successFeedback,type SuccessKind} from '@/lib/ui-interactions';
 import ExpenseStream from './expense-stream';
 import ExpenseFilterBar from './expense-filter-bar';
@@ -219,7 +218,7 @@ export default function TripApp({ shared = false, authenticatedEmail = "", authe
   const [focusActivity,setFocusActivity]=useState("");
   const [expenseMine,setExpenseMine]=useState(false);
   const [selectedSettlement,setSelectedSettlement]=useState('');
-  const [settlementDirection,setSettlementDirection]=useState<'all'|'owe'|'owed'>('owe');
+  const [settlementDirection,setSettlementDirection]=useState<'all'|'owe'|'owed'>('all');
   const [focusExpense,setFocusExpense]=useState(''),[jumpEpoch,setJumpEpoch]=useState(0);
   const pendingJump=useRef<SearchHit|null>(null);
   const baselineBill=useRef<Expense|null>(null),sending=useRef(false);
@@ -689,8 +688,8 @@ setPlannerDirty(false);setTemplateDirty(false);
     return totals;
   }, {}));
   const unselectedOwnerGroups = !shared ? records.filter(record=>record.owner&&!crossGroupBalances.some(group=>group.id===record.id)).length:0;
-  useEffect(()=>{setExpenseMine(false);setSettlementDirection('owe');setSelectedSettlement('')},[rec?.id]);
-  useEffect(()=>{if(tab!=='Expenses')setExpenseMine(false);if(tab!=='Settlement'){setSelectedSettlement('');setSettlementDirection('owe')}},[tab]);
+  useEffect(()=>{setExpenseMine(false);setSettlementDirection('all');setSelectedSettlement('')},[rec?.id]);
+  useEffect(()=>{if(tab!=='Expenses')setExpenseMine(false);if(tab!=='Settlement'){setSelectedSettlement('');setSettlementDirection('all')}},[tab]);
   const filtered =
     e?.expenses.filter(
       (b) =>
@@ -936,7 +935,7 @@ setPlannerDirty(false);setTemplateDirty(false);
                       </button>
                     </section>);}
   function navigate(next:string){
-    if(next==='Settlement'){setSettlementDirection('owe');setSettlementScope(isMember?'mine':'everyone')}
+    if(next==='Settlement'){setSettlementDirection('all');setSettlementScope(isMember?'mine':'everyone')}
     if(!(space==='trip'||isTripSection(next)?allowedTrip(rec):allowedMoney(rec)).includes(next))return;
     const run=()=>{clearUnsavedInput();setFocusExpense('');setActivityFilter('');setFocusActivity('');setTab(next)};
     if(editing.current)setConfirm({title:'Leave unsaved input?',description:'Open editors will close. Expense and plan drafts remain recoverable on this browser.',run});else run();
@@ -1370,7 +1369,7 @@ setPlannerDirty(false);setTemplateDirty(false);
             )}
             {e && !creating && !settings && (
               <>
-                {tab === "Dashboard" && canViewGroup && <MoneyHome key={rec.id} onSettle={direction=>{navigate('Settlement');setSettlementDirection(direction);setSettlementScope('mine')}} trips={records.filter(r=>!r.directoryOnly&&r.data.kind==='trip').map(r=>({id:r.id,name:r.data.name,start:r.data.start}))} onTrip={id=>{selectSpace('trip');choose(id)}} event={e} person={hasPersonalAccess?me:undefined} onNavigate={navigate} onExpense={expense=>{setFocusExpense(expense);navigate('Expenses')}} charts={homeCharts()}/>}
+                {tab === "Dashboard" && canViewGroup && <MoneyHome key={rec.id} onSettle={direction=>{navigate('Settlement');setSettlementDirection('all');setSettlementScope(isMember?'mine':'everyone')}} trips={records.filter(r=>!r.directoryOnly&&r.data.kind==='trip').map(r=>({id:r.id,name:r.data.name,start:r.data.start}))} onTrip={id=>{selectSpace('trip');choose(id)}} event={e} person={hasPersonalAccess?me:undefined} onNavigate={navigate} onExpense={expense=>{setFocusExpense(expense);navigate('Expenses')}} charts={homeCharts()}/>}
                 {tab==='Dashboard'&&canViewGroup&&e.kind==='trip'&&<SpaceBridge event={e} space="money" onOpen={()=>switchSpace('trip')}/>}
                 {tab==='Dashboard'&&canViewGroup&&e.kind==='trip'&&<details className="money-funding-summary"><summary>Trip funding · linked plan estimates</summary><TravelFunding event={e}/></details>}
                 {bill && (
@@ -1401,8 +1400,8 @@ setPlannerDirty(false);setTemplateDirty(false);
                         <p>In {e.name}</p><section className="stats personal-stats">
                           <button className="stat featured interactive-stat" onClick={()=>document.querySelector(".personal-activity")?.scrollIntoView({behavior:"smooth"})}><span><Receipt size={17}/> Total consumed</span><strong>{fmt(filtered.reduce((s,b)=>s+(billCalc(b).consumed[me]||0),0))}</strong><small>Open personal expense details →</small></button>
                           <button className="stat interactive-stat" onClick={()=>document.querySelector(".personal-activity")?.scrollIntoView({behavior:"smooth"})}><span><Wallet size={17}/> Actually paid</span><strong>{fmt(filtered.reduce((s,b)=>s+(billCalc(b).paid[me]||0),0))}</strong><small>Review expenses paid upfront →</small></button>
-                          <button className="stat interactive-stat" onClick={()=>{setSettlementDirection('owe');setSettlementScope("mine");setTab("Settlement")}}><span><HandCoins size={17}/> You owe · this space</span><strong>{fmt(sum!.transfers.filter(t=>t.from===me).reduce((s,t)=>s+t.amount,0))}</strong><small>Open My Settlement →</small></button>
-                          <button className="stat interactive-stat" onClick={()=>{setSettlementDirection('owed');setSettlementScope("mine");setTab("Settlement")}}><span><UserRound size={17}/> You're owed · this space</span><strong>{fmt(sum!.transfers.filter(t=>t.to===me).reduce((s,t)=>s+t.amount,0))}</strong><small>Open My Settlement →</small></button>
+                          <button className="stat interactive-stat" onClick={()=>{setSettlementDirection('all');setSettlementScope(isMember?'mine':'everyone');setTab("Settlement")}}><span><HandCoins size={17}/> You owe · this space</span><strong>{fmt(sum!.transfers.filter(t=>t.from===me).reduce((s,t)=>s+t.amount,0))}</strong><small>Open My Settlement →</small></button>
+                          <button className="stat interactive-stat" onClick={()=>{setSettlementDirection('all');setSettlementScope(isMember?'mine':'everyone');setTab("Settlement")}}><span><UserRound size={17}/> You're owed · this space</span><strong>{fmt(sum!.transfers.filter(t=>t.to===me).reduce((s,t)=>s+t.amount,0))}</strong><small>Open My Settlement →</small></button>
                         </section>
 <details className='focus-analytics'><summary>Spending insights · charts</summary><FocusSections label='Personal spending insights' sections={[{id:'insight-0',label:'Spending mix',render:()=> <div className='panel'><h2 className='card-title'><ChartPie size={20}/>My spending mix</h2>{donut(true)}</div>},{id:'insight-1',label:'Daily spending',render:()=> <div className='panel'><h2 className='card-title'><ChartColumn size={20}/>My daily spending</h2>{bars("date", true)}</div>},{id:'insight-2',label:'Top merchants',render:()=> <div className='panel'><h2 className='card-title'><Store size={20}/>My top merchants</h2>{bars("merchant", true)}</div>}]}/></details>
                       </>
@@ -1429,7 +1428,7 @@ setPlannerDirty(false);setTemplateDirty(false);
                       </div>
 
                     </div>
-                    <SettlementFocus scope={settlementScope} direction={settlementDirection} personal={hasPersonalAccess} member={isMember} onChange={(scope,direction)=>{setSettlementScope(scope);setSettlementDirection(direction);setSelectedSettlement('')}}/>
+                    {!isMember&&<p className="settlement-everyone-label">Everyone</p>}
                     {sum!.calculations.some(c=>(settlementScope==='everyone'||c.from===me||c.to===me)&&(c.unappliedForward||c.unappliedReverse))&&<section className="panel"><h3>Payments to check</h3><p>A recorded payment no longer matches its original bill. It hasn't reduced a newer bill. Check it before paying again.</p>{sum!.calculations.filter(c=>(settlementScope==='everyone'||c.from===me||c.to===me)&&(c.unappliedForward||c.unappliedReverse)).map(c=><SettlementCalculation key={JSON.stringify([c.from,c.to])} calculation={c} currency={e.settlement}/>)}</section>}
 <div className="settlement-layout">
                     <div className="panel settlement-current">
@@ -1438,13 +1437,12 @@ setPlannerDirty(false);setTemplateDirty(false);
                     
                     {(rec.owner||can('export'))&&<SettlementExport event={e} transfers={visibleTransfers} reviewPairs={sum!.calculations} person={settlementScope==="mine"?me:undefined}/>}
                     {!shared && <details className="panel cross-group-summary cross-group-compact" aria-label="Payments across Trip and Money" onToggle={event=>{if(event.currentTarget.open&&!allGroupsLoaded)loadAcrossGroups()}}>
-                      <summary><Wallet size={16}/><b>Across all spaces</b>{!allGroupsLoaded&&<span>Open to load totals</span>}{allGroupsLoaded&&<small>{crossGroupBalances.length} spaces</small>}{allGroupsLoaded&&unselectedOwnerGroups>0&&<small>{unselectedOwnerGroups} not included</small>}{allGroupsLoaded&&crossGroupTotals.map(([currency,total])=><span key={currency}>{currency} · Pay {money(total.pay,currency)} · Receive {money(total.receive,currency)}</span>)}</summary>
+                      <summary><Wallet size={18}/><b>Across all spaces</b>{!allGroupsLoaded&&<span>Open to load totals</span>}{allGroupsLoaded&&<small>{crossGroupBalances.length} spaces</small>}</summary>
                       {!allGroupsLoaded?<p><button className="secondary" disabled={allGroupsBusy} onClick={loadAcrossGroups}>{allGroupsBusy?'Loading totals…':'Load totals'}</button></p>:crossGroupTotals.length ? <>
-                        <div className="cross-group-totals">{crossGroupTotals.map(([currency, total]) => <div key={currency} className="cross-group-total"><span>{currency} · Total to pay</span><strong>{money(total.pay, currency)}</strong><small>To receive: {money(total.receive, currency)}</small></div>)}</div>
-                        <div className="cross-group-list">{crossGroupBalances.map((group) => <button key={group.id} className="cross-group-row" onClick={() => { if (group.id !== rec.id) choose(group.id); else document.querySelector(".settlement-current")?.scrollIntoView({ behavior: "smooth" }); }}><span><b>{group.name}</b><small>{group.kind === "daily" ? "Money" : "Trip"} · {group.member}</small></span><span>Pay {money(group.pay, group.currency)}<small>Receive {money(group.receive, group.currency)}</small></span></button>)}</div>
+                        <div className="cross-space-currencies">{crossGroupTotals.map(([currency,total])=><div className="cross-space-currency" key={currency}><b>{currency}</b><dl><div><dt>Pay</dt><dd>{money(total.pay,currency)}</dd></div><div><dt>Receive</dt><dd>{money(total.receive,currency)}</dd></div></dl></div>)}</div>
+                        <div className="cross-space-rows">{crossGroupBalances.map(group=><button className="cross-space-row" key={group.id} onClick={()=>{if(group.id!==rec.id)choose(group.id);else document.querySelector('.settlement-current')?.scrollIntoView({behavior:'smooth'})}}><span><b>{group.name}</b><small>{group.kind==='daily'?'Money':'Trip'} · {group.member}</small></span><span><small>Pay <b>{money(group.pay,group.currency)}</b></small><small>Receive <b>{money(group.receive,group.currency)}</b></small></span></button>)}</div>
                       </> : <p className="muted">Choose your name in each Trip or Money space to see your totals.</p>}
-                      {allGroupsLoaded&&unselectedOwnerGroups > 0 && <p className="muted">{unselectedOwnerGroups} owned space{unselectedOwnerGroups === 1 ? " is" : "s are"} excluded. Incomplete total. Confirm your own member in Profile for: {records.filter(r=>!r.person).map(r=>r.data.name).join(', ')}.</p>}
-                      <small>You have a separate total for each currency. What you're owed doesn't reduce what you need to pay.</small>
+                      {allGroupsLoaded&&unselectedOwnerGroups>0&&<details className="cross-space-warning"><summary>Incomplete total · {unselectedOwnerGroups} spaces excluded</summary><p>Confirm your own member in Profile for: {records.filter(r=>!r.person).map(r=>r.data.name).join(', ')}.</p></details>}
                     </details>}
                     </>} person={settlementScope==='mine'?me:undefined} onSelect={t=>setSelectedSettlement(JSON.stringify([t.from,t.to]))} owner={rec.owner} key={rec.id+settlementScope} event={e} group={rec.id} revision={rec.revision} session={authenticatedSession} transfers={visibleTransfers} claims={sum!.claims} calculations={sum!.calculations} canRecord={can('settle')} disabled={busy} onRemind={(t,b)=>whatsapp(`${e.name}${b?' · '+b.title:''}\n${finalDueLines([t],name,fmt)}\nPlease check the shared event for the current balance.`)} onRefresh={async()=>{const ok=await load(true);return ok?groupMemory.current.get(rec.id)?.record||false:false}} payout={to=>!shared?<PayoutDetails group={rec.id} person={to} event={e} session={authenticatedSession} editable={to===rec.person}/>:null}/>
 
