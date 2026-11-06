@@ -1433,7 +1433,7 @@ setPlannerDirty(false);setTemplateDirty(false);
                     {sum!.calculations.some(c=>(settlementScope==='everyone'||c.from===me||c.to===me)&&(c.unappliedForward||c.unappliedReverse))&&<section className="panel"><h3>Payments to check</h3><p>A recorded payment no longer matches its original bill. It hasn't reduced a newer bill. Check it before paying again.</p>{sum!.calculations.filter(c=>(settlementScope==='everyone'||c.from===me||c.to===me)&&(c.unappliedForward||c.unappliedReverse)).map(c=><SettlementCalculation key={JSON.stringify([c.from,c.to])} calculation={c} currency={e.settlement}/>)}</section>}
 <div className="settlement-layout">
                     <div className="panel settlement-current">
-                      <SettlementPayments tools={<>{rec.person&&!visibleTransfers.some(t=>t.to===rec.person)&&<PayoutDetails group={rec.id} person={rec.person} event={e} session={authenticatedSession} editable/>}
+                      <SettlementPayments selfPerson={rec.person} tools={<>{rec.person&&!visibleTransfers.some(t=>t.to===rec.person)&&<PayoutDetails group={rec.id} person={rec.person} event={e} session={authenticatedSession} editable/>}
                       <button className="secondary" aria-label="Prepare WhatsApp summary" onClick={() => whatsapp(shareText())}><Bell size={17}/><span className="settlement-share-desktop">Prepare WhatsApp summary</span><span className="settlement-share-mobile">Share</span></button>
                     
                     {(rec.owner||can('export'))&&<SettlementExport event={e} transfers={visibleTransfers} reviewPairs={sum!.calculations} person={settlementScope==="mine"?me:undefined}/>}
