@@ -3,7 +3,7 @@ import {groupNotifications} from "@/lib/notification-groups";
 import {CopyError} from "./copy-feedback";
 import {userError} from '@/lib/ui-copy';
 import {useEffect,useState} from 'react';
-import {Users,ShieldCheck,Plus,History,Bell,Download,Check,UserPlus} from 'lucide-react';
+import {Users,ShieldCheck,Plus,History,Bell,Download,Check,UserPlus,FileText} from 'lucide-react';
 import {permissionKeys,roles,ledger,money,unit,calculate,type Event,type Permission,type PairCalculation} from '@/lib/ledger';
 import {Dialog,DialogContent,DialogTitle,DialogDescription} from '@/components/ui/dialog';
 import {Field,Pick,Check as Toggle} from './trip-controls';
@@ -45,5 +45,5 @@ export function NotificationBell({session,workspace:w,onGroup}:{session:string;w
 }
 export function SettlementExport({event:e,transfers,person,personal,reviewPairs}:{reviewPairs?:PairCalculation[];person?:string;personal?:ReturnType<typeof personalView>;event:Event;transfers:{from:string;to:string;amount:number;fromName?:string;toName?:string}[]}){
  const [summaryOpen,setSummaryOpen]=useState(false);
- return <div className="checks settlement-export"><button className="secondary" onClick={()=>setSummaryOpen(true)}>View summary</button>{summaryOpen&&<SettlementSummary reviewPairs={reviewPairs} event={e} transfers={transfers} person={person} personal={personal} onClose={()=>setSummaryOpen(false)}/>}</div>;
+ return <div className="checks settlement-export"><button className="secondary" onClick={()=>setSummaryOpen(true)}><FileText size={20} aria-hidden="true"/><span>View summary</span></button>{summaryOpen&&<SettlementSummary reviewPairs={reviewPairs} event={e} transfers={transfers} person={person} personal={personal} onClose={()=>setSummaryOpen(false)}/>}</div>;
 }

@@ -1,0 +1,55 @@
+/* Settlement-only iOS glass material. Layout and accounting remain in their existing modules. */
+:root[data-visual][data-theme]{
+ --settlement-glass:rgba(250,251,254,.72);
+ --settlement-rail:rgba(245,247,252,.48);
+ --settlement-edge:rgba(255,255,255,.88);
+ --settlement-shadow:inset 0 1px 0 rgba(255,255,255,.98),inset 1px 0 0 rgba(255,255,255,.48),0 24px 72px rgba(30,35,55,.14);
+ --settlement-sheen:linear-gradient(135deg,rgba(255,255,255,.62),rgba(255,255,255,.05) 48%,rgba(255,255,255,.22));
+ --settlement-amount-bed:rgba(250,251,254,.40);
+ --settlement-separator:rgba(65,70,85,.10);
+ --settlement-button-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 4px 12px rgba(0,0,0,.08);
+}
+:root[data-visual][data-theme=night]{
+ --settlement-glass:rgba(28,21,48,.76);
+ --settlement-rail:rgba(31,23,54,.54);
+ --settlement-edge:rgba(243,236,255,.27);
+ --settlement-shadow:inset 0 1px 0 rgba(249,245,255,.32),inset 1px 0 0 rgba(224,208,255,.14),0 24px 72px rgba(0,0,0,.32);
+ --settlement-sheen:linear-gradient(135deg,rgba(203,180,255,.14),rgba(113,85,167,.03) 48%,rgba(184,161,226,.08));
+ --settlement-amount-bed:rgba(28,21,48,.44);
+ --settlement-separator:rgba(230,218,255,.12);
+}
+:root[data-visual][data-theme] [data-slot=dialog-content]:is(.payment-refined,.payout-edit-dialog){
+ background:var(--settlement-glass)!important;background-image:var(--settlement-sheen)!important;
+ border:1px solid var(--settlement-edge)!important;box-shadow:var(--settlement-shadow)!important;
+ -webkit-backdrop-filter:blur(32px) saturate(160%)!important;backdrop-filter:blur(32px) saturate(160%)!important;
+ border-radius:28px!important;color:var(--text);
+}
+:root[data-visual][data-theme] .payment-refined .payment-review-amount>.field:first-child input{background:var(--settlement-amount-bed)!important;letter-spacing:-.035em;border-bottom-color:var(--settlement-separator)!important;font-weight:500!important}
+.payment-refined input[type=date],.payout-edit-dialog input{background:var(--surface-glass)!important;border-color:var(--settlement-edge)!important;border-radius:13px!important;box-shadow:inset 0 1px 0 var(--settlement-edge)!important}
+.payment-refined :is(.payment-review-bills,footer,.settlement-source-list>label,.payment-group-nav){border-color:var(--settlement-separator)!important}
+.payment-refined .primary{border-radius:999px!important;padding-inline:24px!important;box-shadow:var(--settlement-button-shadow)!important}
+.payment-refined footer>.secondary,.payment-refined>button:last-child,.payout-edit-dialog>button:last-child{border-radius:999px!important;background:var(--surface-glass)!important;border:1px solid var(--settlement-edge)!important;box-shadow:inset 0 1px 0 var(--settlement-edge)!important}
+.payment-refined>button:last-child,.payout-edit-dialog>button:last-child{color:var(--text-secondary)!important}
+.payment-refined .payment-checkbox input:after{border-radius:999px}
+.payment-group-desktop>button[aria-pressed=true]{background:var(--surface-glass)!important;box-shadow:inset 0 1px 0 var(--settlement-edge)!important;border:1px solid var(--settlement-edge)!important}
+:root[data-visual][data-theme] .workspace-app>.context-rail:has(#settlement-tools-slot){background:var(--settlement-rail)!important;background-image:var(--settlement-sheen)!important;border-left:1px solid var(--settlement-edge)!important;box-shadow:inset 1px 0 0 var(--settlement-edge)!important;-webkit-backdrop-filter:blur(24px) saturate(150%)!important;backdrop-filter:blur(24px) saturate(150%)!important}
+/* A dialog replaces the background blur planes instead of adding to them. */
+:root[data-visual][data-theme]:has([role=dialog]) .workspace-app>.context-rail:has(#settlement-tools-slot){-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+.ios-settlement-options .settlement-option-rows{--border:var(--settlement-separator)}
+.settlement-option-rows>button,.settlement-option-rows>.settlement-export>button,.settlement-option-rows>.payout-details>button,.settlement-option-rows>.payment-payout-details>summary{min-height:60px!important;padding:14px 8px!important;font-weight:500!important;line-height:20px!important}
+.settlement-option-rows>button>svg,.settlement-option-rows>.settlement-export>button>svg,.settlement-option-rows>.payout-details>button>svg,.settlement-option-rows>.payment-payout-details>summary>svg{width:20px!important;height:20px!important;stroke-width:1.6;flex-shrink:0;color:var(--text-secondary)}
+.settlement-option-rows>.settlement-export>button:after{font-weight:400}
+.settlement-option-rows>:is(button,.payout-details,.settlement-export,.payment-payout-details){border-color:var(--settlement-separator)!important}
+@media(hover:hover){.settlement-option-rows>button:hover,.settlement-option-rows>.settlement-export>button:hover,.settlement-option-rows>.payout-details>button:hover,.settlement-option-rows>.payment-payout-details>summary:hover,.payment-group-desktop>button:hover{background:var(--surface-glass)!important}}
+@media(max-width:767px){:root[data-visual][data-theme] [data-slot=dialog-content]:is(.payment-refined,.payout-edit-dialog){border-radius:28px 28px 0 0!important}}
+@media(prefers-reduced-transparency:reduce){:root[data-visual][data-theme] [data-slot=dialog-content]:is(.payment-refined,.payout-edit-dialog),:root[data-visual][data-theme] .workspace-app>.context-rail:has(#settlement-tools-slot){background:var(--surface-solid)!important;background-image:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}}
+@supports not (backdrop-filter:blur(1px)){:root[data-visual][data-theme] [data-slot=dialog-content]:is(.payment-refined,.payout-edit-dialog),:root[data-visual][data-theme] .workspace-app>.context-rail:has(#settlement-tools-slot){background:var(--surface-solid)!important;background-image:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}}
+:root[data-visual][data-theme]{--settlement-secondary:rgb(95,95,103)}
+:root[data-visual][data-theme=night]{--settlement-secondary:rgb(180,174,201)}
+:root[data-visual][data-theme] [data-slot=dialog-content]:is(.payment-refined,.payout-edit-dialog),:root[data-visual][data-theme] .workspace-app>.context-rail:has(#settlement-tools-slot){--text-secondary:var(--settlement-secondary);--muted-foreground:var(--settlement-secondary);--muted:var(--settlement-secondary)}
+:root[data-visual][data-theme] .payment-refined>header,:root[data-visual][data-theme] .payment-refined>header [data-slot=dialog-title]{background:transparent!important;background-image:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;box-shadow:none!important;border:0!important}
+.payment-refined .payment-review-bills>summary{display:flex!important;align-items:center;gap:8px;list-style:none!important}
+.payment-refined .payment-review-bills>summary::before{content:'›';font-size:18px;line-height:20px}
+.payment-refined .payment-review-bills[open]>summary::before{transform:rotate(90deg)}
+.payment-refined .payment-review-bills>summary>span{float:none!important;margin-left:auto;white-space:nowrap}
+.payment-refined .payment-review-bills>summary::-webkit-details-marker{display:none}
