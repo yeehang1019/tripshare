@@ -1,6 +1,7 @@
 'use client';
 import {ListFilter,Wallet,ChevronLeft,ChevronRight} from 'lucide-react';
 import AnimatedAmount from './animated-amount';
+import PaymentSourcePicker from './payment-source-picker';
 import {createPortal} from 'react-dom';
 import SwipeReveal from './swipe-reveal';
 import {confirmedPairsAreSettled} from '@/lib/ui-settlement-feedback';
@@ -120,7 +121,7 @@ export default function SettlementPayments({event:e,group,revision,session,perso
      {p.amount>0&&p.amount<available&&<small>Your payment covers the selected bills in the order shown.</small>}
      <button type="button" className="text-button payment-remove" onClick={()=>setDraft(d=>d?{...d,batch:{...d.batch,payments:d.batch.payments.filter(x=>x.id!==p.id)}}:d)}>Remove from selection</button>
     </div><details className="payment-review-bills" open={desktop||undefined}><summary>{p.expenseIds.length} selected bill{p.expenseIds.length===1?'':'s'}<span>{fmt(available)}</span></summary>
-    <div className="settlement-source-list">{options.map(b=><label key={b.id}><span className="payment-checkbox"><input aria-label={'Include '+b.title+' for '+name(p.from)+' to '+name(p.to)} type="checkbox" checked={p.expenseIds.includes(b.id)} onChange={()=>{const ids=p.expenseIds.includes(b.id)?p.expenseIds.filter(id=>id!==b.id):[...p.expenseIds,b.id];update(p.id,{expenseIds:ids,amount:options.filter(x=>ids.includes(x.id)).reduce((n,x)=>n+x.amount,0)})}}/></span><span><b>{b.title}</b><small>{b.date.split('-').reverse().join('/')} · {billStatus(b.status)}</small>{(b.applied>0||b.offset>0)&&<small>Paid {fmt(b.applied)} · Cancelled out {fmt(b.offset)}</small>}</span><b>{fmt(b.amount)}</b></label>)}</div></details></div>
+    <PaymentSourcePicker options={options} selected={p.expenseIds} currency={e.settlement} direction={name(p.from)+' to '+name(p.to)} onChange={ids=>update(p.id,{expenseIds:ids,amount:options.filter(x=>ids.includes(x.id)).reduce((n,x)=>n+x.amount,0)})}/></details></div>
     {(!p.expenseIds.length||p.amount<=0||p.amount>available||!p.date)&&<p role="alert">{!options.length?"These two people have no unpaid bills left. Remove them from the selection.":!p.expenseIds.length?'Select at least one unpaid bill.':!p.date?'Choose the payment date.':p.amount<=0?'Enter an amount above 0.':'This is more than you owe '+name(p.to)+' ('+fmt(available)+').'}</p>}
    </fieldset>})}
    {receipt&&<div role="status"><h3>{receipt.payments.length} payment{receipt.payments.length>1?'s':''} · {fmt(receipt.payments.reduce((n,p)=>n+p.amount,0))} {receipt.undone?'reversed':'recorded'}</h3>{receipt.payments.map(p=><div className="split-row" key={p.id}><span>{name(p.from)} → {name(p.to)}</span><b>{fmt(p.amount)} · {receipt.undone?'Reversed':'Saved'}</b></div>)}</div>}

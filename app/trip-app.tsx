@@ -1,4 +1,6 @@
 "use client";
+import ExpenseSettlementHint from './expense-settlement-hint';
+import {pairSettlement,type BillSettlement} from '@/lib/settlement-display';
 import {successFeedback,type SuccessKind} from '@/lib/ui-interactions';
 import ExpenseStream from './expense-stream';
 import ExpenseFilterBar from './expense-filter-bar';
@@ -650,6 +652,7 @@ setPlannerDirty(false);setTemplateDirty(false);
   function billCalc(b:Expense){let value=calculations.get(b);if(!value){value=calculate(b,e!.settlement);calculations.set(b,value)}return value}
   const sum = useMemo(()=>e ? ledger(e) : null,[e]),
     personal = sum?.people[me];
+  const settlementRowsByBill=useMemo(()=>{const index=new Map<string,BillSettlement[]>();for(const calculation of sum?.calculations||[])for(const row of pairSettlement(calculation).rows){const rows=index.get(row.id)||[];rows.push(row);index.set(row.id,rows)}return index},[sum]);
   const scopedTransfers = sum
     ? settlementScope === "mine"
       ? sum.transfers.filter((transfer) => transfer.from === me || transfer.to === me)
@@ -792,6 +795,7 @@ setPlannerDirty(false);setTemplateDirty(false);
         .flatMap((p) => p.allocations || [])
         .filter((a) => a.expense === b.id)
         .reduce((sum, a) => sum + a.amount, 0);
+      const requestEdit=()=>linkedPayment?setConfirm({title:"Reopen this settled expense?",description:"You can edit it safely. Its recorded repayment stays linked to this expense and will never reduce newer expenses.",run:()=>edit(b)}):edit(b);
       const consumers = Array.from(new Set(b.items.flatMap((item) => item.people)));
       const shownAmount = personalOnly ? c.consumed[me] || 0 : c.cashTotal;
       return (
@@ -816,6 +820,7 @@ setPlannerDirty(false);setTemplateDirty(false);
             </span>
           </summary>
           <div className="expense-detail-body">
+          <ExpenseSettlementHint bill={b} result={c} rows={settlementRowsByBill.get(b.id)||[]} onReview={!shared&&allowed(rec.permissions,"expense",user,b)?requestEdit:undefined}/>
           {b.activity&&canViewGroup&&e!.activities.some(a=>a.id===b.activity)&&<button className="linked-activity-button" onClick={()=>switchSpace('trip',b.activity)}><MapPinned size={16}/> View linked plan · {e!.activities.find(a=>a.id===b.activity)?.name}<ArrowRight size={15}/></button>}
           <p>{personalOnly ? "My final consumption" : "Settlement value"} <b>{fmt(personalOnly ? c.consumed[me] || 0 : c.total)}</b></p>
           {b.currency !== e!.settlement && (
@@ -858,14 +863,8 @@ setPlannerDirty(false);setTemplateDirty(false);
             {!shared&&billCalc(b).effectivePaymentStatus==='postpaid'&&allowed(rec.permissions,"expense",user,b)&&<button className="primary" disabled={busy} onClick={()=>openSupplierPayment(b)}>Record business payment</button>}
             {b.paidOn&&<small>Business paid · {b.paidOn}</small>}
             {!shared && allowed(rec.permissions, "expense", user, b) && (
-              <button className="secondary" onClick={() => linkedPayment
-                ? setConfirm({
-                    title: "Reopen this settled expense?",
-                    description: "You can edit it safely. Its recorded repayment stays linked to this expense and will never reduce newer expenses.",
-                    run: () => edit(b),
-                  })
-                : edit(b)}>
-                {linkedPayment ? "Reopen to edit" : "Edit"}
+              <button className="secondary" onClick={requestEdit}>
+                {linkedPayment ? "Reopen to edit" : c.effectivePaymentStatus==='prepaid' ? "Edit business timing" : "Edit"}
               </button>
             )}
             {!shared && allowed(rec.permissions, "deleteExpense", user, b) && (

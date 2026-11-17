@@ -364,7 +364,7 @@ export default function ExpenseEditor({
             + Add item
           </button>
         )}
-        <details className="advanced-options" open={undefined}>
+        <details className="advanced-options" open={(b.paymentStatus || 'paid') !== 'paid' || undefined}>
           <summary>More options <small>Currency, advance payments and refunds</small></summary><div className="fields">          <Field label="Currency">
             <Pick
               label="Currency"

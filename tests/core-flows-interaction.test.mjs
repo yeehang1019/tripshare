@@ -37,3 +37,36 @@ test('Ordinary entry keeps business timing advanced; existing business-unpaid dr
  await mount(React.createElement(Editor,{event:e,initial:b,busy:false,onSave:async()=>false,onCancel(){}}));
  const existing=[...document.querySelectorAll('details')].find(n=>n.querySelector('summary')?.textContent==='Business payment timing · advanced');assert.equal(existing.open,true);assert.equal(existing.querySelector('[role=combobox]')?.textContent,'Business unpaid · already used');assert.match(existing.textContent,/No friend settlement is created until the business is paid/);assert.equal(b.paymentStatus,'postpaid');
 });
+
+
+test('Source search and date filters preserve hidden selections; bulk changes touch matching bills only',async()=>{
+ const Picker=(await vite.ssrLoadModule('/app/payment-source-picker.tsx')).default;
+ const options=[{id:'a',title:'Breakfast',date:'2026-11-01',amount:670,status:'Unpaid',applied:0,offset:0},{id:'b',title:'Lunch',date:'2026-11-02',amount:1200,status:'Unpaid',applied:0,offset:0},{id:'c',title:'Breakfast taxi',date:'2026-11-03',amount:1500,status:'Unpaid',applied:0,offset:0}];
+ let selected=['a','b','c'];const change=ids=>{selected=ids};
+ async function render(){await act(async()=>root.render(React.createElement(Picker,{options,selected,currency:'MYR',direction:'YH to ET',onChange:change})))}
+ await mount(React.createElement(Picker,{options,selected,currency:'MYR',direction:'YH to ET',onChange:change}));
+ async function fill(input,value){assert.ok(input);await act(async()=>{Object.getOwnPropertyDescriptor(win.HTMLInputElement.prototype,'value').set.call(input,value);input.dispatchEvent(new win.Event('input',{bubbles:true}));input.dispatchEvent(new win.Event('change',{bubbles:true}))})}
+ await fill(document.querySelector('input[type=search]'),'breakFAST');assert.equal(document.querySelectorAll('.settlement-source-list input').length,2);assert.deepEqual(selected,['a','b','c']);assert.match(document.querySelector('[role=status]').textContent,/1 selected outside filters/);
+ await click([...document.querySelectorAll('button')].find(n=>n.textContent==='Clear results'));await render();assert.deepEqual(selected,['b']);
+ await click([...document.querySelectorAll('button')].find(n=>n.textContent==='Select results'));await render();assert.deepEqual(selected,['a','b','c']);
+ await fill(document.querySelectorAll('input[type=date]')[0],'2026-11-03');assert.equal(document.querySelectorAll('.settlement-source-list input').length,1);assert.deepEqual(selected,['a','b','c']);
+ await click([...document.querySelectorAll('button')].find(n=>n.textContent==='Clear results'));await render();assert.deepEqual(selected,['a','b']);
+ await fill(document.querySelector('input[type=search]'),'nothing matches');assert.equal(document.querySelectorAll('.settlement-source-list input').length,0);assert.deepEqual(selected,['a','b']);assert.match(document.body.textContent,/selection is unchanged/);
+ await click([...document.querySelectorAll('button')].find(n=>n.textContent==='Reset filters'));assert.equal(document.querySelectorAll('.settlement-source-list input').length,3);assert.deepEqual(selected,['a','b']);
+ await click([...document.querySelectorAll('button')].find(n=>n.textContent==='Clear all'));await render();assert.deepEqual(selected,[]);
+});
+
+test('Batch source bulk clear disables confirm; restoring selected bills restores full amount without adding a payment mode',async()=>{
+ const {e,b}=fixture();const second=structuredClone(b);second.id='qa-second';second.merchant='QA taxi';second.items[0].amount=2000;e.expenses.push(second);const s=ledger(e);let request;
+ await mount(React.createElement(Payments,{event:e,group:'qa',revision:1,session:'test',transfers:s.transfers,claims:s.claims,calculations:s.calculations,canRecord:true,onRefresh:async()=>true,payout:()=>null,transport:async(_url,options)=>{request=JSON.parse(options.body);return new Response(JSON.stringify({ok:true}),{status:200})}}));await openPayment();
+ const confirm=[...document.querySelectorAll('button')].find(n=>/^Confirm payments?$/.test(n.textContent));assert.equal(confirm.disabled,false);
+ await act(async()=>document.querySelector('.payment-review-amount input[inputmode=decimal]').dispatchEvent(new win.FocusEvent('focusout',{bubbles:true})));await click([...document.querySelectorAll('.payment-source-picker button')].find(n=>n.textContent==='Clear all'));assert.equal(confirm.disabled,true);assert.equal(document.querySelector('.payment-review-amount input[inputmode=decimal]').value,'');
+ await click([...document.querySelectorAll('.payment-source-picker button')].find(n=>n.textContent==='Select all'));assert.equal(confirm.disabled,false);await click(confirm);assert.equal(request.entity.payments[0].amount,6000);assert.equal(request.entity.payments[0].expenseIds.length,2);assert.equal(e.payments.length,0);
+});
+
+
+test('Business-payment explanation offers review only when the caller supplies edit access',async()=>{
+ const Hint=(await vite.ssrLoadModule('/app/expense-settlement-hint.tsx')).default;const {calculate}=await vite.ssrLoadModule('/lib/ledger.ts');const {e,b}=fixture();b.paymentStatus='postpaid';let reviewed=0;const props={bill:b,result:calculate(b,e.settlement),rows:[]};
+ await mount(React.createElement(Hint,props));assert.equal([...document.querySelectorAll('button')].some(n=>n.textContent==='Review business payment'),false);
+ await act(async()=>root.render(React.createElement(Hint,{...props,onReview:()=>reviewed++})));await click([...document.querySelectorAll('button')].find(n=>n.textContent==='Review business payment'));assert.equal(reviewed,1);assert.equal(b.paymentStatus,'postpaid');assert.equal(e.payments.length,0);
+});
