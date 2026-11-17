@@ -5,7 +5,7 @@ import {renderToStaticMarkup} from 'react-dom/server';
 import {createServer} from 'vite';
 import {fileURLToPath} from 'node:url';
 import {normalize} from '../lib/ledger.ts';
-const root=fileURLToPath(new URL('..',import.meta.url)),vite=await createServer({appType:'custom',configFile:false,root,resolve:{alias:{'@':root}},server:{middlewareMode:true,hmr:false}});
+const root=fileURLToPath(new URL('..',import.meta.url)),vite=await createServer({appType:'custom',configFile:false,root,resolve:{alias:{'@':root}},server:{middlewareMode:true,hmr:false,watch:null}});
 const Summary=(await vite.ssrLoadModule('/app/trip-summary.tsx')).default;
 after(()=>vite.close());
 function render(overrides={},props={}){const event={...normalize({name:'Actual trip',people:['Actual member'],bills:[],payments:[]}),destination:'Actual destination',start:'2099-01-01',end:'2099-01-03',budget:0,...overrides};return renderToStaticMarkup(React.createElement(Summary,{event,consumed:531200,plans:7,booked:2,tasks:0,done:0,onItinerary(){},...props}))}

@@ -7,7 +7,7 @@ import {fileURLToPath} from 'node:url';
 import {readFileSync} from 'node:fs';
 import postcss from 'postcss';
 import {normalize,blankExpense,today} from '../lib/ledger.ts';
-const root=fileURLToPath(new URL('..',import.meta.url)),vite=await createServer({appType:'custom',configFile:false,root,resolve:{alias:{'@':root}},server:{middlewareMode:true,hmr:false}});
+const root=fileURLToPath(new URL('..',import.meta.url)),vite=await createServer({appType:'custom',configFile:false,root,resolve:{alias:{'@':root}},server:{middlewareMode:true,hmr:false,watch:null}});
 after(()=>vite.close());
 const experience=await vite.ssrLoadModule('/app/experience.tsx');
 const design=await vite.ssrLoadModule('/app/workspace-design.tsx');

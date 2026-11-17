@@ -1,5 +1,5 @@
 import test,{after} from 'node:test';import assert from 'node:assert/strict';import {createServer}from'vite';
-const vite=await createServer({appType:'custom',configFile:false,root:new URL('..',import.meta.url).pathname,server:{middlewareMode:true,hmr:false}});after(()=>vite.close());
+const vite=await createServer({appType:'custom',configFile:false,root:new URL('..',import.meta.url).pathname,server:{middlewareMode:true,hmr:false,watch:null}});after(()=>vite.close());
 const {normalize,blankExpense,ledger}=await vite.ssrLoadModule('/lib/ledger.ts');
 const {preparePaymentBatch,undoBatch}=await vite.ssrLoadModule('/lib/settlement-recording.ts');
 const {payableProjection}=await vite.ssrLoadModule('/lib/payable-projection.ts');

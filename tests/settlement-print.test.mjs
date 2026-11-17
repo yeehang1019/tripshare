@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {createServer} from 'vite';
 import {fileURLToPath} from 'node:url';
 import {normalize,blankExpense,blankItem,ledger,paymentAllocations} from '../lib/ledger.ts';
-const root=fileURLToPath(new URL('..',import.meta.url)),vite=await createServer({appType:'custom',configFile:false,root,resolve:{alias:{'@':root}},server:{middlewareMode:true,hmr:false}});
+const root=fileURLToPath(new URL('..',import.meta.url)),vite=await createServer({appType:'custom',configFile:false,root,resolve:{alias:{'@':root}},server:{middlewareMode:true,hmr:false,watch:null}});
 after(()=>vite.close());
 const {settlementPrintHTML:print}=await vite.ssrLoadModule('/lib/settlement-print.ts');
 const {personalView}=await vite.ssrLoadModule('/lib/personal.ts');

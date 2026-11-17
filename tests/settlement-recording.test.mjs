@@ -3,7 +3,7 @@ import {createServer} from 'vite';
 import {fileURLToPath} from 'node:url';
 import assert from 'node:assert/strict';
 import {normalize,blankExpense,ledger,validateEvent} from '../lib/ledger.ts';
-const root=fileURLToPath(new URL('..',import.meta.url)),vite=await createServer({appType:'custom',configFile:false,root,server:{middlewareMode:true,hmr:false}});after(()=>vite.close());
+const root=fileURLToPath(new URL('..',import.meta.url)),vite=await createServer({appType:'custom',configFile:false,root,server:{middlewareMode:true,hmr:false,watch:null}});after(()=>vite.close());
 const {preparePaymentBatch,recordedBatch,pendingPairSources,payableSources,undoBatch}=await vite.ssrLoadModule('/lib/settlement-recording.ts');
 function fixture(){const e=normalize({name:'Selected bills',people:['A','B','C'],bills:[],payments:[]});for(const [name,amount] of [['Food',3000],['Drinks',1200]]){const b=blankExpense(e,'A');b.merchant=name;b.items[0].people=['B','C'];b.items[0].weights=[1,1];b.items[0].amount=amount;e.expenses.push(b)}return e}
 const row=(id,from,to,amount,expenseIds)=>({id,from,to,amount,expenseIds,date:'2026-10-26',note:'Cash'});

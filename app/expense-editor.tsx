@@ -187,7 +187,7 @@ export default function ExpenseEditor({
           <Field label={b.supplierPayments?"Default payer for new business payments":b.paymentStatus === 'postpaid' ? "Will be paid by" : "Paid by"}>
             <div className="payer-avatar-row" aria-label="Who paid?">{e.people.map(p=><button type="button" className="payer-chip secondary" key={p.id} aria-pressed={b.payers[0]?.person===p.id} onClick={()=>update({payers:b.payers.map((payer,i)=>i===0?{...payer,person:p.id}:payer)})}><MemberAvatar id={p.id} name={p.name}/><span>{p.name}</span></button>)}</div>
             <span className="payer-select-alternative"><Pick
-              label="Paid by"
+              label={b.paymentStatus === 'postpaid' ? "Planned business payer" : "Paid by"}
               value={b.payers[0]?.person || ""}
               options={e.people}
               onChange={(person) =>
@@ -401,14 +401,17 @@ export default function ExpenseEditor({
         )}
         <div className="fields">
           {b.paidOn!==undefined&&<Field label="Date you paid the business"><input type="date" min={b.date} value={b.paidOn} onChange={v=>update({paidOn:v.target.value})}/><small>Expense date stays the date the cost was incurred.</small></Field>}
-          <Field label="Payment status">
-            {b.payLater?<p className="muted">The merchant is covered by PayLater. Confirm platform repayments in Pocket Ledger; friends still repay through Settlement.</p>:b.cancellation?<p className="muted">Cancelled booking: the final fee is incurred; actual business payments determine the remaining balance and refund due.</p>:<Pick label="Payment status" value={b.paymentStatus || 'paid'} options={[
-              {id:'paid',name:"Used & paid"},
-              {id:'postpaid',name:"Used · not paid yet"},
-              {id:'prepaid',name:"Paid in advance · not used yet"},
+          <details className="business-payment-timing" open={(b.paymentStatus || 'paid') !== 'paid' || undefined}>
+          <summary>Business payment timing · advanced</summary>
+          <Field label="Payment to the business">
+            {b.payLater?<p className="muted">The merchant is covered by PayLater. Confirm platform repayments in Pocket Ledger; friends still repay through Settlement.</p>:b.cancellation?<p className="muted">Cancelled booking: the final fee is incurred; actual business payments determine the remaining balance and refund due.</p>:<Pick label="Payment to the business" value={b.paymentStatus || 'paid'} options={[
+              {id:'paid',name:"Business paid · already used"},
+              {id:'postpaid',name:"Business unpaid · already used"},
+              {id:'prepaid',name:"Business paid · use later"},
             ]} onChange={(paymentStatus) => update({paymentStatus:paymentStatus as Expense['paymentStatus']})}/>}
-            <small>{b.paymentStatus === 'postpaid' ? "Counts as spending, with payment still due to the business. Change to Used & paid after payment." : b.paymentStatus === 'prepaid' ? 'Counts as paid upfront only. Edit this same record to Consumed & paid when used; do not add a second expense.' : 'Counts as spending and payment to the business. Record payments between friends in Settle up.'}</small>
+            <small>{b.paymentStatus === 'postpaid' ? "Not yet paid to the business. No friend settlement is created until the business is paid." : b.paymentStatus === 'prepaid' ? 'Paid to the business before use. Update this same record after use; do not add a second expense.' : 'Counts as spending and payment to the business. Record payments between friends in Settle up.'}</small>
           </Field>
+          </details>
           <PayLaterFields bill={b} event={e} update={update}/>
           {!b.payLater&&<SupplierInstallments bill={b} event={e} update={update}/>}<RefundFields bill={b} event={e} update={update}/>
           <div className="treat-toggle">
@@ -660,7 +663,7 @@ export default function ExpenseEditor({
         {(b.cancellation||b.refunds?.length)&&<p className="muted">Original bill total · net cost and refunds are shown below.</p>}
         <h2><AnimatedAmount value={money(c?.cashTotal || 0,b.currency)}/></h2>
         <p className="muted">
-          {b.treat ? `Treated by ${name(b.treat)}` : `Split between ${b.items[0]?.people.length || 0} people`}
+          {b.treat ? `Treated by ${name(b.treat)}` : `Split between ${b.items[0]?.people.length || 0} ${(b.items[0]?.people.length || 0) === 1 ? "person" : "people"}`}
         </p>
         {error && (
           <p className="message error" role="alert">

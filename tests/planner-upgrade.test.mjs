@@ -6,7 +6,7 @@ import {renderToStaticMarkup} from 'react-dom/server';
 import {createServer} from 'vite';
 import {fileURLToPath} from 'node:url';
 import {readJSON,RequestTooLarge} from '../lib/http-body.ts';
-const root=fileURLToPath(new URL('..',import.meta.url)),vite=await createServer({appType:'custom',configFile:false,root,resolve:{alias:{'@':root}},server:{middlewareMode:true,hmr:false}});after(()=>vite.close());
+const root=fileURLToPath(new URL('..',import.meta.url)),vite=await createServer({appType:'custom',configFile:false,root,resolve:{alias:{'@':root}},server:{middlewareMode:true,hmr:false,watch:null}});after(()=>vite.close());
 const {normalize,ledger,validateEvent}=await vite.ssrLoadModule('/lib/ledger.ts');
 const {zonedInstant,possibleInstants,timedInterval,transferWarnings,overlapWarnings,returnFlight,transferMapLink}=await vite.ssrLoadModule('/lib/plan-time.ts');
 const {calendarEntry,planCalendar,googleCalendarLink}=await vite.ssrLoadModule('/lib/plan-calendar.ts');

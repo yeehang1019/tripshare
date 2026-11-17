@@ -5,7 +5,7 @@ import {renderToStaticMarkup} from 'react-dom/server';
 import {createServer} from 'vite';
 import {fileURLToPath} from 'node:url';
 const root=fileURLToPath(new URL('..',import.meta.url));
-const vite=await createServer({appType:'custom',configFile:false,root,resolve:{alias:{'@':root}},server:{middlewareMode:true,hmr:false}});after(()=>vite.close());
+const vite=await createServer({appType:'custom',configFile:false,root,resolve:{alias:{'@':root}},server:{middlewareMode:true,hmr:false,watch:null}});after(()=>vite.close());
 const ledgerModule=await vite.ssrLoadModule('/lib/ledger.ts');
 const {markSupplierPaid,expenseComparison,reviewedExpense,repaymentReview}=await vite.ssrLoadModule('/lib/money-operations.ts');
 const {templateExpense}=await vite.ssrLoadModule('/lib/expense-template.ts');

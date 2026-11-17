@@ -5,7 +5,7 @@ import {renderToStaticMarkup} from 'react-dom/server';
 import {createServer} from 'vite';
 import {fileURLToPath} from 'node:url';
 import {normalize,blankExpense,ledger,paymentAllocations} from '../lib/ledger.ts';
-const root=fileURLToPath(new URL('..',import.meta.url)),vite=await createServer({appType:'custom',configFile:false,root,resolve:{alias:{'@':root}},server:{middlewareMode:true,hmr:false}});
+const root=fileURLToPath(new URL('..',import.meta.url)),vite=await createServer({appType:'custom',configFile:false,root,resolve:{alias:{'@':root}},server:{middlewareMode:true,hmr:false,watch:null}});
 after(()=>vite.close());
 const {outstandingSummary,outstandingPrintHTML,outstandingCSVRows,outstandingText}=await vite.ssrLoadModule('/lib/settlement-outstanding.ts');
 const {OutstandingSettlementTable}=await vite.ssrLoadModule('/app/settlement-summary.tsx');

@@ -5,7 +5,7 @@ import {renderToStaticMarkup} from 'react-dom/server';
 import {createServer} from 'vite';
 import {fileURLToPath} from 'node:url';
 import {normalize,blankExpense,calculate,ledger,validateEvent,repeatExpense,shiftPlans,allowed} from '../lib/ledger.ts';
-const root=fileURLToPath(new URL('..',import.meta.url)),vite=await createServer({appType:'custom',configFile:false,root,resolve:{alias:{'@':root}},server:{middlewareMode:true,hmr:false}});after(()=>vite.close());
+const root=fileURLToPath(new URL('..',import.meta.url)),vite=await createServer({appType:'custom',configFile:false,root,resolve:{alias:{'@':root}},server:{middlewareMode:true,hmr:false,watch:null}});after(()=>vite.close());
 const {draftScope,parseDraft,listDrafts,storeDraft,removeDraft}=await vite.ssrLoadModule('/lib/local-drafts.ts');
 const {changeImpact,nextTravelPlans,tripLocalDate,placePlanNotes}=await vite.ssrLoadModule('/lib/planner-workflow.ts');
 const {markSupplierPaid,reviewedExpense}=await vite.ssrLoadModule('/lib/money-operations.ts');
