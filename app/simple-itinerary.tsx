@@ -3,8 +3,9 @@ import {useEffect,useState} from 'react';
 import {BedDouble,MapPin} from 'lucide-react';
 import MemberLinkPicker from './member-link-picker';
 import PlanRemarks from './plan-remarks';
-import {type Event,type Activity,today} from '@/lib/ledger';
+import {type Event,type Activity} from '@/lib/ledger';
 import {tripDays,onDay} from '@/lib/trip-plan';
+import {itineraryDateForView,tripLocalDate} from '@/lib/planner-workflow';
 
 export const itineraryDate=(date:string)=>date?date.split('-').reverse().join('/'):'Date not set';
 export function itineraryPhase(a:Activity,date:string){
@@ -18,7 +19,7 @@ export function itineraryPhase(a:Activity,date:string){
 }
 export default function SimpleItinerary({event,initialDay='',onDayChange,canCopyLink=false,group=''}:{event:Event;initialDay?:string;onDayChange?:(day:string)=>void;canCopyLink?:boolean;group?:string}){
  const dates=tripDays(event),[chosen,setChosen]=useState(initialDay),[limit,setLimit]=useState(30);
- const date=dates.includes(chosen)?chosen:dates.includes(today())?today():dates[0]||'';
+ const date=itineraryDateForView(dates,chosen,tripLocalDate(event));
  useEffect(()=>{setLimit(30)},[date]);
  const active=event.activities.filter(a=>a.status!=='Cancelled');
  const plans=active.filter(a=>(onDay(a,date)||a.endDate===date)&&(a.type!=='Hotel'||a.date===date||a.endDate===date)).sort((a,b)=>{

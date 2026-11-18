@@ -11,6 +11,10 @@ export function changeImpact(event:Event,draft:Activity){
  return {before,changed,warnings,affected};
 }
 export function tripLocalDate(event:Event,now=Date.now()){const zone=validZone(event.timeZone)?event.timeZone:undefined;const parts=new Intl.DateTimeFormat('en-CA',{timeZone:zone,year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(now);const p=Object.fromEntries(parts.map(x=>[x.type,x.value]));return `${p.year}-${p.month}-${p.day}`}
+export function itineraryDateForView(dates: string[], selected: string, localDate: string) {
+ if (dates.includes(selected)) return selected;
+ return dates.includes(localDate) ? localDate : dates[0] || '';
+}
 export function nextTravelPlans(event:Event,now=Date.now()){
  return event.activities.filter(a=>a.status!=='Cancelled'&&!!a.time).flatMap(a=>{try{const range=timedInterval(a,event.timeZone);return range.end>=now?[{plan:a,...range,depart:range.start}]:[]}catch{return []}}).sort((a,b)=>a.start-b.start);
 }

@@ -116,3 +116,25 @@ test('Trip overview action opens the current day in the trip timezone including 
  await click(document.querySelector('.trip-today button'));
  assert.equal(selected,today);
 });
+
+test('Overview and both itineraries agree on the trip date around midnight and preserve manual day choice',async()=>{
+ const TripSummary=(await vite.ssrLoadModule('/app/trip-summary.tsx')).default;
+ const SimpleItinerary=(await vite.ssrLoadModule('/app/simple-itinerary.tsx')).default;
+ const TripPlanner=(await vite.ssrLoadModule('/app/trip-planner.tsx')).default;
+ const {e}=fixture();
+ Object.assign(e,{timeZone:'Asia/Bangkok',start:'2026-11-17',end:'2026-11-18',activities:[]});
+ const originalNow=Date.now;
+ Date.now=()=>Date.parse('2026-11-18T00:30:00+08:00');
+ try {
+  await mount(React.createElement(React.Fragment,null,
+   React.createElement(TripSummary,{event:e,consumed:0,plans:0,booked:0,tasks:0,done:0,onItinerary:()=>{}}),
+   React.createElement(SimpleItinerary,{event:e}),
+   React.createElement(TripPlanner,{event:e,section:'Itinerary',busy:false,canPlan:false,canExpense:false,draft:null,onDirty:()=>{}})
+  ));
+  assert.match(document.querySelector('.trip-countdown').textContent,/Day 1 of 2/);
+  assert.match(document.querySelector('.plan-day-header h2').textContent,/17 Nov/);
+  assert.match(document.querySelector('.simple-itinerary [aria-pressed=true]').textContent,/^17Tue$/);
+  await click(document.querySelector('.plan-day-tabs button:nth-child(2)'));
+  assert.match(document.querySelector('.plan-day-header h2').textContent,/18 Nov/);
+ }finally{Date.now=originalNow}
+});

@@ -68,3 +68,11 @@
 .trip-today-actions{margin-top:10px}
 .trip-today-actions a{display:inline-flex;align-items:center;gap:6px;min-height:44px}
 @media(max-width:767px){.payment-batch-breakdown{display:block;margin:12px 0}}
+
+.settlement-bill-scope{display:flex;align-items:center;gap:8px 12px;flex-wrap:wrap;padding-inline:12px;color:var(--text-secondary);font-size:13px;overflow-wrap:anywhere}
+.settlement-bill-scope span{min-width:0}
+.settlement-bill-scope button{min-height:44px}
+.settlement-net-balances>summary{display:flex;align-items:center;gap:8px;min-height:44px;cursor:pointer;list-style:none}
+.settlement-net-balances>summary::-webkit-details-marker{display:none}
+.settlement-net-balances>summary::after{content:"";width:8px;height:8px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(-45deg);margin-inline-start:auto;margin-inline-end:6px}
+.settlement-net-balances[open]>summary::after{transform:rotate(45deg)}
