@@ -70,3 +70,49 @@ test('Business-payment explanation offers review only when the caller supplies e
  await mount(React.createElement(Hint,props));assert.equal([...document.querySelectorAll('button')].some(n=>n.textContent==='Review business payment'),false);
  await act(async()=>root.render(React.createElement(Hint,{...props,onReview:()=>reviewed++})));await click([...document.querySelectorAll('button')].find(n=>n.textContent==='Review business payment'));assert.equal(reviewed,1);assert.equal(b.paymentStatus,'postpaid');assert.equal(e.payments.length,0);
 });
+
+test('Selecting one bill keeps card, review, copying and payment payload on that bill',async()=>{
+ const {e,b}=fixture(),second=blankExpense(e,'A');
+ b.items[0].amount=8000;
+ second.merchant='QA ticket';second.items[0].amount=4000;e.expenses.push(second);
+ const state=ledger(e);
+ assert.equal(state.transfers[0].amount,6000);
+ let copied='',request;
+ const original=Object.getOwnPropertyDescriptor(win.navigator,'clipboard');
+ Object.defineProperty(win.navigator,'clipboard',{configurable:true,value:{writeText:async value=>{copied=value}}});
+ try{
+  await mount(React.createElement(Payments,{event:e,group:'qa',revision:1,session:'test',transfers:state.transfers,claims:state.claims,calculations:state.calculations,canRecord:true,onRefresh:async()=>true,payout:()=>null,transport:async(_,options)=>{request=JSON.parse(options.body);return new Response(JSON.stringify({ok:true}))}}));
+  const filter=document.querySelector('.settlement-option-filter select');
+  await act(async()=>{filter.value=second.id;filter.dispatchEvent(new win.Event('change',{bubbles:true}))});
+  assert.equal(document.querySelector('.payment-person-trigger').getAttribute('aria-label'),'B pays A, RM 20.00');
+  assert.match(document.querySelector('.settlement-summary-details summary').textContent,/RM 20.00/);
+  await click([...document.querySelectorAll('button')].find(n=>n.textContent==='Copy payment list'));
+  assert.match(copied,/Total still to pay: RM 20.00/);
+  assert.doesNotMatch(copied,/QA meal|RM 60.00/);
+  await openPayment();
+  const sourceInputs=[...document.querySelectorAll('.settlement-source-list input')];
+  assert.equal(sourceInputs.length,1);
+  assert.match(sourceInputs[0].getAttribute('aria-label'),/QA ticket/);
+  await click([...document.querySelectorAll('button')].find(n=>n.textContent==='Confirm payment'));
+  assert.equal(request.entity.payments[0].amount,2000);
+  assert.deepEqual(request.entity.payments[0].expenseIds,[second.id]);
+ }finally{
+  if(original)Object.defineProperty(win.navigator,'clipboard',original);
+  else delete win.navigator.clipboard;
+ }
+});
+
+test('Trip overview action opens the current day in the trip timezone including untimed plans',async()=>{
+ const TripToday=(await vite.ssrLoadModule('/app/trip-today.tsx')).default;
+ const {tripLocalDate}=await vite.ssrLoadModule('/lib/planner-workflow.ts');
+ const {e}=fixture();e.kind='trip';e.timeZone='Asia/Kuala_Lumpur';
+ const today=tripLocalDate(e);e.start=today;e.end=today;
+ let selected='';
+ await mount(React.createElement(TripToday,{event:e,onOpenDay:date=>{selected=date}}));
+ assert.match(document.querySelector('.trip-today').textContent,/Nothing planned for today/);
+ e.activities=[{id:'qa-plan',name:'Untimed visit',date:today,time:'',status:'Planning'}];
+ await act(async()=>root.render(React.createElement(TripToday,{event:e,onOpenDay:date=>{selected=date}})));
+ assert.match(document.querySelector('.trip-today').textContent,/See the day’s arrangements/);
+ await click(document.querySelector('.trip-today button'));
+ assert.equal(selected,today);
+});

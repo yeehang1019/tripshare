@@ -5,24 +5,25 @@ import {sheetTransfers,type SheetScope,type SheetTransfer} from './settlement-sh
 
 // Transfers already contain source-bound repayments and pairwise offsets.
 // Never subtract payments again or rebuild debts from consumption totals here.
-export function outstandingSummary(e:Event,transfers:SheetTransfer[],scope:SheetScope={},calculations?:PairCalculation[]){
+export function outstandingSummary(e:Event,transfers:SheetTransfer[],scope:SheetScope & {billId?:string}={},calculations?:PairCalculation[]){
  const pending=sheetTransfers(e,transfers,scope).filter(t=>Number.isSafeInteger(t.amount)&&t.amount>0&&t.from!==t.to);
  const key=(a:string,b:string)=>JSON.stringify(a<b?[a,b]:[b,a]);
  // Personal projections must never fall back to the group's expense records.
  const pairs=new Map((scope.personal?(scope.personal.calculations||[]):(calculations||(pending.length?ledger(e).calculations:[]))).map(p=>[key(p.from,p.to),p]));
  const bills=new Map<string,{id:string;title:string;date:string}>();
  const offsets:{from:string;to:string;count:number;amount:number}[]=[];
- const rows=pending.map(t=>{
+ const rows=pending.flatMap<typeof pending[number] & {values:Record<string,number>|null;paid:number|null}>(t=>{
   const p=pairs.get(key(t.from,t.to)),values:Record<string,number>=Object.create(null);
   const model=p?pairSettlement(p):null;
-  if(!model?.reconciled||(t.from===p!.from?p!.remainingForward:p!.remainingReverse)!==t.amount)return {...t,values:null,paid:null};
-  for(const r of model.rows)if(r.from===t.from&&r.to===t.to&&r.finalDue>0){
+  if(!model?.reconciled||(t.from===p!.from?p!.remainingForward:p!.remainingReverse)!==t.amount)return scope.billId?[]:[{...t,values:null,paid:null}];
+  for(const r of model.rows)if(r.from===t.from&&r.to===t.to&&r.finalDue>0&&(!scope.billId||r.id===scope.billId)){
    values[r.id]=(values[r.id]||0)+r.finalDue;
    bills.set(r.id,{id:r.id,title:r.title,date:r.date});
   }
   const cleared=model.rows.filter(r=>r.offset>0&&r.finalDue===0);
-  if(cleared.length)offsets.push({from:t.from,to:t.to,count:cleared.length,amount:model.offset});
-  return {...t,values,paid:0};
+  if(!scope.billId&&cleared.length)offsets.push({from:t.from,to:t.to,count:cleared.length,amount:model.offset});
+  const amount=scope.billId?(values[scope.billId]||0):t.amount;
+  return amount>0?[{...t,amount,values,paid:0}]:[];
  });
  const columns=[...bills.values()].sort((a,b)=>a.date.localeCompare(b.date));
  return {title:e.name,currency:e.settlement,rows,columns,hasPaid:false,unavailable:rows.some(r=>r.values===null),offsets,total:rows.reduce((n,t)=>n+t.amount,0),personal:!!(scope.person||scope.personal)};

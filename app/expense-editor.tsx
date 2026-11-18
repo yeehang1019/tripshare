@@ -200,7 +200,6 @@ export default function ExpenseEditor({
             /></span>
           </Field>
         </div>
-        <section className="editor-category-section"><h3>Category</h3><div className="editor-category-chips" role="group" aria-label="Expense category">{categories.map(category=>{const Icon=({Food:Utensils,Transport:Car,Activity:Ticket,Shopping:ShoppingBag,Grocery:ShoppingBasket,Accommodation:BedDouble} as Record<string,typeof Receipt>)[category]||Receipt;return <button type="button" className="secondary" key={category} aria-pressed={b.category===category} onClick={()=>update({category})}><Icon size={20}/><span>{category}</span></button>})}</div></section>
         {b.items.map((it, i) => (
           <div key={it.id} className="item">
             <div className="fields">
@@ -364,6 +363,7 @@ export default function ExpenseEditor({
             + Add item
           </button>
         )}
+        <section className="editor-category-section"><h3>Category</h3><div className="editor-category-chips" role="group" aria-label="Expense category">{categories.map(category=>{const Icon=({Food:Utensils,Transport:Car,Activity:Ticket,Shopping:ShoppingBag,Grocery:ShoppingBasket,Accommodation:BedDouble} as Record<string,typeof Receipt>)[category]||Receipt;return <button type="button" className="secondary" key={category} aria-pressed={b.category===category} onClick={()=>update({category})}><Icon size={20}/><span>{category}</span></button>})}</div></section>
         <details className="advanced-options" open={(b.paymentStatus || 'paid') !== 'paid' || undefined}>
           <summary>More options <small>Currency, advance payments and refunds</small></summary><div className="fields">          <Field label="Currency">
             <Pick
@@ -683,11 +683,11 @@ export default function ExpenseEditor({
                 <b>{money(v, e.settlement)}</b>
               </div>
             ))}
-            {!b.supplierPayments && !b.treat && b.payers.length === 1 && (!b.paymentStatus || b.paymentStatus === 'paid') && (
+            {!b.supplierPayments && !b.treat && !b.voucherContribution && b.payers.length === 1 && (!b.paymentStatus || b.paymentStatus === 'paid') && (
               <div className="live-result">
-                <b>After saving</b>
-                {Object.entries(c.responsible).filter(([p,v])=>p !== b.payers[0].person && v > 0).map(([p,v])=><p key={p}><span>{name(p)} will owe {name(b.payers[0].person)}</span><b>{money(v,e.settlement)}</b></p>)}
-                {!Object.entries(c.responsible).some(([p,v])=>p !== b.payers[0].person && v > 0) && <small>Saving this expense won't record a payment to a friend.</small>}
+                <b>Shares from this expense</b>
+                {Object.entries(c.responsible).filter(([p,v])=>p !== b.payers[0].person && v > 0).map(([p,v])=><p key={p}><span>{name(p)} → {name(b.payers[0].person)}</span><b>{money(v,e.settlement)}</b></p>)}
+                {!Object.entries(c.responsible).some(([p,v])=>p !== b.payers[0].person && v > 0) && <small>No friend repayment for this expense.</small>}
               </div>
             )}
             <hr />

@@ -220,6 +220,7 @@ export default function TripApp({ shared = false, authenticatedEmail = "", authe
   const [focusActivity,setFocusActivity]=useState("");
   const [expenseMine,setExpenseMine]=useState(false);
   const [selectedSettlement,setSelectedSettlement]=useState('');
+  const [settlementBillFilter,setSettlementBillFilter]=useState('');
   const [settlementDirection,setSettlementDirection]=useState<'all'|'owe'|'owed'>('all');
   const [focusExpense,setFocusExpense]=useState(''),[jumpEpoch,setJumpEpoch]=useState(0);
   const pendingJump=useRef<SearchHit|null>(null);
@@ -421,6 +422,7 @@ export default function TripApp({ shared = false, authenticatedEmail = "", authe
     setEnd("");
     setCat("All");
     setMerchant("");
+    setSettlementBillFilter('');setSettlementDirection('all');
     setSettlementScope(rec.owner?"everyone":(!shared&&!!rec.person)?"mine":"everyone");
     if(!routeReady&&!applyingPop.current){const params=new URLSearchParams(window.location.search);setTab(spaceIntent.current==='trip'&&e.kind==='trip'&&(!rec.personal||!!rec.planning)?readTripRoute(params,allowedTrip(rec)):readMoneyRoute(params,allowedMoney(rec)))}
     setBill(null);
@@ -631,14 +633,10 @@ setPlannerDirty(false);setTemplateDirty(false);
     window.location.origin + "/view#key=" + encodeURIComponent(t);
   function shareText() {
     if (!e) return "";
-    const s = ledger(e);
-    const transfers = isMember
-      ? s.transfers.filter((p) => p.from === me || p.to === me)
-      : s.transfers;
     const heading = isMember
       ? `${name(me)}'s settlement`
       : `Settlement`;
-    return `${e.name}\n${heading}\n${outstandingText(outstandingSummary(e,transfers.map(t=>({...t,fromName:name(t.from),toName:name(t.to)})),{},s.calculations)) || "No outstanding balance"}${!isMember && accessInfo.shares[0] ? "\n\nView details: " + viewLink(accessInfo.shares[0].token) : shared ? "\n\nView details: " + window.location.href : ""}`;
+    return `${e.name}\n${heading}\n${outstandingText(outstandingSummary(e,visibleTransfers.map(t=>({...t,fromName:name(t.from),toName:name(t.to)})),{billId:settlementBillFilter},sum?.calculations)) || "No outstanding balance"}${!isMember && accessInfo.shares[0] ? "\n\nView details: " + viewLink(accessInfo.shares[0].token) : shared ? "\n\nView details: " + window.location.href : ""}`;
   }
   function download(text: string, type: string, filename: string) {
     const url = URL.createObjectURL(new Blob([text], { type })),
@@ -659,6 +657,10 @@ setPlannerDirty(false);setTemplateDirty(false);
       : sum.transfers
     : [];
   const visibleTransfers=scopedTransfers.filter(t=>settlementScope==='everyone'||!hasPersonalAccess||settlementDirection==='all'||settlementDirection==='owe'&&t.from===me||settlementDirection==='owed'&&t.to===me);
+  const filteredSettlement=settlementBillFilter&&tab==='Settlement'&&e&&sum
+    ?outstandingSummary(e,visibleTransfers,{billId:settlementBillFilter},sum.calculations):null;
+  const settlementCount=filteredSettlement?filteredSettlement.rows.length:visibleTransfers.length;
+  const settlementAmount=filteredSettlement?filteredSettlement.total:visibleTransfers.reduce((total,p)=>total+p.amount,0);
   const settlementReviews=(sum?.calculations||[]).filter(c=>(settlementScope==='everyone'||c.from===me||c.to===me)&&(c.unappliedForward||c.unappliedReverse));
   const visiblePayments = e
     ? e.payments.filter((p) => !isMember || p.from === me || p.to === me)
@@ -933,10 +935,17 @@ setPlannerDirty(false);setTemplateDirty(false);
                         Reset
                       </button>
                     </section>);}
-  function navigate(next:string){
-    if(next==='Settlement'){setSettlementDirection('all');setSettlementScope(isMember?'mine':'everyone')}
+  function navigate(next:string,direction:'all'|'owe'|'owed'='all'){
     if(!(space==='trip'||isTripSection(next)?allowedTrip(rec):allowedMoney(rec)).includes(next))return;
-    const run=()=>{clearUnsavedInput();setFocusExpense('');setActivityFilter('');setFocusActivity('');setTab(next)};
+    const run=()=>{
+      if(next==='Settlement'){
+        const personalDirection=hasPersonalAccess&&me?direction:'all';
+        setSettlementDirection(personalDirection);
+        setSettlementScope(isMember||personalDirection!=='all'?'mine':'everyone');
+        setSettlementBillFilter('');
+      }
+      clearUnsavedInput();setFocusExpense('');setActivityFilter('');setFocusActivity('');setTab(next);
+    };
     if(editing.current)setConfirm({title:'Leave unsaved input?',description:'Open editors will close. Expense and plan drafts remain recoverable on this browser.',run});else run();
   }
   function requestCloseBill(){if(busy)return;if(!billDirty.current&&!templateDirty){if(localScope&&bill)removeDraft(localScope,"expense",bill.id);setBill(null);setTemplateSource(null);return}setConfirm({title:"Discard this expense?",description:(rec.personal?rec.ownEntries||[]:e?.expenses||[]).some(saved=>saved.id===bill?.id)?"Your saved bill will stay unchanged.":"",run:()=>{if(localScope&&bill)removeDraft(localScope,"expense",bill.id);setBill(null);setTemplateSource(null);setTemplateDirty(false)}})}
@@ -1013,7 +1022,7 @@ setPlannerDirty(false);setTemplateDirty(false);
           </section>
         )}</div>;
   const shellHeader=<ShellHeader name={e?.name||'TripShare'} records={spaceRecords} selected={rec?.id||''} onGroup={choose} spaceSwitch={switcher} onCreateTrip={!shared&&loaded&&canCreateEvents?()=>startNewEvent('trip'):undefined} onCreateMoney={!shared&&loaded&&canCreateEvents?()=>startNewEvent('daily'):undefined} notification={notificationBell} onSearch={()=>setQuickOpen(true)} profile={<><div className="profile-identity"><UserRound size={28}/><div><b>{user||'Read-only'}</b><p>{rec?.owner?'Owner':rec?.personal?'Member':'Admin'}</p></div></div>{e&&rec?.owner&&<Field label="Viewing"><Pick label="Viewing member" value={me} options={e.people} onChange={person=>{setMe(person);localStorage.setItem('tripshare-person-'+rec.id,person)}}/>{me&&me!==rec.person&&<button className="secondary" disabled={workspace.busy} onClick={async()=>{if(await workspace.save({action:'selfMember',group:rec.id,person:me}))await load(true)}}>Confirm this member is me</button>}{!rec.person&&<small>Your identity is unconfirmed. Choose your own name and confirm.</small>}</Field>}<button className="secondary" onClick={()=>setAppearanceOpen(true)}><Palette size={18}/>Appearance</button><button className="secondary" onClick={toggleRail} aria-expanded={railOpen}><PanelRight size={18}/>Space details</button></>}/>;
-  const chrome=<WorkspaceChrome records={spaceRecords} selected={rec?.id||""} onGroup={choose} onAppearance={()=>setAppearanceOpen(true)} onSearch={()=>setQuickOpen(true)} onNavigate={navigate} destinations={destinations} tab={tab} style={workspace.data.style} palette={paletteLabels[palette]} event={e} member={!!rec?.personal} railOpen={railOpen} onRailClose={toggleRail} space={space} spaceSwitch={undefined} selectedDetail={tab==='Settlement'?<div id="settlement-tools-slot"/>:tab==='Expenses'&&focusExpense&&e&&filtered.some(b=>b.id===focusExpense)?<><button className="text-button" onClick={()=>setFocusExpense('')}>Space summary</button>{expenseRows(filtered.filter(b=>b.id===focusExpense),false,true)}</>:tab==='Settlement'&&selectedSettlement&&visibleTransfers.some(t=>JSON.stringify([t.from,t.to])===selectedSettlement)?(()=>{const t=visibleTransfers.find(t=>JSON.stringify([t.from,t.to])===selectedSettlement)!;return <><button className="text-button" onClick={()=>setSelectedSettlement('')}>Space summary</button><h3>{name(t.from)} → {name(t.to)}</h3><strong>{fmt(t.amount)}</strong><SettlementCalculation calculation={sum?.calculations.find(c=>c.from===t.from&&c.to===t.to||c.from===t.to&&c.to===t.from)} currency={e!.settlement}/></>})():tab==='Settlement'&&e?<section className="context-settlement"><small>This space</small><h3>Settlement summary</h3><dl><div><dt>Payments remaining</dt><dd>{visibleTransfers.length}</dd></div>{hasPersonalAccess&&<><div><dt>You owe</dt><dd>{fmt(visibleTransfers.filter(t=>t.from===me).reduce((n,t)=>n+t.amount,0))}</dd></div><div><dt>You're owed</dt><dd>{fmt(visibleTransfers.filter(t=>t.to===me).reduce((n,t)=>n+t.amount,0))}</dd></div></>}<div><dt>Past payments</dt><dd>{visiblePayments.length}</dd></div></dl><p className="muted">{visibleTransfers.length?'Select a payment to see its details.':settlementScope==='everyone'?'Everyone is settled.':"You're all settled."}</p>{visibleTransfers.length>0&&<button className="secondary" onClick={()=>setSelectedSettlement(JSON.stringify([visibleTransfers[0].from,visibleTransfers[0].to]))}>View payment details</button>}</section>:undefined}/>;
+  const chrome=<WorkspaceChrome records={spaceRecords} selected={rec?.id||""} onGroup={choose} onAppearance={()=>setAppearanceOpen(true)} onSearch={()=>setQuickOpen(true)} onNavigate={navigate} destinations={rec?.owner?destinations.filter(item=>item!=="Simple itinerary"):destinations} tab={tab} style={workspace.data.style} palette={paletteLabels[palette]} event={e} member={!!rec?.personal} railOpen={railOpen} onRailClose={toggleRail} space={space} spaceSwitch={undefined} selectedDetail={tab==='Settlement'?<div id="settlement-tools-slot"/>:tab==='Expenses'&&focusExpense&&e&&filtered.some(b=>b.id===focusExpense)?<><button className="text-button" onClick={()=>setFocusExpense('')}>Space summary</button>{expenseRows(filtered.filter(b=>b.id===focusExpense),false,true)}</>:tab==='Settlement'&&selectedSettlement&&visibleTransfers.some(t=>JSON.stringify([t.from,t.to])===selectedSettlement)?(()=>{const t=visibleTransfers.find(t=>JSON.stringify([t.from,t.to])===selectedSettlement)!;return <><button className="text-button" onClick={()=>setSelectedSettlement('')}>Space summary</button><h3>{name(t.from)} → {name(t.to)}</h3><strong>{fmt(t.amount)}</strong><SettlementCalculation calculation={sum?.calculations.find(c=>c.from===t.from&&c.to===t.to||c.from===t.to&&c.to===t.from)} currency={e!.settlement}/></>})():tab==='Settlement'&&e?<section className="context-settlement"><small>This space</small><h3>Settlement summary</h3><dl><div><dt>Payments remaining</dt><dd>{visibleTransfers.length}</dd></div>{hasPersonalAccess&&<><div><dt>You owe</dt><dd>{fmt(visibleTransfers.filter(t=>t.from===me).reduce((n,t)=>n+t.amount,0))}</dd></div><div><dt>You're owed</dt><dd>{fmt(visibleTransfers.filter(t=>t.to===me).reduce((n,t)=>n+t.amount,0))}</dd></div></>}<div><dt>Past payments</dt><dd>{visiblePayments.length}</dd></div></dl><p className="muted">{visibleTransfers.length?'Select a payment to see its details.':settlementScope==='everyone'?'Everyone is settled.':"You're all settled."}</p>{visibleTransfers.length>0&&<button className="secondary" onClick={()=>setSelectedSettlement(JSON.stringify([visibleTransfers[0].from,visibleTransfers[0].to]))}>View payment details</button>}</section>:undefined}/>;
   const appearance=<AppearancePanel open={appearanceOpen} onOpenChange={setAppearanceOpen} workspace={workspace} palette={palette} labels={paletteLabels} mode={theme} motion={motionMode} onChange={(p,m,v,changed)=>saveAppearance(p as PaletteName,m as ThemeMode,v as MotionMode,changed)} shared={shared}/>;
   const moneyReviews=<>
     {supplierBill&&<SupplierPayment key={supplierBill.expense.id} expense={supplierBill.expense} event={rec.entryContext||e!} busy={busy} onCancel={()=>setSupplierBill(null)} onSave={async entity=>{if(await send('expense',{entity,revision:supplierBill.revision})){setNotice('Payment saved.');celebrateSave('Payment saved.','payment');return true}return false}}/>}
@@ -1092,7 +1101,6 @@ setPlannerDirty(false);setTemplateDirty(false);
         )}
         {loaded && (
           <>
-            {space==='money'&&!shared&&spaceRecords.length>0&&<label className="money-mobile-group"><span className="sr-only">Current space</span><select aria-label="Choose a Money space" value={rec.id} onChange={e=>choose(e.target.value)}>{spaceRecords.map(r=><option key={r.id} value={r.id}>{r.data.name}</option>)}</select></label>}
             <div className="topline">
               <div>
                 {space!=="trip"&&<p className="eyebrow">
@@ -1168,7 +1176,7 @@ setPlannerDirty(false);setTemplateDirty(false);
             )}
             {space==="trip"&&(e?.kind!=="trip"||rec?.personal&&!rec.planning)&&<TripLanding records={records} onChoose={choose}/>}
             {space==="money"&&tab!=="Dashboard"&&e?.kind==="trip"&&canViewGroup&&!creating&&!settings&&<SpaceBridge event={e} space="money" onOpen={()=>switchSpace('trip')}/>}
-            {space==="money"&&["More","Tools"].includes(tab)&&<MoneyMore allowed={destinations} onNavigate={navigate}/>}{tab==="People & Access"&&rec?.owner&&<PeopleAccess key={rec.id} record={rec} onAction={send}/>}
+            {space==="money"&&["More","Tools"].includes(tab)&&<MoneyMore allowed={destinations} onNavigate={navigate}/>}{tab==="People & Access"&&rec?.owner&&<PeopleAccess key={rec.id} record={rec} onAction={send} onMemberPreview={e?.kind==='trip'&&allowedTrip(rec).includes('Simple itinerary')?()=>navigate('Simple itinerary'):undefined}/>}
             {tab==="History"&&rec&&<ChangeHistory key={rec.id} record={rec} onAction={send} user={user} initialOpen/>}
 
             {tab === "My spending" && <details className="focus-analytics"><summary>Across all spaces</summary>{spendingOverview()}</details>}
@@ -1368,7 +1376,7 @@ setPlannerDirty(false);setTemplateDirty(false);
             )}
             {e && !creating && !settings && (
               <>
-                {tab === "Dashboard" && canViewGroup && <MoneyHome key={rec.id} onSettle={direction=>{navigate('Settlement');setSettlementDirection('all');setSettlementScope(isMember?'mine':'everyone')}} trips={records.filter(r=>!r.directoryOnly&&r.data.kind==='trip').map(r=>({id:r.id,name:r.data.name,start:r.data.start}))} onTrip={id=>{selectSpace('trip');choose(id)}} event={e} person={hasPersonalAccess?me:undefined} onNavigate={navigate} onExpense={expense=>{setFocusExpense(expense);navigate('Expenses')}} charts={homeCharts()}/>}
+                {tab === "Dashboard" && canViewGroup && <MoneyHome key={rec.id} onSettle={direction=>navigate('Settlement',direction)} trips={records.filter(r=>!r.directoryOnly&&r.data.kind==='trip').map(r=>({id:r.id,name:r.data.name,start:r.data.start}))} onTrip={id=>{selectSpace('trip');choose(id)}} event={e} person={hasPersonalAccess?me:undefined} onNavigate={navigate} onExpense={expense=>{setFocusExpense(expense);navigate('Expenses')}} charts={homeCharts()}/>}
                 {tab==='Dashboard'&&canViewGroup&&e.kind==='trip'&&<SpaceBridge event={e} space="money" onOpen={()=>switchSpace('trip')}/>}
                 {tab==='Dashboard'&&canViewGroup&&e.kind==='trip'&&<details className="money-funding-summary"><summary>Trip funding · linked plan estimates</summary><TravelFunding event={e}/></details>}
                 {bill && (
@@ -1382,8 +1390,8 @@ setPlannerDirty(false);setTemplateDirty(false);
                   /></DialogContent></Dialog>
                 )}
                 {isTripSection(tab) && canViewTrip && e.kind === "trip" && (
-                  <>{tab==='Simple itinerary'&&<SimpleItinerary key={rec.id} group={rec.id} event={e} initialDay={plannerSelection.day} onDayChange={day=>setPlannerSelection(s=>({...s,day}))} canCopyLink={rec.owner||can('plan')}/ >}{tab==='Trip More'&&!shared&&<TripMore allowed={destinations} onNavigate={navigate}/ >}{tab==='Trip tools'&&!shared&&can('plan')&&<TripTools key={rec.id+':'+toolsEpoch} group={rec.id} event={e} revision={rec.revision} session={authenticatedSession} canPlan={can('plan')} canPreferences={rec.owner||!!rec.person} busy={busy} disabled={!!(bill||activity||plannerDirty)} onDirty={setToolsDirty} onBegin={()=>setError('')} saveError={error} onRefresh={()=>load(true).then(Boolean)} onBulk={(entity,revision)=>send('planBulk',{entity,revision:revision??rec.revision}).then(Boolean)} onApply={async(activities,revision)=>!!(await send('planBatch',{entity:{activities},revision}))}/ >}{['Trip Plan','Itinerary','Checklist'].includes(tab)&&can('plan')&&<TripPlanner section={tab==='Trip Plan'?'Overview':tab} onDayChange={day=>setPlannerSelection(s=>({...s,day}))} initialDay={plannerSelection.day} initialType={plannerSelection.type} initialMode={plannerSelection.mode} onSectionChange={(v,day,type)=>{setPlannerSelection({day:day||'',type:type||'All',mode:v==='Bookings'?'bookings':'day'});navigate(v==='Overview'?'Trip Plan':v==='Bookings'?'Itinerary':v)}} key={rec.id+tab+jumpEpoch} event={e} busy={busy} canPlan={can("plan")} canExpense={can("addExpense")} draft={activity} setDraft={value=>{if(!value&&localScope&&activity)removeDraft(localScope,"plan",activity.id);setActivity(value)}} onDirty={setPlannerDirty}
-                    saveError={error} onReviewLatest={reviewLatestPlan} overviewPerson={hasPersonalAccess?me:undefined} overviewCharts={rec.personal?undefined:homeCharts()} onOverviewNavigate={navigate} onOverviewExpense={expense=>{setFocusExpense(expense);navigate("Expenses")}} showFinancial={!rec.personal} onBegin={()=>{setError("");setDraftRevision(rec.revision)}}
+                  <>{tab==='Simple itinerary'&&<SimpleItinerary key={rec.id} group={rec.id} event={e} initialDay={plannerSelection.day} onDayChange={day=>setPlannerSelection(s=>({...s,day}))} canCopyLink={rec.owner||can('plan')}/ >}{tab==='Trip More'&&!shared&&<TripMore allowed={rec.owner?destinations.filter(tab=>tab!=="Simple itinerary"):destinations} onNavigate={navigate}/ >}{tab==='Trip tools'&&!shared&&can('plan')&&<TripTools key={rec.id+':'+toolsEpoch} group={rec.id} event={e} revision={rec.revision} session={authenticatedSession} canPlan={can('plan')} canPreferences={rec.owner||!!rec.person} busy={busy} disabled={!!(bill||activity||plannerDirty)} onDirty={setToolsDirty} onBegin={()=>setError('')} saveError={error} onRefresh={()=>load(true).then(Boolean)} onBulk={(entity,revision)=>send('planBulk',{entity,revision:revision??rec.revision}).then(Boolean)} onApply={async(activities,revision)=>!!(await send('planBatch',{entity:{activities},revision}))}/ >}{['Trip Plan','Itinerary','Checklist'].includes(tab)&&can('plan')&&<TripPlanner section={tab==='Trip Plan'?'Overview':tab} onDayChange={day=>setPlannerSelection(s=>({...s,day}))} initialDay={plannerSelection.day} initialType={plannerSelection.type} initialMode={plannerSelection.mode} onSectionChange={(v,day,type)=>{setPlannerSelection({day:day||'',type:type||'All',mode:v==='Bookings'?'bookings':'day'});navigate(v==='Overview'?'Trip Plan':v==='Bookings'?'Itinerary':v)}} key={rec.id+tab+jumpEpoch} event={e} busy={busy} canPlan={can("plan")} canExpense={can("addExpense")} draft={activity} setDraft={value=>{if(!value&&localScope&&activity)removeDraft(localScope,"plan",activity.id);setActivity(value)}} onDirty={setPlannerDirty}
+                    saveError={error} onReviewLatest={reviewLatestPlan} overviewPerson={hasPersonalAccess?me:undefined} overviewCharts={rec.personal?undefined:homeCharts()} onOverviewNavigate={navigate} onOverviewExpense={expense=>{setFocusExpense(expense);navigate("Expenses")}} showFinancial={!rec.personal} onOverviewSettle={direction=>navigate("Settlement",direction)} onBegin={()=>{setError("");setDraftRevision(rec.revision)}}
                     onSave={async entity=>!!(await send("activity",{entity,revision:draftRevision}))}
                     onAction={(action,entity)=>send(action,{entity})}
                     onDelete={id=>ask("Remove this plan?","Linked expenses remain in your ledger.","deleteActivity",id)}
@@ -1399,8 +1407,8 @@ setPlannerDirty(false);setTemplateDirty(false);
                         <p>In {e.name}</p><section className="stats personal-stats">
                           <button className="stat featured interactive-stat" onClick={()=>document.querySelector(".personal-activity")?.scrollIntoView({behavior:"smooth"})}><span><Receipt size={17}/> Total consumed</span><strong>{fmt(filtered.reduce((s,b)=>s+(billCalc(b).consumed[me]||0),0))}</strong><small>Open personal expense details →</small></button>
                           <button className="stat interactive-stat" onClick={()=>document.querySelector(".personal-activity")?.scrollIntoView({behavior:"smooth"})}><span><Wallet size={17}/> Actually paid</span><strong>{fmt(filtered.reduce((s,b)=>s+(billCalc(b).paid[me]||0),0))}</strong><small>Review expenses paid upfront →</small></button>
-                          <button className="stat interactive-stat" onClick={()=>{setSettlementDirection('all');setSettlementScope(isMember?'mine':'everyone');setTab("Settlement")}}><span><HandCoins size={17}/> You owe · this space</span><strong>{fmt(sum!.transfers.filter(t=>t.from===me).reduce((s,t)=>s+t.amount,0))}</strong><small>Open My Settlement →</small></button>
-                          <button className="stat interactive-stat" onClick={()=>{setSettlementDirection('all');setSettlementScope(isMember?'mine':'everyone');setTab("Settlement")}}><span><UserRound size={17}/> You're owed · this space</span><strong>{fmt(sum!.transfers.filter(t=>t.to===me).reduce((s,t)=>s+t.amount,0))}</strong><small>Open My Settlement →</small></button>
+                          <button className="stat interactive-stat" onClick={()=>navigate("Settlement","owe")}><span><HandCoins size={17}/> You owe · this space</span><strong>{fmt(sum!.transfers.filter(t=>t.from===me).reduce((s,t)=>s+t.amount,0))}</strong><small>Open My Settlement →</small></button>
+                          <button className="stat interactive-stat" onClick={()=>navigate("Settlement","owed")}><span><UserRound size={17}/> You're owed · this space</span><strong>{fmt(sum!.transfers.filter(t=>t.to===me).reduce((s,t)=>s+t.amount,0))}</strong><small>Open My Settlement →</small></button>
                         </section>
 <details className='focus-analytics'><summary>Spending insights · charts</summary><FocusSections label='Personal spending insights' sections={[{id:'insight-0',label:'Spending mix',render:()=> <div className='panel'><h2 className='card-title'><ChartPie size={20}/>My spending mix</h2>{donut(true)}</div>},{id:'insight-1',label:'Daily spending',render:()=> <div className='panel'><h2 className='card-title'><ChartColumn size={20}/>My daily spending</h2>{bars("date", true)}</div>},{id:'insight-2',label:'Top merchants',render:()=> <div className='panel'><h2 className='card-title'><Store size={20}/>My top merchants</h2>{bars("merchant", true)}</div>}]}/></details>
                       </>
@@ -1422,19 +1430,20 @@ setPlannerDirty(false);setTemplateDirty(false);
                     <div className="settlement-hero">
                       <div>
                         <p className="eyebrow">{settlementScope === "mine" ? "MY SETTLEMENT" : "Payments to settle"}</p>
-                        <h2>{visibleTransfers.length ? `${visibleTransfers.length} payment${visibleTransfers.length > 1 ? "s" : ""} remaining · ${fmt(visibleTransfers.reduce((total,p)=>total+p.amount,0))} left to settle` : settlementReviews.length ? "Check recorded payments" : settlementScope === "mine" ? settlementDirection==='owe'?"You have no payments to make.":settlementDirection==='owed'?"No one owes you a payment.":`${name(me)} has nothing left to settle.` : "Everyone is settled."}</h2>
+                        <h2>{settlementCount ? `${settlementCount} payment${settlementCount > 1 ? "s" : ""} remaining · ${fmt(settlementAmount)} left to settle` : settlementBillFilter ? "No payments for this bill" : settlementReviews.length ? "Check recorded payments" : settlementScope === "mine" ? settlementDirection==='owe'?"You have no payments to make.":settlementDirection==='owed'?"No one owes you a payment.":`${name(me)} has nothing left to settle.` : "Everyone is settled."}</h2>
+                        {settlementBillFilter&&<button type="button" className="text-button" onClick={()=>setSettlementBillFilter("")}>Clear bill filter</button>}
                         <p className={visibleTransfers.length?"settlement-summary-note":""}>{visibleTransfers.length ? "" : settlementReviews.length ? "Check the recorded payments below before paying again." : "Amounts update when expenses change."}</p>
                       </div>
 
                     </div>
-                    {!isMember&&<p className="settlement-everyone-label">Everyone</p>}
+                    {!isMember&&<div className="settlement-scope-row"><p className="settlement-everyone-label">{settlementScope==="everyone"?"Everyone":settlementDirection==="owe"?"You owe":"You're owed"}</p>{settlementScope==="mine"&&<button className="text-button" onClick={()=>navigate("Settlement")}>View everyone</button>}</div>}
                     {sum!.calculations.some(c=>(settlementScope==='everyone'||c.from===me||c.to===me)&&(c.unappliedForward||c.unappliedReverse))&&<section className="panel"><h3>Payments to check</h3><p>A recorded payment no longer matches its original bill. It hasn't reduced a newer bill. Check it before paying again.</p>{sum!.calculations.filter(c=>(settlementScope==='everyone'||c.from===me||c.to===me)&&(c.unappliedForward||c.unappliedReverse)).map(c=><SettlementCalculation key={JSON.stringify([c.from,c.to])} calculation={c} currency={e.settlement}/>)}</section>}
 <div className="settlement-layout">
                     <div className="panel settlement-current">
-                      <SettlementPayments selfPerson={rec.person} tools={<>{rec.person&&!visibleTransfers.some(t=>t.to===rec.person)&&<PayoutDetails group={rec.id} person={rec.person} event={e} session={authenticatedSession} editable/>}
+                      <SettlementPayments billFilter={settlementBillFilter} onBillFilter={setSettlementBillFilter} selfPerson={rec.person} tools={<>{rec.person&&!visibleTransfers.some(t=>t.to===rec.person)&&<PayoutDetails group={rec.id} person={rec.person} event={e} session={authenticatedSession} editable/>}
                       <button className="secondary" aria-label="Prepare WhatsApp summary" onClick={() => whatsapp(shareText())}><Bell size={17}/><span className="settlement-share-desktop">Prepare WhatsApp summary</span><span className="settlement-share-mobile">Share</span></button>
                     
-                    {(rec.owner||can('export'))&&<SettlementExport event={e} transfers={visibleTransfers} reviewPairs={sum!.calculations} person={settlementScope==="mine"?me:undefined}/>}
+                    {(rec.owner||can('export'))&&<SettlementExport billId={settlementBillFilter} event={e} transfers={visibleTransfers} reviewPairs={sum!.calculations} person={settlementScope==="mine"?me:undefined}/>}
                     {!shared && <details className="panel cross-group-summary cross-group-compact" aria-label="Payments across Trip and Money" onToggle={event=>{if(event.currentTarget.open&&!allGroupsLoaded)loadAcrossGroups()}}>
                       <summary><Wallet size={18}/><b>Across all spaces</b>{!allGroupsLoaded&&<span>Open to load totals</span>}{allGroupsLoaded&&<small>{crossGroupBalances.length} spaces</small>}</summary><div className="cross-space-body">
                       {!allGroupsLoaded?<p><button className="secondary" disabled={allGroupsBusy} onClick={loadAcrossGroups}>{allGroupsBusy?'Loading totals…':'Load totals'}</button></p>:crossGroupTotals.length ? <>
@@ -1443,7 +1452,7 @@ setPlannerDirty(false);setTemplateDirty(false);
                       </> : <p className="muted">Choose your name in each Trip or Money space to see your totals.</p>}
                       {allGroupsLoaded&&unselectedOwnerGroups>0&&<details className="cross-space-warning"><summary>Incomplete total · {unselectedOwnerGroups} spaces excluded</summary><p>Confirm your own member in Profile for: {records.filter(r=>!r.person).map(r=>r.data.name).join(', ')}.</p></details>}</div>
                     </details>}
-                    </>} person={settlementScope==='mine'?me:undefined} onSelect={t=>setSelectedSettlement(JSON.stringify([t.from,t.to]))} owner={rec.owner} key={rec.id+settlementScope} event={e} group={rec.id} revision={rec.revision} session={authenticatedSession} transfers={visibleTransfers} claims={sum!.claims} calculations={sum!.calculations} canRecord={can('settle')} disabled={busy} onRemind={(t,b)=>whatsapp(`${e.name}${b?' · '+b.title:''}\n${finalDueLines([t],name,fmt)}\nPlease check the shared event for the current balance.`)} onRefresh={async()=>{const ok=await load(true);return ok?groupMemory.current.get(rec.id)?.record||false:false}} payout={to=>!shared?<PayoutDetails group={rec.id} person={to} event={e} session={authenticatedSession} editable={to===rec.person}/>:null}/>
+                    </>} person={settlementScope==='mine'?me:undefined} onSelect={t=>setSelectedSettlement(JSON.stringify([t.from,t.to]))} owner={rec.owner} key={rec.id+settlementScope+settlementDirection} event={e} group={rec.id} revision={rec.revision} session={authenticatedSession} transfers={visibleTransfers} claims={sum!.claims} calculations={sum!.calculations} canRecord={can('settle')} disabled={busy} onRemind={(t,b)=>whatsapp(`${e.name}${b?' · '+b.title:''}\n${finalDueLines([t],name,fmt)}\nPlease check the shared event for the current balance.`)} onRefresh={async()=>{const ok=await load(true);return ok?groupMemory.current.get(rec.id)?.record||false:false}} payout={to=>!shared?<PayoutDetails group={rec.id} person={to} event={e} session={authenticatedSession} editable={to===rec.person}/>:null}/>
 
                     </div>
                     <div className="panel settlement-side">

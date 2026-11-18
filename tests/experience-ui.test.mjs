@@ -251,10 +251,10 @@ test('Trip tools are collapsed with task descriptions and preserve authorization
  const {TripTools}=await vite.ssrLoadModule('/app/trip-tools.tsx');const e=normalize({name:'Trip',people:['A'],bills:[],payments:[]});
  const props={group:'g',event:e,revision:0,session:'',canPlan:true,canPreferences:true,busy:false,disabled:false,onApply:async()=>true,onDirty(){},onBegin(){},onBulk:async()=>true};
  const html=renderToStaticMarkup(React.createElement(TripTools,props));assert.match(html,/<details class="trip-tools-menu"><summary>/);assert.doesNotMatch(html,/<details open|mobile-trip-dock|Travel shortcuts|\+ Plan/);
- for(const name of ['Today &amp; next stop','Booking references','Shift plans','Calendar','Plan library','Private preferences','Offline pack'])assert.ok(html.includes(name),name);
- assert.match(html,/Flight \/ hotel numbers and booking links/);assert.match(html,/departure times and directions/);
+ for(const name of ['Shift plans','Calendar','Plan library','Private preferences','Offline pack'])assert.ok(html.includes(name),name);
+ assert.doesNotMatch(html,/Today &amp; next stop|Booking references/);
  const limited=renderToStaticMarkup(React.createElement(TripTools,{...props,canPreferences:false,canPlan:false}));assert.doesNotMatch(limited,/Private preferences|Shift plans/);
- const locked=renderToStaticMarkup(React.createElement(TripTools,{...props,disabled:true}));assert.equal((locked.match(/class="trip-tool-launch" disabled=""/g)||[]).length,7);
+ const locked=renderToStaticMarkup(React.createElement(TripTools,{...props,disabled:true}));assert.equal((locked.match(/class="trip-tool-launch" disabled=""/g)||[]).length,5);
 });
 
 test('New Trip creation is above trip context, separate from plan additions, and guarded against unsaved input',()=>{
