@@ -132,9 +132,9 @@ test('Overview and both itineraries agree on the trip date around midnight and p
    React.createElement(TripPlanner,{event:e,section:'Itinerary',busy:false,canPlan:false,canExpense:false,draft:null,onDirty:()=>{}})
   ));
   assert.match(document.querySelector('.trip-countdown').textContent,/Day 1 of 2/);
-  assert.match(document.querySelector('.plan-day-header h2').textContent,/17 Nov/);
+  assert.match(document.querySelector('.plan-day-tabs button[aria-pressed=true]').textContent,/17 Nov/);
   assert.match(document.querySelector('.simple-itinerary [aria-pressed=true]').textContent,/^17Tue$/);
   await click(document.querySelector('.plan-day-tabs button:nth-child(2)'));
-  assert.match(document.querySelector('.plan-day-header h2').textContent,/18 Nov/);
+  assert.match(document.querySelector('.plan-day-tabs button[aria-pressed=true]').textContent,/18 Nov/);
  }finally{Date.now=originalNow}
 });

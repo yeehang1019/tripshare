@@ -47,6 +47,4 @@
 @media(max-width:1023px){
  .itinerary-filter-toggle.secondary{display:inline-flex;min-height:44px;margin-inline-start:auto}
  .itinerary-filters[data-expanded=false]{display:none}
- .trip-planner .plan-day-header{padding-block:12px}
- .trip-planner .plan-day-header .plan-money{display:flex;flex-wrap:wrap;gap:4px 12px}
 }
