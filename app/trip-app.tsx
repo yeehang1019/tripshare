@@ -85,7 +85,9 @@ import {
   unit,
   allowed,
 } from "@/lib/ledger";
-import { Pick, Field, Amount, Check, People } from "./trip-controls";
+import { Pick, Field, Amount, Check, People, RateInput } from "./trip-controls";
+import { usableRate, formatRate, chartSlices, OTHER_CATEGORIES } from "@/lib/amount-expression";
+import { validZone } from "@/lib/plan-time";
 import {GroupCheckpoints} from "./group-checkpoints";
 import SettlementCalculation from "./settlement-calculation";
 import SettlementPayments from "./settlement-payments";
@@ -642,7 +644,7 @@ setPlannerDirty(false);setTemplateDirty(false);
     const heading = isMember
       ? `${name(me)}'s settlement`
       : `Settlement`;
-    return `${e.name}\n${heading}\n${outstandingText(outstandingSummary(e,visibleTransfers.map(t=>({...t,fromName:name(t.from),toName:name(t.to)})),{billId:settlementBillFilter},sum?.calculations)) || "No outstanding balance"}${!isMember && accessInfo.shares[0] ? "\n\nView details: " + viewLink(accessInfo.shares[0].token) : shared ? "\n\nView details: " + window.location.href : ""}`;
+    return `${e.name}\n${heading}\n${outstandingText(outstandingSummary(e,visibleTransfers.map(t=>({...t,fromName:name(t.from),toName:name(t.to)})),{billId:settlementBillFilter,person:settlementScope==='mine'||isMember?me:undefined},sum?.calculations)) || "No outstanding balance"}${!isMember && accessInfo.shares[0] ? "\n\nView details: " + viewLink(accessInfo.shares[0].token) : shared ? "\n\nView details: " + window.location.href : ""}`;
   }
   function download(text: string, type: string, filename: string) {
     const url = URL.createObjectURL(new Blob([text], { type })),
@@ -715,9 +717,10 @@ setPlannerDirty(false);setTemplateDirty(false);
         (!merchant ||
           b.merchant.toLowerCase().includes(merchant.toLowerCase())),
     ) || [];
-  function bars(key: "category" | "merchant" | "date", personal = false) {
+  // Home charts pass all bills; Expenses/My spending views pass their filtered list.
+  function bars(key: "category" | "merchant" | "date", personal = false, source = filtered) {
     const data: Record<string, number> = {};
-    filtered.forEach((b) => {
+    source.forEach((b) => {
       const c = billCalc(b);
       data[b[key]] =
         (data[b[key]] || 0) + (personal ? c.consumed[me] || 0 : c.total);
@@ -758,15 +761,15 @@ setPlannerDirty(false);setTemplateDirty(false);
       </div>
     );
   }
-  function donut(personalOnly = false) {
+  function donut(personalOnly = false, source = filtered) {
     const colors = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)"];
     const data: Record<string, number> = {};
-    filtered.forEach((bill) => {
+    source.forEach((bill) => {
       const result = billCalc(bill);
       const value = personalOnly ? result.consumed[me] || 0 : result.total;
       data[bill.category] = (data[bill.category] || 0) + value;
     });
-    const entries = Object.entries(data).sort((a, b) => b[1] - a[1]);
+    const entries = chartSlices(data);
     const total = entries.reduce((sum, [, value]) => sum + value, 0);
     let cursor = 0;
     const gradient = entries.map(([, value], index) => {
@@ -778,7 +781,7 @@ setPlannerDirty(false);setTemplateDirty(false);
       <div className="donut-chart" style={{ background: total ? `conic-gradient(${gradient})` : "var(--muted)" }}>
         <div><b>{fmt(total)}</b><small>Total</small></div>
       </div>
-      <div className="donut-legend">{entries.slice(0,5).map(([label,value],index)=><button key={label} onClick={()=>{setCat(label);setTab(personalOnly?"My spending":"Expenses")}}><i style={{background:colors[index%colors.length]}}/><span>{label}</span><b>{fmt(value)}</b></button>)}</div>
+      <div className="donut-legend">{entries.map(([label,value],index)=><button key={label} onClick={()=>{setCat(label===OTHER_CATEGORIES?"All":label);setTab(personalOnly?"My spending":"Expenses")}}><i style={{background:colors[index%colors.length]}}/><span>{label}</span><b>{fmt(value)}</b></button>)}</div>
     </div>;
   }
   const ask = (
@@ -857,7 +860,7 @@ setPlannerDirty(false);setTemplateDirty(false);
           <p>{personalOnly ? "My final consumption" : "Settlement value"} <b>{fmt(personalOnly ? c.consumed[me] || 0 : c.total)}</b></p>
           {b.currency !== e!.settlement && (
             <p className="muted">
-              Saved rate: 1 {b.currency} = {b.rate} {e!.settlement}
+              Saved rate: 1 {b.currency} = {formatRate(b.rate)} {e!.settlement}
               {b.actual !== null ? " · Actual card charge used" : ""}
             </p>
           )}
@@ -1004,7 +1007,7 @@ setPlannerDirty(false);setTemplateDirty(false);
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>);
-  function homeCharts(){return <HomeCharts owner={!!rec.owner} category={donut(false)} daily={bars('date',false)} categoryBars={bars('category',false)} upfront={()=><div className="bars">{Object.entries(sum!.people).map(([id,p])=><p className="split-row" key={id}><span>{name(id)}</span><b>{fmt(p.paid)}</b></p>)}</div>}/>}
+  function homeCharts(){const allBills=e!.expenses.filter(b=>!b.deleted);return <HomeCharts owner={!!rec.owner} category={donut(false,allBills)} daily={bars('date',false,allBills)} categoryBars={bars('category',false,allBills)} upfront={()=><div className="bars">{Object.entries(sum!.people).map(([id,p])=><p className="split-row" key={id}><span>{name(id)}</span><b>{fmt(p.paid)}</b></p>)}</div>}/>}
 
   const notificationBell=!shared?<NotificationBell session={authenticatedSession} workspace={workspace} onGroup={choose}/>:null;
   const invitationFlow=<div className="invitation-flow">{invitePrompt&&<section className="panel invitation-prompt"><h2>Join your friends</h2><p>Join using the name selected for you. You'll see your own spending and payments.</p><button className="primary" disabled={busy} onClick={async()=>{if(await send("acceptInvite",{token:inviteToken})){setInvitePrompt(false);setInviteToken("");setNotice("Joined.")}}}>Accept as {user}</button><button className="secondary" onClick={()=>{setInvitePrompt(false);setInviteToken("")}}>Dismiss</button></section>}{needsPin && (
@@ -1249,11 +1252,8 @@ setPlannerDirty(false);setTemplateDirty(false);
                             value={s.currency}
                             options={currencies}
                             onChange={(currency) =>
-                              setSettings({
-                                ...s,
-                                currency,
-                                rates: { ...s.rates, [currency]: 1 },
-                              })
+                              // Keep any rate already saved; never store a 1:1 placeholder.
+                              setSettings({ ...s, currency })
                             }
                           />
                         </Field>
@@ -1275,20 +1275,20 @@ setPlannerDirty(false);setTemplateDirty(false);
                           <Field
                             label={`1 ${s.currency} = how many ${s.settlement}?`}
                           >
-                            <input
-                              type="number"
-                              step="any"
-                              min="0.00000001"
-                              value={s.rates[s.currency] || 1}
-                              onChange={(v) =>
-                                setSettings({
-                                  ...s,
-                                  rates: {
-                                    ...s.rates,
-                                    [s.currency]: Number(v.target.value),
-                                  },
-                                })
-                              }
+                            <RateInput
+                              value={usableRate(s.rates[s.currency])}
+                              blank={!usableRate(s.rates[s.currency])}
+                              onChange={(rate) => setSettings({ ...s, rates: { ...s.rates, [s.currency]: rate } })}
+                            />
+                          </Field>
+                        )}
+                        {s.currency !== s.settlement && (
+                          <Field label={`or: 1 ${s.settlement} = how many ${s.currency}?`}>
+                            <RateInput
+                              placeholder="e.g. 7.5"
+                              value={usableRate(s.rates[s.currency]) ? 1 / usableRate(s.rates[s.currency]) : 0}
+                              blank={!usableRate(s.rates[s.currency])}
+                              onChange={(inverse) => setSettings({ ...s, rates: { ...s.rates, [s.currency]: 1 / inverse } })}
                             />
                           </Field>
                         )}
@@ -1402,7 +1402,7 @@ setPlannerDirty(false);setTemplateDirty(false);
                 )}
                 {((tab === "Expenses" && canViewGroup) || (tab === "My spending" && hasPersonalAccess)) && (
                   <>
-                    {tab==='Expenses'?(()=>{const [from,to]=monthBounds(),rows=e.expenses.filter(b=>!b.deleted&&b.date>=from&&b.date<=to);return <section className="expense-month-summary" aria-label="This month spending"><h2>Expenses</h2><span>This month <b>{fmt(rows.reduce((n,b)=>n+billCalc(b).total,0))}</b></span><span>My share <b>{hasPersonalAccess?fmt(rows.reduce((n,b)=>n+(billCalc(b).consumed[me]||0),0)):'Confirm your member'}</b></span></section>})():<section className="expense-overview"><div><h2>{name(me)}</h2><p>{filtered.filter(b=>(billCalc(b).consumed[me]||0)>0).length} records · {fmt(filtered.reduce((n,b)=>n+(billCalc(b).consumed[me]||0),0))}</p></div></section>}
+                    {tab==='Expenses'?(()=>{const [from,to]=monthBounds(new Date(),validZone(e.timeZone)?e.timeZone:'Asia/Kuala_Lumpur'),rows=e.expenses.filter(b=>!b.deleted&&b.date>=from&&b.date<=to);return <section className="expense-month-summary" aria-label="This month spending"><h2>Expenses</h2><span>This month <b>{fmt(rows.reduce((n,b)=>n+billCalc(b).total,0))}</b></span><span>My share <b>{hasPersonalAccess?fmt(rows.reduce((n,b)=>n+(billCalc(b).consumed[me]||0),0)):'Confirm your member'}</b></span></section>})():<section className="expense-overview"><div><h2>{name(me)}</h2><p>{filtered.filter(b=>(billCalc(b).consumed[me]||0)>0).length} records · {fmt(filtered.reduce((n,b)=>n+(billCalc(b).consumed[me]||0),0))}</p></div></section>}
                     {activityFilter&&<div className="space-link-note activity-filter"><MapPinned size={16}/><span>Linked to {e.activities.find(a=>a.id===activityFilter)?.name||'a trip plan'}</span><button className="text-button" onClick={()=>switchSpace('trip',activityFilter)}>View plan</button><button className="text-button" onClick={()=>setActivityFilter('')}>Show all expenses</button></div>}
                     {tab==='Expenses'?<>                    <div className="expense-search"><Field label="Search expenses"><input placeholder="Search expenses…" value={merchant} onChange={event=>setMerchant(event.target.value)}/></Field></div><ExpenseFilterBar all={cat==='All'&&!start&&!end&&!expenseMine&&!payerFilter&&statusFilter==='All'&&!activityFilter} mine={expenseMine} thisMonth={start===monthBounds()[0]&&end===monthBounds()[1]} onAll={()=>{setCat('All');setStart('');setEnd('');setExpenseMine(false);setPayerFilter('');setStatusFilter('All');setActivityFilter('')}} onMine={()=>setExpenseMine(v=>!v)} onThisMonth={()=>{const [a,b]=monthBounds();setStart(a);setEnd(b)}} chips={[...(cat!=='All'?[{id:'category',label:cat,remove:()=>setCat('All')}]:[]),...(start?[{id:'from',label:'From '+start.split('-').reverse().join('/'),remove:()=>setStart('')}]:[]),...(end?[{id:'until',label:'Until '+end.split('-').reverse().join('/'),remove:()=>setEnd('')}]:[]),...(payerFilter?[{id:'payer',label:'Paid by '+name(payerFilter),remove:()=>setPayerFilter('')}]:[]),...(statusFilter!=='All'?[{id:'timing',label:statusFilter==='prepaid'?'Business paid in advance':statusFilter==='postpaid'?'Business unpaid':'Paid',remove:()=>setStatusFilter('All')}]:[]),...(activityFilter?[{id:'activity',label:'Trip activity',remove:()=>setActivityFilter('')}]:[])]}>{expenseFilters(false)}</ExpenseFilterBar><div className="expense-results"><span role="status">{filtered.length} {filtered.length===1?'expense':'expenses'}</span>{(merchant||expenseMine||cat!=='All'||start||end||payerFilter||statusFilter!=='All'||activityFilter)&&<button type="button" className="text-button" onClick={()=>{setMerchant('');setCat('All');setStart('');setEnd('');setExpenseMine(false);setPayerFilter('');setStatusFilter('All');setActivityFilter('')}}>Clear filters</button>}</div></>:expenseFilters(true)}
                     {tab === "My spending" && (

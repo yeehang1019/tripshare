@@ -4,7 +4,7 @@ import {MemberAvatar} from './member-avatar';
 import {SheetDragHandle} from './swipe-reveal';
 import {CopyError} from "./copy-feedback";
 import {userError} from '@/lib/ui-copy';
-import { useState,useMemo,useEffect,useId,useRef } from "react";
+import { useState,useMemo,useEffect,useId,useRef,useCallback } from "react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Event,
@@ -19,12 +19,13 @@ import {
   money,
   unit,
 } from "@/lib/ledger";
-import {repeatExpense} from '@/lib/ledger';
+import {repeatExpense,outstandingClaims} from '@/lib/ledger';
+import {formatRate,evenPercents,usableRate} from '@/lib/amount-expression';
 import {useDraftSave} from "./save-recovery";
 import {RefundFields} from "./refund-fields";
 import {PayLaterFields} from "./paylater-fields";
 import {SupplierInstallments} from "./supplier-installments";
-import { Pick, Field, Amount, Check, People } from "./trip-controls";
+import { Pick, Field, Amount, Check, People, AmountIssues, RateInput } from "./trip-controls";
 import { UsersRound, Sparkles, ArrowRight, Utensils, Car, Ticket, ShoppingBag, ShoppingBasket, BedDouble, Receipt } from "lucide-react";
 export default function ExpenseEditor({
   event: e,
@@ -56,12 +57,21 @@ export default function ExpenseEditor({
   const chargeId=useId();
   const [b, set] = useState(initial),
     [confirmed, setConfirmed] = useState(false);
+  // Amount fields that still contain text we could not read block saving.
+  const [badAmounts, setBadAmounts] = useState<string[]>([]);
+  const reportAmount = useCallback((key: string, invalid: boolean) => setBadAmounts(list => invalid ? (list.includes(key) ? list : [...list, key]) : list.filter(x => x !== key)), []);
+  // A foreign currency without a saved space rate must not silently use 1:1.
+  const savedRate = (currency: string) => currency === e.settlement ? 1 : usableRate(e.rates[currency]);
+  const [rateConfirmed, setRateConfirmed] = useState(() => initial.currency === e.settlement || !!savedRate(initial.currency) || initial.actual !== null || (initial.rate > 0 && initial.rate !== 1) || e.expenses.some(x => x.id === initial.id));
   const localStatus=useDraftSave(draftScope,'expense',b,draftRevision,e.expenses.find(x=>x.id===initial.id)||null);
   useEffect(()=>{onDirty?.(JSON.stringify(b)!==JSON.stringify(initial));return()=>onDirty?.(false)},[b,initial]);
   const edit = e.expenses.some((x) => x.id === b.id);
   const update = (patch: Partial<Expense>) => {
     const next={...b,...patch};
     if(patch.paymentStatus&&patch.paymentStatus!=='paid')delete next.paidOn;
+    if(patch.currency!==undefined&&patch.currency!==b.currency)setRateConfirmed(patch.currency===e.settlement||!!savedRate(patch.currency));
+    else if(patch.rate!==undefined||(patch.actual!==undefined&&patch.actual!==null))setRateConfirmed(true);
+    else if(patch.actual===null&&b.actual!==null&&next.currency!==e.settlement&&next.rate===1&&!savedRate(next.currency))setRateConfirmed(false);
     onDirty?.(JSON.stringify(next)!==JSON.stringify(initial));
     set(next);
     setConfirmed(false);
@@ -85,6 +95,18 @@ export default function ExpenseEditor({
       }
     }
   }
+  // Preview only: the canonical ledger replays this single bill with no payments.
+  let billShares: { from: string; to: string; amount: number }[] | null = null;
+  if (c && c.settlementReady) {
+    try {
+      const pairs = new Map<string, { from: string; to: string; amount: number }>();
+      for (const claim of outstandingClaims({ ...e, expenses: [b], payments: [] })) {
+        const key = claim.from + "\u0000" + claim.to, row = pairs.get(key) || { from: claim.from, to: claim.to, amount: 0 };
+        row.amount += claim.amount; pairs.set(key, row);
+      }
+      billShares = [...pairs.values()].filter(t => t.amount > 0);
+    } catch { billShares = null; }
+  }
   const duplicateKeys=useMemo(()=>e.expenses.filter(x=>!x.deleted&&x.id!==initial.id).map(x=>{try{return {id:x.id,key:duplicateFingerprint(x,e.settlement)}}catch{return {id:x.id,key:''}}}),[e.expenses,e.settlement,initial.id]);
   const [duplicateApproved,setDuplicateApproved]=useState('');
   let fingerprint='';try{fingerprint=duplicateFingerprint(b,e.settlement)}catch{}
@@ -106,7 +128,10 @@ export default function ExpenseEditor({
     });
   };
   useEffect(()=>{if(edit||!initial.merchant||typeof document==='undefined'||matchMedia('(prefers-reduced-motion: reduce)').matches||document.documentElement.dataset.motionMode==='battery')return;const nodes=[...document.querySelectorAll<HTMLElement>('.expense-editor .hero-amount input,.expense-editor input[placeholder="Toll, 7-Eleven…"]')];const animations=nodes.map((node,i)=>node.animate([{filter:'brightness(1)'},{filter:'brightness(1.15)'},{filter:'brightness(1)'}],{duration:360,delay:i*35,easing:'linear(0,.1,.3,.52,.71,.85,.94,.985,1.006,1)'}));return()=>animations.forEach(a=>a.cancel())},[initial.id]);
+  const rateNeedsConfirm=b.currency!==e.settlement&&b.actual===null&&!rateConfirmed;
   const saveDisabled=busy ||
+            badAmounts.length>0 ||
+            rateNeedsConfirm ||
             (duplicates.length>0&&duplicateApproved!==fingerprint) ||
             !c ||
             !!error ||
@@ -114,8 +139,12 @@ export default function ExpenseEditor({
             (b.mode === "itemized" && b.receipt === null) ||
             (edit && !confirmed);
   const editorRoot=useRef<HTMLDivElement>(null);
-  const saveIssue=!b.merchant.trim()
+  const saveIssue=badAmounts.length
+    ? {message:'Fix the amount that could not be read.',target:'amount-input',action:'Go to amount'}
+    : !b.merchant.trim()
     ? {message:'Enter an expense name.',target:'name',action:'Go to name'}
+    : rateNeedsConfirm
+    ? {message:`Enter the ${b.currency} → ${e.settlement} exchange rate.`,target:'rate',action:'Go to exchange rate'}
     : b.mode==='itemized'&&b.receipt===null
       ? {message:'Enter the receipt total.',target:'receipt',action:'Go to receipt total'}
       : error
@@ -133,7 +162,7 @@ export default function ExpenseEditor({
     focusTarget?.focus({preventScroll:true});
   }
   return (
-    <div ref={editorRoot} className="entry-grid" onKeyDownCapture={event=>{if(event.key==="Escape"&&!event.defaultPrevented&&!event.nativeEvent.isComposing){event.preventDefault();event.stopPropagation();onCancel()}}}>
+    <AmountIssues.Provider value={reportAmount}><div ref={editorRoot} className="entry-grid" onKeyDownCapture={event=>{if(event.key==="Escape"&&!event.defaultPrevented&&!event.nativeEvent.isComposing){event.preventDefault();event.stopPropagation();onCancel()}}}>
       <SheetDragHandle onClose={onCancel}/><div className="editor-content-grid"><section className={`panel expense-editor ${b.mode}`}>
         <div className="editor-form-header"><div className="section-title">
           <h2>{edit ? "Edit expense" : "Add expense"}</h2>
@@ -158,7 +187,7 @@ export default function ExpenseEditor({
             <TabsTrigger value="itemized">Itemized bill</TabsTrigger>
           </TabsList>
         </Tabs>
-        <div className="hero-amount" data-save-target="receipt"><Field label={b.mode==='simple'?`Amount (${b.currency})`:`Receipt total (${b.currency})`}><Amount primary value={b.mode==='simple'?b.items[0].amount:b.receipt} currency={b.currency} onChange={amount=>b.mode==='simple'?item(0,{amount:amount||0}):update({receipt:amount})}/></Field></div></div>
+        <div className="hero-amount" data-save-target="receipt"><Field label={b.mode==='simple'?`Amount (${b.currency})`:`Receipt total (${b.currency})`}><Amount primary value={b.mode==='simple'?b.items[0].amount:b.receipt} currency={b.currency} onChange={amount=>b.mode==='simple'?item(0,{amount:amount||0}):update({receipt:amount})}/></Field>{b.currency!==e.settlement&&<p className="converted-hint" role="status">{rateNeedsConfirm?<>Enter the exchange rate under More options to see the {e.settlement} value.</>:c?<>≈ {money(c.total,e.settlement)} · 1 {b.currency} = {formatRate(b.rate)} {e.settlement}</>:null}</p>}</div></div>
         {localStatus&&<p className="muted" role="status">{localStatus}</p>}
 
         <details className="editor-quick-picks"><summary>Quick picks</summary>        {quickPicks}
@@ -310,9 +339,7 @@ export default function ExpenseEditor({
                     onChange={(split) =>
                       item(i, {
                         split: split as any,
-                        weights: it.people.map(() =>
-                          split === "percent" ? 100 / it.people.length : 1,
-                        ),
+                        weights: split === "percent" ? evenPercents(it.people.length) : it.people.map(() => 1),
                       })
                     }
                   />
@@ -363,6 +390,15 @@ export default function ExpenseEditor({
                   ))}
                 </div>
               )}
+              {(it.split === "percent" || it.split === "amount") && <SplitBalance
+                kind={it.split}
+                assigned={it.weights.slice(0, it.people.length).reduce((a, v) => a + (v || 0), 0)}
+                target={it.split === "percent" ? 100 : it.amount}
+                currency={b.currency}
+                lastName={name(it.people[it.people.length - 1])}
+                lastWeight={it.weights[it.people.length - 1] || 0}
+                onFill={(rest) => item(i, { weights: it.weights.map((w, j) => j === it.people.length - 1 ? fillWeight(it.split, it.weights.slice(0, j).reduce((a, v) => a + (v || 0), 0), (w || 0) + rest) : w) })}
+              />}
               <p className="muted">
                 Custom amounts allocate the price before discounts and charges.
                 Shares and percentages distribute all associated charges in the
@@ -384,7 +420,7 @@ export default function ExpenseEditor({
           </button>
         )}
         <section className="editor-category-section"><h3>Category</h3><div className="editor-category-chips" role="group" aria-label="Expense category">{categories.map(category=>{const Icon=({Food:Utensils,Transport:Car,Activity:Ticket,Shopping:ShoppingBag,Grocery:ShoppingBasket,Accommodation:BedDouble} as Record<string,typeof Receipt>)[category]||Receipt;return <button type="button" className="secondary" key={category} aria-pressed={b.category===category} onClick={()=>update({category})}><Icon size={20}/><span>{category}</span></button>})}</div></section>
-        <details className="advanced-options" open={(b.paymentStatus || 'paid') !== 'paid' || undefined}>
+        <details className="advanced-options" open={(b.paymentStatus || 'paid') !== 'paid' || rateNeedsConfirm || undefined}>
           <summary>More options <small>Currency, advance payments and refunds</small></summary><div className="fields">          <Field label="Currency">
             <Pick
               label="Currency"
@@ -401,15 +437,16 @@ export default function ExpenseEditor({
           </Field>
 </div>        {b.currency !== e.settlement && (
           <div className="fields">
+            <div data-save-target="rate" className="rate-pair">
             <Field label={`1 ${b.currency} = how many ${e.settlement}?`}>
-              <input
-                type="number"
-                min="0.00000001"
-                step="any"
-                value={b.rate}
-                onChange={(v) => update({ rate: Number(v.target.value) })}
-              />
+              <RateInput value={b.rate} blank={rateNeedsConfirm} onChange={(rate) => update({ rate })}/>
             </Field>
+            <Field label={`or: 1 ${e.settlement} = how many ${b.currency}?`}>
+              <RateInput value={b.rate ? 1 / b.rate : 0} blank={rateNeedsConfirm} placeholder="e.g. 7.5" onChange={(inverse) => update({ rate: 1 / inverse })}/>
+            </Field>
+            </div>
+            {!rateNeedsConfirm && c && <p className="muted rate-check" role="status">{money(c.cashTotal, b.currency)} ≈ <b>{money(c.total, e.settlement)}</b></p>}
+            {!rateNeedsConfirm && b.actual === null && savedRate(b.currency) > 0 && (b.rate / savedRate(b.currency) > 3 || savedRate(b.currency) / b.rate > 3) && <p className="message error rate-warning" role="alert">This rate is far from the space’s saved rate (1 {b.currency} = {formatRate(savedRate(b.currency))} {e.settlement}). Check it isn’t reversed.</p>}
             <Field label={`Actual card total (${e.settlement}) · optional`}>
               <Amount
                 value={b.actual}
@@ -705,11 +742,11 @@ export default function ExpenseEditor({
                 <b>{money(v, e.settlement)}</b>
               </div>
             ))}
-            {!b.supplierPayments && !b.treat && !b.voucherContribution && b.payers.length === 1 && (!b.paymentStatus || b.paymentStatus === 'paid') && (
+            {billShares && (
               <div className="live-result">
                 <b>Shares from this expense</b>
-                {Object.entries(c.responsible).filter(([p,v])=>p !== b.payers[0].person && v > 0).map(([p,v])=><p key={p}><span>{name(p)} → {name(b.payers[0].person)}</span><b>{money(v,e.settlement)}</b></p>)}
-                {!Object.entries(c.responsible).some(([p,v])=>p !== b.payers[0].person && v > 0) && <small>No friend repayment for this expense.</small>}
+                {billShares.map(t=><p key={t.from+'>'+t.to}><span>{name(t.from)} → {name(t.to)}</span><b>{money(t.amount,e.settlement)}</b></p>)}
+                {!billShares.length && <small>No friend repayment for this expense.</small>}
               </div>
             )}
             <hr />
@@ -740,6 +777,24 @@ export default function ExpenseEditor({
           {busy ? "Saving…" : edit ? "Save changes" : "Save expense"} {!busy && <ArrowRight size={18}/>}
         </button>
 </div>
+    </div></AmountIssues.Provider>
+  );
+}
+
+// The last person takes exactly what is left: 100 minus the others (percent), or whole minor units (amount).
+function fillWeight(kind: string, others: number, value: number) {
+  return kind === "percent" ? 100 - others : Math.round(value);
+}
+/** Live "assigned vs target" line for custom percentage / amount splits. */
+function SplitBalance({ kind, assigned, target, currency, lastName, lastWeight, onFill }: { kind: string; assigned: number; target: number; currency: string; lastName: string; lastWeight: number; onFill: (rest: number) => void }) {
+  // Same tolerance as the ledger check, so a ✓ here always means the split will save.
+  const rest = target - assigned;
+  const show = (v: number) => kind === "percent" ? `${Number(v.toFixed(4))}%` : money(v, currency);
+  const done = Math.abs(rest) < (kind === "percent" ? 1e-6 : 1);
+  return (
+    <div className={"split-balance" + (done ? " is-done" : " is-open")} role="status" aria-live="polite">
+      <span>Assigned {show(assigned)} of {show(target)}{done ? " ✓" : rest > 0 ? ` · ${show(rest)} left` : ` · ${show(-rest)} too much`}</span>
+      {!done && lastWeight + rest >= 0 && <button type="button" className="text-button" onClick={() => onFill(rest)}>{rest > 0 ? `Give rest to ${lastName}` : `Take from ${lastName}`}</button>}
     </div>
   );
 }

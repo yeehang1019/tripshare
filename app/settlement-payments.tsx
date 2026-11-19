@@ -15,7 +15,7 @@ import {useEffect,useMemo,useRef,useState,type ReactNode} from 'react';
 import {money,type Event,type DebtClaim,type PairCalculation} from '@/lib/ledger';
 import {payableSourceIndex,type PaymentBatch} from '@/lib/settlement-recording';
 import {Dialog,DialogContent,DialogTitle,DialogDescription} from '@/components/ui/dialog';
-import {Amount,Field} from './trip-controls';
+import {Amount,Field,AmountIssues} from './trip-controls';
 import Calculation from './settlement-calculation';
 
 type Transfer={from:string;to:string;amount:number};
@@ -87,12 +87,16 @@ export default function SettlementPayments({event:e,group,revision,session,perso
   }catch(err){setUncertain(true);setError("We couldn't confirm this payment was saved. Check it before recording it again.")}
   finally{lock.current=false;setWorking(false)}
  }
+ const [badAmounts,setBadAmounts]=useState<string[]>([]),[reportAmount]=useState(()=>(key:string,bad:boolean)=>setBadAmounts(list=>bad?(list.includes(key)?list:[...list,key]):list.filter(x=>x!==key)));
  const invalid=!!draft&&(!draft.batch.payments.length||draft.batch.payments.some(p=>{const available=(sources.get(pairKey(p))||[]).filter(b=>p.expenseIds.includes(b.id)).reduce((n,b)=>n+b.amount,0);return !p.expenseIds.length||!Number.isSafeInteger(p.amount)||p.amount<=0||p.amount>available||!p.date}));
  const activeIndex=draft?Math.max(0,draft.batch.payments.findIndex(p=>p.id===activePayment)):0;
  const multi=!!draft&&draft.batch.payments.length>1;
  const toolPanel=<details className="settlement-options ios-settlement-options" open={toolsTarget?true:undefined}><summary>Settlement options</summary><div className="settlement-option-rows">{transfers.length>0&&<div className="settlement-option-filter"><ListFilter size={20}/><Field label="Bill filter"><select value={filter} onChange={v=>{setFilter(v.target.value);setSelected([])}}><option value="">All unpaid bills</option>{filter&&!bills.some(b=>b.id===filter)&&<option value={filter}>Previously selected bill</option>}{bills.map(b=><option key={b.id} value={b.id}>{b.title} · {b.date.split('-').reverse().join('/')}</option>)}</select></Field></div>}{recipients.map(to=><details className="payment-payout-details" key={to}><summary><Wallet size={20}/><span>{to===selfPerson?"Your payment details":"Payment details for "+name(to)}</span></summary>{payout(to)}<button className="text-button" onClick={()=>copy(to)}>Copy payment list</button></details>)}{tools}</div></details>;
+ // One-person views show what they pay and what they receive separately; never one mixed sum.
+ const due=(t:Transfer)=>filter?selectedFinalDue(t,choices(t)):t.amount,payTotal=person?visible.filter(t=>t.from===person).reduce((n,t)=>n+due(t),0):0,receiveTotal=person?visible.filter(t=>t.to===person).reduce((n,t)=>n+due(t),0):0;
+ const visibleTotals=person&&payTotal>0&&receiveTotal>0?[{label:person===selfPerson?'You pay':name(person)+' pays',amount:payTotal},{label:person===selfPerson?'You receive':name(person)+' receives',amount:receiveTotal}]:person&&receiveTotal>0&&!payTotal?[{label:'Still to receive',amount:receiveTotal}]:[{label:'Still to pay',amount:visible.reduce((n,t)=>n+due(t),0)}];
  return <div className="settlement-compact-list">
-  {visible.length>0&&<details className="settlement-summary-details"><summary><span>Still to pay </span><strong>{fmt(visible.reduce((n,t)=>n+(filter?selectedFinalDue(t,choices(t)):t.amount),0))}</strong><ChevronDown size={16} aria-hidden="true"/></summary><section className="settlement-totals" aria-label="Total settlement"><h3>Total settlement</h3><dl>{visible.map(t=><div key={pairKey(t)}><dt>{name(t.from)} → {name(t.to)}</dt><dd>{fmt(filter?selectedFinalDue(t,choices(t)):t.amount)}</dd></div>)}</dl></section></details>}
+  {visible.length>0&&<details className="settlement-summary-details"><summary>{visibleTotals.map(x=><span className="settlement-total-part" key={x.label}><span>{x.label} </span><strong>{fmt(x.amount)}</strong></span>)}<ChevronDown size={16} aria-hidden="true"/></summary><section className="settlement-totals" aria-label="Total settlement"><h3>Total settlement</h3><dl>{visible.map(t=><div key={pairKey(t)}><dt>{name(t.from)} → {name(t.to)}</dt><dd>{fmt(filter?selectedFinalDue(t,choices(t)):t.amount)}</dd></div>)}</dl></section></details>}
  {canRecord&&transfers.length>0&&<div className="settlement-selection-toolbar"><button className="secondary" onClick={()=>{setBatchMode(v=>!v);setSelected([])}}>{batchMode?'Done selecting':'Select payments'}</button>{batchMode&&<><button className="text-button" onClick={()=>setSelected(visible.map(selectionKey))}>Select all</button><button className="primary" disabled={disabled||!chosen.length||chosen.length>100} onClick={()=>open(chosen)}>Record selected · {chosen.length}{chosen.length?' · '+fmt(total):''}</button></>}</div>}
   {undoVisible&&receipt&&!receipt.undone&&typeof document!=='undefined'&&createPortal(<div className="payment-undo-toast" role="status"><span>Payment recorded.</span><button className="secondary" disabled={working} onClick={()=>{setUndoVisible(false);setReceiptOpen(true);void submit('undoPaymentBatch')}}>Undo</button></div>,document.body)}
   {chosen.length>100&&<p role="alert">Select at most 100 payments per batch.</p>}
@@ -110,7 +114,7 @@ export default function SettlementPayments({event:e,group,revision,session,perso
   </details>)}
   {!visible.length&&<p>You have nothing left to pay for these bills.</p>}
   {toolsTarget?createPortal(toolPanel,toolsTarget):toolPanel}
-  {(draft||receipt&&receiptOpen)&&<Dialog open onOpenChange={v=>{if(!v)close()}}><DialogContent className={"settlement-record-dialog payment-refined "+(multi?"payment-batch":"payment-single")} onCloseAutoFocus={v=>v.preventDefault()} onInteractOutside={v=>v.preventDefault()} onEscapeKeyDown={v=>{if(working||uncertain)v.preventDefault()}} showCloseButton={!working&&!uncertain}>
+  {(draft||receipt&&receiptOpen)&&<AmountIssues.Provider value={reportAmount}><Dialog open onOpenChange={v=>{if(!v)close()}}><DialogContent className={"settlement-record-dialog payment-refined "+(multi?"payment-batch":"payment-single")} onCloseAutoFocus={v=>v.preventDefault()} onInteractOutside={v=>v.preventDefault()} onEscapeKeyDown={v=>{if(working||uncertain)v.preventDefault()}} showCloseButton={!working&&!uncertain}>
    <header><DialogTitle>{receipt?(receipt.undone?"Payments undone.":"Payments recorded."):(multi?'Record payments':'Record payment')}</DialogTitle><DialogDescription className="sr-only">{receipt?"Each payment stays in history.":"Review selected bills and payment amounts."}</DialogDescription></header>
    {error&&<p role="alert" className="message error"><CopyError value={error}/></p>}
    {needsReview&&!uncertain&&<p role="alert">The space changed. <button className="secondary" disabled={working} onClick={review}>Review latest amounts</button></p>}
@@ -134,7 +138,7 @@ export default function SettlementPayments({event:e,group,revision,session,perso
 
    {receipt&&<div role="status"><h3>{receipt.payments.length} payment{receipt.payments.length>1?'s':''} · {fmt(receipt.payments.reduce((n,p)=>n+p.amount,0))} {receipt.undone?'reversed':'recorded'}</h3>{receipt.payments.map(p=><div className="split-row" key={p.id}><span>{name(p.from)} → {name(p.to)}</span><b>{fmt(p.amount)} · {receipt.undone?'Reversed':'Saved'}</b></div>)}</div>}
    </div></div>
-   <footer>{uncertain?<button className="primary" disabled={working} onClick={()=>submit()}>{working?'Checking…':"Check payment"}</button>:draft?<><strong>{draft.batch.payments.length} payment{draft.batch.payments.length===1?'':'s'} · {fmt(draft.batch.payments.reduce((n,p)=>n+p.amount,0))}</strong><button className="primary" disabled={working||invalid||needsReview} onClick={()=>submit()}>{working?'Recording…':multi?'Confirm payments':'Confirm payment'}</button></>:receipt&&!receipt.undone&&<button className="secondary" disabled={working||needsReview} onClick={()=>submit('undoPaymentBatch')}>{working?'Reversing…':'Undo these payments'}</button>}<button className="secondary" disabled={working||uncertain} onClick={close}>{receipt?'Done':'Cancel'}</button></footer>
-  </DialogContent></Dialog>}
+   <footer>{uncertain?<button className="primary" disabled={working} onClick={()=>submit()}>{working?'Checking…':"Check payment"}</button>:draft?<><strong>{draft.batch.payments.length} payment{draft.batch.payments.length===1?'':'s'} · {fmt(draft.batch.payments.reduce((n,p)=>n+p.amount,0))}</strong><button className="primary" disabled={working||invalid||needsReview||badAmounts.length>0} onClick={()=>submit()}>{working?'Recording…':multi?'Confirm payments':'Confirm payment'}</button></>:receipt&&!receipt.undone&&<button className="secondary" disabled={working||needsReview} onClick={()=>submit('undoPaymentBatch')}>{working?'Reversing…':'Undo these payments'}</button>}<button className="secondary" disabled={working||uncertain} onClick={close}>{receipt?'Done':'Cancel'}</button></footer>
+  </DialogContent></Dialog></AmountIssues.Provider>}
  </div>;
 }

@@ -79,3 +79,16 @@ body .workspace-sidebar .sidebar-insignia>span{font-size:20px!important}
 .space-details-toggle {
   display: none !important;
 }
+
+/* Number-entry clarity: inline amount errors, converted values, split balance. No blur, no animation. */
+.amount-input-hint{display:block;margin-top:4px;font-size:13px;line-height:18px;color:var(--negative)}
+.expense-editor .converted-hint{margin:6px 0 0;font-size:13px;line-height:18px;color:var(--text-secondary);font-family:var(--font-numbers);overflow-wrap:anywhere}
+.expense-editor .rate-pair{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:12px}
+.expense-editor .rate-check{margin:4px 0 0;font-size:13px}
+.expense-editor .rate-warning{margin:8px 0 0}
+.expense-editor .split-balance{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 12px;margin:8px 0;font-size:13px;line-height:18px}
+.expense-editor .split-balance.is-open>span{color:var(--warning)}
+.expense-editor .split-balance.is-done>span{color:var(--positive)}
+.expense-editor .split-balance .text-button{min-height:44px}
+.preview .live-result p>b{white-space:nowrap;flex:none}
+.settlement-summary-details>summary .settlement-total-part{display:inline-flex;align-items:baseline;gap:6px;margin-right:12px;flex-wrap:wrap}

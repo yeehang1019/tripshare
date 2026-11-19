@@ -716,3 +716,66 @@ The settlement page's selected bill now scopes the current list, total, payment 
 Trip Overview shows a trip-local Today panel with a timed plan when available, map and direct date navigation. Itinerary carries copyable booking references and the existing searchable Booking list. Owners reach the existing member preview from People & Access, retaining route compatibility and planner access where People & Access is unavailable. The desktop spaces list and header picker replace the duplicate shell dropdowns. Quick entry places the split before category, with a preview labeled for the current expense.
 
 Keep the existing ledger, access checks, repayment review and undo. Measured browser layout and physical mobile testing are distinct from automated component tests. No real financial records were used for testing. The outstanding report uses validated source rows, and the backend still validates every submitted amount and source.
+
+## Number entry and display clarity — 2026-11-19
+
+Scope (input/display only; no ledger, API, schema, permission or stored-data change): end-user review of the Money space found amounts that could be saved wrong without warning. Fixed:
+- Amount parser (`lib/amount-expression.ts`): commas are accepted only as thousands separators; `12,50` is rejected with "Use a dot for decimals" instead of becoming RM 1,250.00. Leading/trailing currency labels (RM, THB, $…), full-width digits and `x`/`×` multiply are read. `toMinorUnits` removes binary drift (1.005 → 1.01).
+- Amount field: unreadable text stays visible with an inline error, `aria-invalid`, and blocks the expense save via the editor's existing save-requirement banner ("Go to amount"). Previously it silently reverted. Values display with currency decimals (12.50, not 12.5).
+- Exchange rate: a foreign-currency bill with no saved space rate no longer silently uses 1:1. Save is blocked until a rate or actual card total is entered; More options opens automatically. A reverse field (1 MYR = ? THB) sits beside the existing rate, a live "THB 1,000.00 ≈ RM 133.33" line and "≈ RM" under the main amount make the result visible, and a rate more than 3× away from the saved space rate warns that it may be reversed. Existing bills, presets and repeat-last with a non-1 rate are treated as already confirmed.
+- Split: percentage defaults are 33.33/33.33/33.34 (exact 100) instead of 33.333333333333336; percentage and custom-amount splits show "Assigned x of y · z left / too much" with a "Give rest to <last person>" shortcut.
+- Expense list: foreign-currency rows also show "≈ RM x" so they reconcile with the RM day total. (The review's claim that the day total ignored filters was wrong: the stream already receives the filtered list; "n of m" reflects progressive loading.)
+- Home: month comparison uses the same days of last month ("vs the same days last month"); "To/From N people" now names up to two people.
+
+Tests: new `tests/number-entry.test.mjs` (parser, hints, minor units, rate formatting, percentages for 1–12 people through ledger `calculate`), and three editor interaction tests (decimal comma blocks save then saves 1250; THB without saved rate requires confirmation and accepts reverse 7.5 → RM 133.33; percentage remainder). `npm run verify`: build pass, 314/314 tests, types pass, lint regression gate 0 additional (326 strict baseline errors remain, not clean).
+UI check: synthetic memory-only editor inside the real `workspace-editor-sheet` dialog at 375×812 and 1280×800, Light/Night: no horizontal overflow, new text ≥12px, new controls ≥44px, one blur layer, no console errors. The isolated harness lacks the app's desktop shell, so the 1280 editor column is narrow there; the unchanged code renders the same, so desktop layout is not claimed as verified. No live site, real account, physical phone or VoiceOver test was available (live host not reachable from this environment and it requires sign-in).
+
+Verdict — KEEP: canonical ledger arithmetic and permissions. CHANGE NOW: the shipped input/display fixes above. IMPROVE LATER: show "who owes whom" preview for multi-payer bills (currently only single paid payer); trip-local timezone for Home month boundaries (still Asia/Kuala_Lumpur); zero-decimal handling for currencies beyond JPY/KRW/IDR before adding e.g. VND. DO NOT ADD: automatic live exchange-rate fetching without a separate approval.
+
+### Round 2: remaining items, bug hunt and fixes — 2026-11-19
+
+Finished: (1) "Shares from this expense" now appears for every settlement-ready bill, including multi-payer and treat bills, computed by the existing `outstandingClaims` on a one-bill copy with no payments (preview only; nothing new in the arithmetic). (2) Home month boundaries use the space's `timeZone` when valid, else Asia/Kuala_Lumpur. (3) Zero-decimal currencies: not changed. Adding VND would alter the currency list the server ledger validates, so it needs separate approval.
+
+Bugs found and fixed in this pass:
+- Settings wrote a placeholder rate of 1 whenever the default expense currency changed, overwriting a real saved rate. That defeated the new confirmation and fed 1:1 conversions into cross-space totals (`rates.MYR`). The placeholder is no longer written; the settings rate field is blank when unset and gains the reverse field. `usableRate` treats a saved 1 between different currencies, or an invalid value, as unset in the editor and cross-space totals. Stored data is untouched.
+- Payment dialog: an unreadable typed amount (e.g. `12,50`) showed the error but left Confirm enabled with the previous amount. Confirm is now blocked until the amount reads.
+- Split balance could show ✓ for legacy long percentages that the ledger rejects; it now uses the ledger's own tolerance, and "Give rest" sets the last person to exactly 100 minus the others.
+- Quick-pick templates without a saved rate start at 0; that state is now treated as needing confirmation.
+- "Shares from this expense" amounts wrapped on phones; the CSS selector targeted the wrong container and now targets the review panel.
+
+Checked, not bugs: 44,000-case fuzz of `money()` output pasted back into the parser across all 11 currencies (0 failures); budget bars guard divide-by-zero; `expense-app.tsx` is not mounted; the review total's brief non-final value is the count-up animation and settles exactly (90.00, 123.45).
+
+Tests: `npm run verify` build pass, 319/319, types pass, lint gate 0 additional (326 baseline). New coverage: payment confirm blocked by `12,50`, placeholder rate requires confirmation, multi-payer preview `C → A RM 30.00`, legacy percentage fill saves, `usableRate`. Synthetic 375/1280 Light/Night checks of the payment error and multi-payer preview: no overflow, text ≥12px, Confirm disabled while invalid. The settings rate fields in `trip-app.tsx` are type-checked but not rendered in a harness. No live site, real account or physical device test.
+
+### Round 3: settlement export and copy text — 2026-11-19
+
+Audited every settlement output that turns numbers into text: per-recipient "Copy payment list", "Prepare WhatsApp summary", Remind, CSV export and print. All share `outstandingSummary`, except Remind, which uses `finalDueLines` with the bill-scoped amount when a bill filter is active. A four-person scenario (offsets in three pairs, THB bill, multi-payer bill, source-bound partial payment) was hand-checked against the ledger: every row, bill line and the Everyone total (RM 300.83) was correct, and each row's bill lines add up to its total.
+
+Bug fixed: in a one-person view ("Mine" scope or a member), copy/WhatsApp text, CSV, print and the on-screen "Still to pay" summary added what the person pays to what they receive (Ali: pays 45.00 + receives 76.66 shown as "Total still to pay: RM 121.66"). They now show "Ali pays" / "Ali receives" (on screen: "You pay" / "You receive"), or "Total to receive" when the person only receives. The Everyone view keeps its single grand total. `shareText` now passes the viewer for Mine/member scopes. Print offset notes name the pair and say "1 bill", not "1 bills". The CSV total row gets its missing cell when an adjustment column exists. No amounts or ledger logic changed.
+
+Not changed, proposed: copy/WhatsApp text does not explain offsets (e.g. "Hotel RM 45.00" when the share was 75 because Bob's 30 for Dinner cancelled out). Adding a note conflicts with the approved v78 copy format, and on real-shaped data it lists many bills; this needs the user's decision and a short sample.
+
+Tests: new `tests/settlement-direction-totals.test.mjs` (scenario ledger values, pay/receive split in text/CSV/print, receive-only and Everyone totals, per-row reconciliation, print grammar, on-screen summary). One UI assertion updated for the wrapper element (same label and amount). `npm run verify`: build pass, 324/324, types pass, lint gate 0 additional. Synthetic 375/1280 Light/Night summary render: no overflow, text ≥12px.
+
+### Offset wording B in copy, WhatsApp, CSV and print — 2026-11-19
+
+The user selected wording B from four samples, for copy/WhatsApp text, CSV and print. This supersedes the v78 copy format only for the offset note: bill lines still show reconciled final due only. One helper (`offsetLabel`) produces "Offset RM 30.00 each way: Dinner", with at most two bill names then "+N more", so the three outputs cannot drift.
+- Copy/WhatsApp: an indented "(Offset …)" line under the pair when that pair has an offset; no line otherwise; none under a bill filter.
+- CSV: a text-only last column "Offset already applied (do not subtract again)", present only when any offset exists. It is never a number, so it cannot be summed or subtracted.
+- Print: notes read "Ali → Bob · Offset RM 30.00 each way: Dinner" (replaces "N bills cancelled out").
+Amounts, rows and totals unchanged. The KL House test now asserts the exact note ("Offset RM 329.74 each way: venora, fee +10 more") and that cleared bills appear nowhere outside it. `npm run verify`: build pass, 325/325, types pass, lint gate 0 additional.
+
+### Round 4: other number displays — 2026-11-19
+
+Checked: expense details and history snapshot, member "My spending", trip overview/budget/countdown, Home and Expenses monthly figures, charts, global and cross-space search, business deposits/instalments, refunds and PayLater validation.
+
+Fixed:
+- Home charts ("Spending by category", "Daily spending") were calculated from the Expenses tab filters. Clicking a category in the Home pie set that filter, after which the Home pie showed only that category. Home charts now always use all non-deleted bills; Expenses and My spending charts still follow their filters.
+- The pie legend listed only the top five categories while the centre total included all, and colours repeated after five. `chartSlices` keeps the four largest plus "Other categories", so the legend adds up to the total. Clicking "Other categories" clears the category filter.
+- Expense details printed raw stored rates ("1 THB = 0.13333333333333333 MYR"), now possible because of the reverse-rate field; the history snapshot printed split weights such as 33.333333333333336. Both are now formatted.
+- Expenses "This month" used the device clock while Home used the space time zone; both now use the space zone (KL fallback).
+- Global search matches dates as displayed (01/11/2026); cross-space search also matches amounts as displayed (12.50, RM 12.50).
+
+Checked, no change needed: personal item lines are labelled in the bill currency with a conversion note; the trip countdown uses the trip-local date; budget bars guard zero budgets; business deposits block overpayment and require full payment for "paid".
+
+Tests: `chartSlices`, display-date search, rate formatting. `npm run verify`: build pass, 328/328, types pass, lint gate 0 additional. The Home chart source change and the monthBounds zone change are type-checked; monthBounds was spot-checked in Node (KL Dec vs London Nov at 2026-11-30T17:00Z). Neither was rendered in the full app shell.

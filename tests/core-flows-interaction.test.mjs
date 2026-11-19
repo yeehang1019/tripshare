@@ -168,3 +168,64 @@ test('Overview and both itineraries agree on the trip date around midnight and p
   assert.match(document.querySelector('.plan-day-tabs button[aria-pressed=true]').textContent,/18 Nov/);
  }finally{Date.now=originalNow}
 });
+
+async function typeInto(input,value){await act(async()=>{input.focus();Object.getOwnPropertyDescriptor(win.HTMLInputElement.prototype,'value').set.call(input,value);input.dispatchEvent(new win.Event('input',{bubbles:true}))})}
+async function leave(input){await act(async()=>{input.dispatchEvent(new win.FocusEvent('focusout',{bubbles:true}));input.blur()})}
+test('A decimal comma is explained inline and blocks saving instead of saving 100x',async()=>{
+ const {e,b}=fixture();e.expenses=[];let saved=null;
+ await mount(React.createElement(Editor,{event:e,initial:b,busy:false,stickyActions:true,onSave:async x=>{saved=x;return true},onCancel(){}}));
+ const amount=document.querySelector('[data-primary-amount]');await typeInto(amount,'12,50');await leave(amount);
+ assert.match(document.querySelector('.amount-input-hint')?.textContent||'',/dot for decimals/);
+ assert.equal(amount.getAttribute('aria-invalid'),'true');
+ assert.equal(document.querySelector('button.save').disabled,true);assert.match(document.querySelector('.save-requirement').textContent,/could not be read/);
+ await typeInto(amount,'12.50');await leave(amount);
+ assert.equal(document.querySelector('.amount-input-hint'),null);assert.equal(document.querySelector('button.save').disabled,false);
+ await click(document.querySelector('button.save'));assert.equal(saved.items[0].amount,1250);
+});
+test('A foreign currency without a saved rate must be confirmed and accepts the reverse rate',async()=>{
+ const e=normalize({name:'QA Test',people:['A','B'],bills:[],payments:[]}),b=blankExpense(e,'A');b.merchant='Massage';b.currency='THB';b.rate=1;b.items[0].amount=100000;
+ let saved=null;
+ await mount(React.createElement(Editor,{event:e,initial:b,busy:false,stickyActions:true,onSave:async x=>{saved=x;return true},onCancel(){}}));
+ assert.equal(document.querySelector('button.save').disabled,true);
+ assert.match(document.querySelector('.save-requirement').textContent,/THB → MYR exchange rate/);
+ assert.equal(document.querySelector('.advanced-options').open,true);
+ const reverse=[...document.querySelectorAll('.rate-pair input')][1];assert.equal(reverse.value,'');
+ await typeInto(reverse,'7.5');
+ assert.equal(document.querySelector('button.save').disabled,false);
+ assert.match(document.querySelector('.converted-hint').textContent,/≈ RM 133\.33/);
+ await click(document.querySelector('button.save'));assert.ok(Math.abs(saved.rate-1/7.5)<1e-12);
+});
+test('Custom percentage split shows what is left and can give the rest to the last person',async()=>{
+ const {e,b}=fixture();e.expenses=[];b.items[0].split='percent';b.items[0].weights=[50,30];
+ await mount(React.createElement(Editor,{event:e,initial:b,busy:false,onSave:async()=>false,onCancel(){}}));
+ const balance=document.querySelector('.split-balance');assert.match(balance.textContent,/Assigned 80% of 100% · 20% left/);
+ await click(balance.querySelector('button'));
+ assert.match(document.querySelector('.split-balance').textContent,/Assigned 100% of 100% ✓/);
+});
+test('Payment confirm is blocked while the typed amount cannot be read',async()=>{
+ const {e}=fixture(),s=ledger(e);let calls=0;
+ await mount(React.createElement(Payments,{event:e,group:'qa',revision:1,session:'test',transfers:s.transfers,claims:s.claims,calculations:s.calculations,canRecord:true,onRefresh:async()=>true,payout:()=>null,transport:async()=>{calls++;return new Response(JSON.stringify({ok:true}),{status:200})}}));
+ await openPayment();const confirm=[...document.querySelectorAll('button')].find(n=>/^Confirm payments?$/.test(n.textContent));
+ const amount=document.querySelector('.payment-review-amount input[inputmode=decimal]');await typeInto(amount,'12,50');await leave(amount);
+ assert.match(document.querySelector('.amount-input-hint').textContent,/dot for decimals/);assert.equal(confirm.disabled,true);
+ await typeInto(amount,'12.50');await leave(amount);assert.equal(confirm.disabled,false);assert.equal(calls,0);
+});
+test('A saved placeholder rate of 1 still asks for the real exchange rate',async()=>{
+ const e=normalize({name:'QA Test',people:['A','B'],bills:[],payments:[]});e.rates={MYR:1,THB:1};const b=blankExpense(e,'A');b.merchant='Taxi';b.currency='THB';b.rate=e.rates.THB;b.items[0].amount=50000;
+ await mount(React.createElement(Editor,{event:e,initial:b,busy:false,onSave:async()=>false,onCancel(){}}));
+ assert.equal(document.querySelector('button.save').disabled,true);assert.match(document.querySelector('.save-requirement').textContent,/exchange rate/);
+});
+test('Multi-payer bills preview who repays whom from the canonical ledger',async()=>{
+ const e=normalize({name:'QA Test',people:['A','B','C'],bills:[],payments:[]}),b=blankExpense(e,'A');b.merchant='Dinner';b.items[0].amount=9000;b.payers=[{person:'A',amount:6000},{person:'B',amount:3000}];
+ await mount(React.createElement(Editor,{event:e,initial:b,busy:false,onSave:async()=>false,onCancel(){}}));
+ const text=document.querySelector('.live-result').textContent;
+ assert.match(text,/Shares from this expense/);assert.match(text,/C → A\s*RM 30\.00/);assert.doesNotMatch(text,/B → /);
+});
+test('Give rest fixes legacy long percentages so the ledger accepts the split',async()=>{
+ const {e,b}=fixture();e.expenses=[];b.items[0].split='percent';b.items[0].weights=[33.333333333333336,33.33];let saved=null;
+ await mount(React.createElement(Editor,{event:e,initial:b,busy:false,onSave:async x=>{saved=x;return true},onCancel(){}}));
+ assert.match(document.querySelector('.split-balance').textContent,/left/);
+ await click(document.querySelector('.split-balance button'));
+ assert.match(document.querySelector('.split-balance').textContent,/✓/);assert.equal(document.querySelector('.preview .message.error'),null);
+ await click(document.querySelector('button.save'));const w=saved.items[0].weights;assert.ok(Math.abs(w[0]+w[1]-100)<1e-6);
+});
