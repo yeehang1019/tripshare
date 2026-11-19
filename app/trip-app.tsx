@@ -643,7 +643,7 @@ setPlannerDirty(false);setTemplateDirty(false);
     const heading = isMember
       ? `${name(me)}'s settlement`
       : `Settlement`;
-    return `${e.name}\n${heading}\n${outstandingText(outstandingSummary(e,visibleTransfers.map(t=>({...t,fromName:name(t.from),toName:name(t.to)})),{billId:settlementBillFilter},sum?.calculations)) || "No outstanding balance"}${!isMember && accessInfo.shares[0] ? "\n\nView details: " + viewLink(accessInfo.shares[0].token) : shared ? "\n\nView details: " + window.location.href : ""}`;
+    return `${e.name}\n${heading}\n${outstandingText(outstandingSummary(e,visibleTransfers.map(t=>({...t,fromName:name(t.from),toName:name(t.to)})),{billId:settlementBillFilter,person:settlementScope==='mine'||isMember?me:undefined},sum?.calculations)) || "No outstanding balance"}${!isMember && accessInfo.shares[0] ? "\n\nView details: " + viewLink(accessInfo.shares[0].token) : shared ? "\n\nView details: " + window.location.href : ""}`;
   }
   function download(text: string, type: string, filename: string) {
     const url = URL.createObjectURL(new Blob([text], { type })),

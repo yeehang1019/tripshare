@@ -91,3 +91,4 @@ body .workspace-sidebar .sidebar-insignia>span{font-size:20px!important}
 .expense-editor .split-balance.is-done>span{color:var(--positive)}
 .expense-editor .split-balance .text-button{min-height:44px}
 .preview .live-result p>b{white-space:nowrap;flex:none}
+.settlement-summary-details>summary .settlement-total-part{display:inline-flex;align-items:baseline;gap:6px;margin-right:12px;flex-wrap:wrap}
