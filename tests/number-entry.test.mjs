@@ -53,3 +53,18 @@ test('Placeholder or invalid saved rates are not treated as real rates',async()=
  assert.equal(usableRate(1),0);assert.equal(usableRate(0),0);assert.equal(usableRate(undefined),0);assert.equal(usableRate(Number.NaN),0);assert.equal(usableRate(-2),0);
  assert.equal(usableRate(0.13),0.13);assert.equal(usableRate(7.5),7.5);
 });
+test('Pie legend combines extra categories so it adds up to the centre total',async()=>{
+ const {chartSlices,OTHER_CATEGORIES}=await import('../lib/amount-expression.ts');
+ const data={Food:5000,Transport:3000,Activity:2000,Shopping:1500,Grocery:700,Accommodation:300,Other:0};
+ const slices=chartSlices(data);assert.equal(slices.length,5);assert.deepEqual(slices.at(-1),[OTHER_CATEGORIES,1000]);
+ assert.equal(slices.reduce((n,[,v])=>n+v,0),Object.values(data).reduce((a,b)=>a+b,0));
+ assert.deepEqual(chartSlices({Food:100,Transport:50}).map(x=>x[0]),['Food','Transport']);
+});
+test('Global search finds bills by the date as displayed',async()=>{
+ const {searchIndex,searchRecords}=await import('../lib/workspace-search.ts');
+ const hits=searchIndex([{id:'g',data:{name:'QA Test',expenses:[{id:'x',merchant:'Dinner',date:'2026-11-01',category:'Food',deleted:false}],activities:[]}}]);
+ assert.equal(searchRecords(hits,'01/11/2026').length,1);assert.equal(searchRecords(hits,'2026-11-01').length,1);assert.equal(searchRecords(hits,'02/11/2026').length,0);
+});
+test('Format helpers keep stored rates readable in details',async()=>{
+ const {formatRate}=await import('../lib/amount-expression.ts');assert.equal(formatRate(1/7.5),'0.133333');assert.equal(formatRate(4.7123),'4.7123');
+});

@@ -13,5 +13,5 @@ export function searchIndex(records:SearchRecord[]):SearchHit[]{
 export function searchRecords(index:SearchHit[],query:string,limit=20){
   const words=query.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);
   if(!words.length)return [];
-  return index.filter(hit=>{const haystack=[hit.title,hit.date,hit.detail,hit.groupName].join(' ').toLocaleLowerCase();return words.every(word=>haystack.includes(word))}).sort((a,b)=>b.date.localeCompare(a.date)||a.title.localeCompare(b.title)).slice(0,limit);
+  return index.filter(hit=>{const haystack=[hit.title,hit.date,hit.date.split('-').reverse().join('/'),hit.detail,hit.groupName].join(' ').toLocaleLowerCase();return words.every(word=>haystack.includes(word))}).sort((a,b)=>b.date.localeCompare(a.date)||a.title.localeCompare(b.title)).slice(0,limit);
 }

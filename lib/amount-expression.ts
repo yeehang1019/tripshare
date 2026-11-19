@@ -107,3 +107,10 @@ export function evenPercents(count: number) {
 export function usableRate(rate: unknown) {
   return typeof rate === "number" && Number.isFinite(rate) && rate > 0 && rate !== 1 ? rate : 0;
 }
+export const OTHER_CATEGORIES = "Other categories";
+/** Pie slices for five colours: four largest categories plus one combined slice, so the legend adds up to the total. */
+export function chartSlices(data: Record<string, number>, max = 5): [string, number][] {
+  const ranked = Object.entries(data).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  if (ranked.length <= max) return ranked;
+  return [...ranked.slice(0, max - 1), [OTHER_CATEGORIES, ranked.slice(max - 1).reduce((n, [, v]) => n + v, 0)]];
+}

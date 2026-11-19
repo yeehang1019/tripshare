@@ -764,3 +764,18 @@ The user selected wording B from four samples, for copy/WhatsApp text, CSV and p
 - CSV: a text-only last column "Offset already applied (do not subtract again)", present only when any offset exists. It is never a number, so it cannot be summed or subtracted.
 - Print: notes read "Ali → Bob · Offset RM 30.00 each way: Dinner" (replaces "N bills cancelled out").
 Amounts, rows and totals unchanged. The KL House test now asserts the exact note ("Offset RM 329.74 each way: venora, fee +10 more") and that cleared bills appear nowhere outside it. `npm run verify`: build pass, 325/325, types pass, lint gate 0 additional.
+
+### Round 4: other number displays — 2026-11-19
+
+Checked: expense details and history snapshot, member "My spending", trip overview/budget/countdown, Home and Expenses monthly figures, charts, global and cross-space search, business deposits/instalments, refunds and PayLater validation.
+
+Fixed:
+- Home charts ("Spending by category", "Daily spending") were calculated from the Expenses tab filters. Clicking a category in the Home pie set that filter, after which the Home pie showed only that category. Home charts now always use all non-deleted bills; Expenses and My spending charts still follow their filters.
+- The pie legend listed only the top five categories while the centre total included all, and colours repeated after five. `chartSlices` keeps the four largest plus "Other categories", so the legend adds up to the total. Clicking "Other categories" clears the category filter.
+- Expense details printed raw stored rates ("1 THB = 0.13333333333333333 MYR"), now possible because of the reverse-rate field; the history snapshot printed split weights such as 33.333333333333336. Both are now formatted.
+- Expenses "This month" used the device clock while Home used the space time zone; both now use the space zone (KL fallback).
+- Global search matches dates as displayed (01/11/2026); cross-space search also matches amounts as displayed (12.50, RM 12.50).
+
+Checked, no change needed: personal item lines are labelled in the bill currency with a conversion note; the trip countdown uses the trip-local date; budget bars guard zero budgets; business deposits block overpayment and require full payment for "paid".
+
+Tests: `chartSlices`, display-date search, rate formatting. `npm run verify`: build pass, 328/328, types pass, lint gate 0 additional. The Home chart source change and the monthBounds zone change are type-checked; monthBounds was spot-checked in Node (KL Dec vs London Nov at 2026-11-30T17:00Z). Neither was rendered in the full app shell.

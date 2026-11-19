@@ -14,7 +14,8 @@ import {moneyLabel} from '@/lib/money-navigation';
 import {destinationLabel} from './space-navigation';
 import {searchIndex,searchRecords,type SearchHit} from '@/lib/workspace-search';
 import {calculate,money,type Event} from '@/lib/ledger';
-export function monthBounds(now=new Date()):[string,string]{const year=now.getFullYear(),month=now.getMonth()+1;return [`${year}-${String(month).padStart(2,'0')}-01`,`${year}-${String(month).padStart(2,'0')}-${String(new Date(year,month,0).getDate()).padStart(2,'0')}`]}
+/** Current month as yyyy-mm-dd bounds; with a zone, the month is read in that zone (same rule as Home). */
+export function monthBounds(now=new Date(),zone?:string):[string,string]{let year=now.getFullYear(),month=now.getMonth()+1;if(zone){try{const [y,m]=new Intl.DateTimeFormat('en-CA',{timeZone:zone,year:'numeric',month:'2-digit'}).format(now).split('-').map(Number);if(y&&m){year=y;month=m}}catch{}}return [`${year}-${String(month).padStart(2,'0')}-01`,`${year}-${String(month).padStart(2,'0')}-${String(new Date(year,month,0).getDate()).padStart(2,'0')}`]}
 // Persisted style IDs remain compatible; only the two lighting-based looks are selectable.
 export const completeThemes=[{style:'arcade' as const,palette:'cyberpunk',name:'Neon'},{style:'glass' as const,palette:'cyberpunk',name:'Glass'},{style:'cosmic' as const,palette:'cyberpunk',name:'Neon'}];
 export const appearanceLooks=['Glass','Neon'];
