@@ -129,6 +129,24 @@ test('Expense save guidance focuses the missing name without attempting to save'
  assert.equal(saves,0);
 });
 
+test('Checklist import previews unique tasks and appends them without changing existing tasks',async()=>{
+ const {default:ChecklistImport}=await vite.ssrLoadModule('/app/checklist-import.tsx');
+ const existing={id:'existing',name:'Passport',done:true,person:'A',due:'2026-11-22'};
+ let saved;
+ await mount(React.createElement(ChecklistImport,{tasks:[existing],disabled:false,onDirty(){},onSave:async tasks=>{saved=tasks;return true}}));
+ await click(document.querySelector('button'));
+ const input=document.querySelector('textarea');
+ await act(async()=>{
+  Object.getOwnPropertyDescriptor(win.HTMLTextAreaElement.prototype,'value').set.call(input,'## Packing\n- [x] Ｐａｓｓｐｏｒｔ\n1. TDAC\n• TDAC\n- Charger');
+  input.dispatchEvent(new win.Event('input',{bubbles:true}));
+ });
+ assert.match(document.querySelector('[role=status]').textContent,/2 new tasks · 2 duplicates skipped/);
+ assert.equal(saved,undefined);
+ await click([...document.querySelectorAll('button')].find(button=>button.textContent==='Add 2 tasks'));
+ assert.deepEqual(saved[0],existing);
+ assert.deepEqual(saved.slice(1).map(({name,done})=>({name,done})),[{name:'TDAC',done:false},{name:'Charger',done:false}]);
+});
+
 test('Overview and both itineraries agree on the trip date around midnight and preserve manual day choice',async()=>{
  const TripSummary=(await vite.ssrLoadModule('/app/trip-summary.tsx')).default;
  const SimpleItinerary=(await vite.ssrLoadModule('/app/simple-itinerary.tsx')).default;
