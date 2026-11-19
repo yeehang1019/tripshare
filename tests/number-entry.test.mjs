@@ -48,3 +48,8 @@ test('Default percentages add to exactly 100 and pass ledger validation',()=>{
   const c=calculate(b,'MYR');assert.equal(Object.values(c.consumed).reduce((a,v)=>a+v,0),10000,`n=${n}`);
  }
 });
+test('Placeholder or invalid saved rates are not treated as real rates',async()=>{
+ const {usableRate}=await import('../lib/amount-expression.ts');
+ assert.equal(usableRate(1),0);assert.equal(usableRate(0),0);assert.equal(usableRate(undefined),0);assert.equal(usableRate(Number.NaN),0);assert.equal(usableRate(-2),0);
+ assert.equal(usableRate(0.13),0.13);assert.equal(usableRate(7.5),7.5);
+});

@@ -99,3 +99,11 @@ export function evenPercents(count: number) {
   const base = Math.floor(10000 / count);
   return Array.from({ length: count }, (_, i) => (i === count - 1 ? 10000 - base * (count - 1) : base) / 100);
 }
+/**
+ * A saved space rate that can be used without asking again. Older settings
+ * screens stored 1 as a placeholder when a foreign default currency was chosen;
+ * none of the supported currency pairs trade at exactly 1, so 1 means "not set".
+ */
+export function usableRate(rate: unknown) {
+  return typeof rate === "number" && Number.isFinite(rate) && rate > 0 && rate !== 1 ? rate : 0;
+}

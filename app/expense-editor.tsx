@@ -19,13 +19,13 @@ import {
   money,
   unit,
 } from "@/lib/ledger";
-import {repeatExpense} from '@/lib/ledger';
-import {formatRate,evenPercents} from '@/lib/amount-expression';
+import {repeatExpense,outstandingClaims} from '@/lib/ledger';
+import {formatRate,evenPercents,usableRate} from '@/lib/amount-expression';
 import {useDraftSave} from "./save-recovery";
 import {RefundFields} from "./refund-fields";
 import {PayLaterFields} from "./paylater-fields";
 import {SupplierInstallments} from "./supplier-installments";
-import { Pick, Field, Amount, Check, People, AmountIssues } from "./trip-controls";
+import { Pick, Field, Amount, Check, People, AmountIssues, RateInput } from "./trip-controls";
 import { UsersRound, Sparkles, ArrowRight, Utensils, Car, Ticket, ShoppingBag, ShoppingBasket, BedDouble, Receipt } from "lucide-react";
 export default function ExpenseEditor({
   event: e,
@@ -61,8 +61,8 @@ export default function ExpenseEditor({
   const [badAmounts, setBadAmounts] = useState<string[]>([]);
   const reportAmount = useCallback((key: string, invalid: boolean) => setBadAmounts(list => invalid ? (list.includes(key) ? list : [...list, key]) : list.filter(x => x !== key)), []);
   // A foreign currency without a saved space rate must not silently use 1:1.
-  const savedRate = (currency: string) => currency === e.settlement ? 1 : e.rates[currency] || 0;
-  const [rateConfirmed, setRateConfirmed] = useState(() => initial.currency === e.settlement || !!savedRate(initial.currency) || initial.actual !== null || initial.rate !== 1 || e.expenses.some(x => x.id === initial.id));
+  const savedRate = (currency: string) => currency === e.settlement ? 1 : usableRate(e.rates[currency]);
+  const [rateConfirmed, setRateConfirmed] = useState(() => initial.currency === e.settlement || !!savedRate(initial.currency) || initial.actual !== null || (initial.rate > 0 && initial.rate !== 1) || e.expenses.some(x => x.id === initial.id));
   const localStatus=useDraftSave(draftScope,'expense',b,draftRevision,e.expenses.find(x=>x.id===initial.id)||null);
   useEffect(()=>{onDirty?.(JSON.stringify(b)!==JSON.stringify(initial));return()=>onDirty?.(false)},[b,initial]);
   const edit = e.expenses.some((x) => x.id === b.id);
@@ -94,6 +94,18 @@ export default function ExpenseEditor({
         error += `. ${(previewError as Error).message}`;
       }
     }
+  }
+  // Preview only: the canonical ledger replays this single bill with no payments.
+  let billShares: { from: string; to: string; amount: number }[] | null = null;
+  if (c && c.settlementReady) {
+    try {
+      const pairs = new Map<string, { from: string; to: string; amount: number }>();
+      for (const claim of outstandingClaims({ ...e, expenses: [b], payments: [] })) {
+        const key = claim.from + "\u0000" + claim.to, row = pairs.get(key) || { from: claim.from, to: claim.to, amount: 0 };
+        row.amount += claim.amount; pairs.set(key, row);
+      }
+      billShares = [...pairs.values()].filter(t => t.amount > 0);
+    } catch { billShares = null; }
   }
   const duplicateKeys=useMemo(()=>e.expenses.filter(x=>!x.deleted&&x.id!==initial.id).map(x=>{try{return {id:x.id,key:duplicateFingerprint(x,e.settlement)}}catch{return {id:x.id,key:''}}}),[e.expenses,e.settlement,initial.id]);
   const [duplicateApproved,setDuplicateApproved]=useState('');
@@ -385,7 +397,7 @@ export default function ExpenseEditor({
                 currency={b.currency}
                 lastName={name(it.people[it.people.length - 1])}
                 lastWeight={it.weights[it.people.length - 1] || 0}
-                onFill={(rest) => item(i, { weights: it.weights.map((w, j) => j === it.people.length - 1 ? roundWeight(it.split, (w || 0) + rest) : w) })}
+                onFill={(rest) => item(i, { weights: it.weights.map((w, j) => j === it.people.length - 1 ? fillWeight(it.split, it.weights.slice(0, j).reduce((a, v) => a + (v || 0), 0), (w || 0) + rest) : w) })}
               />}
               <p className="muted">
                 Custom amounts allocate the price before discounts and charges.
@@ -730,11 +742,11 @@ export default function ExpenseEditor({
                 <b>{money(v, e.settlement)}</b>
               </div>
             ))}
-            {!b.supplierPayments && !b.treat && !b.voucherContribution && b.payers.length === 1 && (!b.paymentStatus || b.paymentStatus === 'paid') && (
+            {billShares && (
               <div className="live-result">
                 <b>Shares from this expense</b>
-                {Object.entries(c.responsible).filter(([p,v])=>p !== b.payers[0].person && v > 0).map(([p,v])=><p key={p}><span>{name(p)} → {name(b.payers[0].person)}</span><b>{money(v,e.settlement)}</b></p>)}
-                {!Object.entries(c.responsible).some(([p,v])=>p !== b.payers[0].person && v > 0) && <small>No friend repayment for this expense.</small>}
+                {billShares.map(t=><p key={t.from+'>'+t.to}><span>{name(t.from)} → {name(t.to)}</span><b>{money(t.amount,e.settlement)}</b></p>)}
+                {!billShares.length && <small>No friend repayment for this expense.</small>}
               </div>
             )}
             <hr />
@@ -769,13 +781,15 @@ export default function ExpenseEditor({
   );
 }
 
-function roundWeight(kind: string, value: number) {
-  return kind === "percent" ? Math.round(value * 100) / 100 : Math.round(value);
+// The last person takes exactly what is left: 100 minus the others (percent), or whole minor units (amount).
+function fillWeight(kind: string, others: number, value: number) {
+  return kind === "percent" ? 100 - others : Math.round(value);
 }
 /** Live "assigned vs target" line for custom percentage / amount splits. */
 function SplitBalance({ kind, assigned, target, currency, lastName, lastWeight, onFill }: { kind: string; assigned: number; target: number; currency: string; lastName: string; lastWeight: number; onFill: (rest: number) => void }) {
-  const rest = kind === "percent" ? Math.round((target - assigned) * 100) / 100 : target - assigned;
-  const show = (v: number) => kind === "percent" ? `${Number(v.toFixed(2))}%` : money(v, currency);
+  // Same tolerance as the ledger check, so a ✓ here always means the split will save.
+  const rest = target - assigned;
+  const show = (v: number) => kind === "percent" ? `${Number(v.toFixed(4))}%` : money(v, currency);
   const done = Math.abs(rest) < (kind === "percent" ? 1e-6 : 1);
   return (
     <div className={"split-balance" + (done ? " is-done" : " is-open")} role="status" aria-live="polite">
@@ -783,13 +797,4 @@ function SplitBalance({ kind, assigned, target, currency, lastName, lastWeight, 
       {!done && lastWeight + rest >= 0 && <button type="button" className="text-button" onClick={() => onFill(rest)}>{rest > 0 ? `Give rest to ${lastName}` : `Take from ${lastName}`}</button>}
     </div>
   );
-}
-function RateInput({ value, blank, onChange, id, errorId, invalid, placeholder = "e.g. 0.1333" }: { value: number; blank: boolean; placeholder?: string; onChange: (rate: number) => void; id?: string; errorId?: string; invalid?: boolean }) {
-  // The typed text is kept only while focused; otherwise the field shows the stored rate.
-  const [draft, setDraft] = useState<string | null>(null);
-  const shown = blank || !value ? "" : formatRate(value);
-  return <input id={id} aria-describedby={errorId} aria-invalid={invalid || undefined} type="text" inputMode="decimal" placeholder={placeholder} value={draft ?? shown}
-    onFocus={() => setDraft(shown)}
-    onBlur={() => setDraft(null)}
-    onChange={(v) => { setDraft(v.target.value); const n = Number(v.target.value.replace(/,/g, ".").trim()); if (v.target.value.trim() && Number.isFinite(n) && n > 0 && n < 1e7) onChange(n); }} />;
 }

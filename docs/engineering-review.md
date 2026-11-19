@@ -731,3 +731,18 @@ Tests: new `tests/number-entry.test.mjs` (parser, hints, minor units, rate forma
 UI check: synthetic memory-only editor inside the real `workspace-editor-sheet` dialog at 375×812 and 1280×800, Light/Night: no horizontal overflow, new text ≥12px, new controls ≥44px, one blur layer, no console errors. The isolated harness lacks the app's desktop shell, so the 1280 editor column is narrow there; the unchanged code renders the same, so desktop layout is not claimed as verified. No live site, real account, physical phone or VoiceOver test was available (live host not reachable from this environment and it requires sign-in).
 
 Verdict — KEEP: canonical ledger arithmetic and permissions. CHANGE NOW: the shipped input/display fixes above. IMPROVE LATER: show "who owes whom" preview for multi-payer bills (currently only single paid payer); trip-local timezone for Home month boundaries (still Asia/Kuala_Lumpur); zero-decimal handling for currencies beyond JPY/KRW/IDR before adding e.g. VND. DO NOT ADD: automatic live exchange-rate fetching without a separate approval.
+
+### Round 2: remaining items, bug hunt and fixes — 2026-11-19
+
+Finished: (1) "Shares from this expense" now appears for every settlement-ready bill, including multi-payer and treat bills, computed by the existing `outstandingClaims` on a one-bill copy with no payments (preview only; nothing new in the arithmetic). (2) Home month boundaries use the space's `timeZone` when valid, else Asia/Kuala_Lumpur. (3) Zero-decimal currencies: not changed. Adding VND would alter the currency list the server ledger validates, so it needs separate approval.
+
+Bugs found and fixed in this pass:
+- Settings wrote a placeholder rate of 1 whenever the default expense currency changed, overwriting a real saved rate. That defeated the new confirmation and fed 1:1 conversions into cross-space totals (`rates.MYR`). The placeholder is no longer written; the settings rate field is blank when unset and gains the reverse field. `usableRate` treats a saved 1 between different currencies, or an invalid value, as unset in the editor and cross-space totals. Stored data is untouched.
+- Payment dialog: an unreadable typed amount (e.g. `12,50`) showed the error but left Confirm enabled with the previous amount. Confirm is now blocked until the amount reads.
+- Split balance could show ✓ for legacy long percentages that the ledger rejects; it now uses the ledger's own tolerance, and "Give rest" sets the last person to exactly 100 minus the others.
+- Quick-pick templates without a saved rate start at 0; that state is now treated as needing confirmation.
+- "Shares from this expense" amounts wrapped on phones; the CSS selector targeted the wrong container and now targets the review panel.
+
+Checked, not bugs: 44,000-case fuzz of `money()` output pasted back into the parser across all 11 currencies (0 failures); budget bars guard divide-by-zero; `expense-app.tsx` is not mounted; the review total's brief non-final value is the count-up animation and settles exactly (90.00, 123.45).
+
+Tests: `npm run verify` build pass, 319/319, types pass, lint gate 0 additional (326 baseline). New coverage: payment confirm blocked by `12,50`, placeholder rate requires confirmation, multi-payer preview `C → A RM 30.00`, legacy percentage fill saves, `usableRate`. Synthetic 375/1280 Light/Night checks of the payment error and multi-payer preview: no overflow, text ≥12px, Confirm disabled while invalid. The settings rate fields in `trip-app.tsx` are type-checked but not rendered in a harness. No live site, real account or physical device test.

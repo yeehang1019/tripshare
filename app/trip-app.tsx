@@ -85,7 +85,8 @@ import {
   unit,
   allowed,
 } from "@/lib/ledger";
-import { Pick, Field, Amount, Check, People } from "./trip-controls";
+import { Pick, Field, Amount, Check, People, RateInput } from "./trip-controls";
+import { usableRate } from "@/lib/amount-expression";
 import {GroupCheckpoints} from "./group-checkpoints";
 import SettlementCalculation from "./settlement-calculation";
 import SettlementPayments from "./settlement-payments";
@@ -1249,11 +1250,8 @@ setPlannerDirty(false);setTemplateDirty(false);
                             value={s.currency}
                             options={currencies}
                             onChange={(currency) =>
-                              setSettings({
-                                ...s,
-                                currency,
-                                rates: { ...s.rates, [currency]: 1 },
-                              })
+                              // Keep any rate already saved; never store a 1:1 placeholder.
+                              setSettings({ ...s, currency })
                             }
                           />
                         </Field>
@@ -1275,20 +1273,20 @@ setPlannerDirty(false);setTemplateDirty(false);
                           <Field
                             label={`1 ${s.currency} = how many ${s.settlement}?`}
                           >
-                            <input
-                              type="number"
-                              step="any"
-                              min="0.00000001"
-                              value={s.rates[s.currency] || 1}
-                              onChange={(v) =>
-                                setSettings({
-                                  ...s,
-                                  rates: {
-                                    ...s.rates,
-                                    [s.currency]: Number(v.target.value),
-                                  },
-                                })
-                              }
+                            <RateInput
+                              value={usableRate(s.rates[s.currency])}
+                              blank={!usableRate(s.rates[s.currency])}
+                              onChange={(rate) => setSettings({ ...s, rates: { ...s.rates, [s.currency]: rate } })}
+                            />
+                          </Field>
+                        )}
+                        {s.currency !== s.settlement && (
+                          <Field label={`or: 1 ${s.settlement} = how many ${s.currency}?`}>
+                            <RateInput
+                              placeholder="e.g. 7.5"
+                              value={usableRate(s.rates[s.currency]) ? 1 / usableRate(s.rates[s.currency]) : 0}
+                              blank={!usableRate(s.rates[s.currency])}
+                              onChange={(inverse) => setSettings({ ...s, rates: { ...s.rates, [s.currency]: 1 / inverse } })}
                             />
                           </Field>
                         )}

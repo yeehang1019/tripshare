@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { unit, digits, Person, money } from "@/lib/ledger";
-import { evaluateAmount, toMinorUnits, amountInputHint } from "@/lib/amount-expression";
+import { evaluateAmount, toMinorUnits, amountInputHint, formatRate } from "@/lib/amount-expression";
 /** Lets a form know that an amount field still holds text it could not read. */
 export const AmountIssues = createContext<((key: string, invalid: boolean) => void) | null>(null);
 import {minimalMotion} from '@/lib/ui-interactions';
@@ -229,4 +229,15 @@ export function People({
       ))}
     </div>
   );
+}
+
+/** Exchange-rate text input: blank when unset, no float noise, accepts "0,13" as 0.13. */
+export function RateInput({ value, blank, onChange, id, errorId, invalid, placeholder = "e.g. 0.1333" }: { value: number; blank: boolean; placeholder?: string; onChange: (rate: number) => void; id?: string; errorId?: string; invalid?: boolean }) {
+  // The typed text is kept only while focused; otherwise the field shows the stored rate.
+  const [draft, setDraft] = useState<string | null>(null);
+  const shown = blank || !value ? "" : formatRate(value);
+  return <input id={id} aria-describedby={errorId} aria-invalid={invalid || undefined} type="text" inputMode="decimal" placeholder={placeholder} value={draft ?? shown}
+    onFocus={() => setDraft(shown)}
+    onBlur={() => setDraft(null)}
+    onChange={(v) => { setDraft(v.target.value); const n = Number(v.target.value.replace(/,/g, ".").trim()); if (v.target.value.trim() && Number.isFinite(n) && n > 0 && n < 1e7) onChange(n); }} />;
 }

@@ -5,6 +5,7 @@ import {userError} from '@/lib/ui-copy';
 import {useEffect,useRef,useState,useMemo} from 'react';
 import AnimatedAmount from './animated-amount';
 import {Sparkles,Bookmark,Plus,ArrowRight,Wallet,Users,Settings2,Volume2,Vibrate,Check,Download,Search} from 'lucide-react';
+import {usableRate} from '@/lib/amount-expression';
 import {blankExpense,calculate,duplicateFingerprint,categories,currencies,ledger,money,today,unit,type Event,type Expense} from '@/lib/ledger';
 import {templateExpense,type ExpenseTemplate} from '@/lib/expense-template';
 import {settlementPlan} from '@/lib/settlement-plan';
@@ -79,7 +80,7 @@ export function PersonalHub({records,workspace:w,onGroup,viewerKey=""}:{records:
   const groups=useMemo(()=>records.flatMap(r=>{const person=r.person;if(!person||!r.data.people.some(p=>p.id===person))return [];
     const own=r.personal,totals=own?null:ledger(r.data);
     const expenses=own?own.expenses.map(b=>({id:b.id,date:b.date,title:b.title,category:b.category,consumed:b.consumed,paid:b.paid})):r.data.expenses.filter(b=>!b.deleted).map(b=>{const c=calculate(b,r.data.settlement);return {id:b.id,date:b.date,title:b.merchant,category:b.category,consumed:c.consumed[person]||0,paid:c.paid[person]||0}});
-    const rate=r.data.settlement==='MYR'?1:w.data.fx[r.data.settlement]||(r.data.rates.MYR?1/r.data.rates.MYR:0);
+    const rate=r.data.settlement==='MYR'?1:w.data.fx[r.data.settlement]||(usableRate(r.data.rates.MYR)?1/usableRate(r.data.rates.MYR):0);
     const transfers=own?own.transfers:totals!.transfers.filter(t=>t.from===person||t.to===person).map(t=>({...t,fromName:r.data.people.find(p=>p.id===t.from)?.name||'',toName:r.data.people.find(p=>p.id===t.to)?.name||''}));
     return [{record:r,person,expenses,rate,transfers,prepaid:own?.prepaid??totals?.people[person]?.prepaid??0,unpaid:own?.unpaid??totals?.people[person]?.unpaid??0}];
   }),[records,w.data.fx,viewerKey]);
