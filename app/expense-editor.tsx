@@ -4,7 +4,7 @@ import {MemberAvatar} from './member-avatar';
 import {SheetDragHandle} from './swipe-reveal';
 import {CopyError} from "./copy-feedback";
 import {userError} from '@/lib/ui-copy';
-import { useState,useMemo,useEffect,useId } from "react";
+import { useState,useMemo,useEffect,useId,useRef } from "react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Event,
@@ -113,8 +113,27 @@ export default function ExpenseEditor({
             !b.merchant.trim() ||
             (b.mode === "itemized" && b.receipt === null) ||
             (edit && !confirmed);
+  const editorRoot=useRef<HTMLDivElement>(null);
+  const saveIssue=!b.merchant.trim()
+    ? {message:'Enter an expense name.',target:'name',action:'Go to name'}
+    : b.mode==='itemized'&&b.receipt===null
+      ? {message:'Enter the receipt total.',target:'receipt',action:'Go to receipt total'}
+      : error
+        ? {message:'Check the calculation before saving.',target:'calculation',action:'Review calculation'}
+        : edit&&!confirmed
+          ? {message:'Confirm that you reviewed the updated split.',target:'split',action:'Go to confirmation'}
+          : duplicates.length&&duplicateApproved!==fingerprint
+            ? {message:'Review the possible duplicate.',target:'duplicate',action:'Go to duplicate'}
+            : null;
+  function goToSaveIssue(){
+    if(!saveIssue)return;
+    const destination=editorRoot.current?.querySelector<HTMLElement>(`[data-save-target="${saveIssue.target}"]`);
+    const focusTarget=destination?.matches('input,[tabindex]')?destination:destination?.querySelector<HTMLElement>('input,button,[tabindex]');
+    destination?.scrollIntoView({block:'center',inline:'nearest'});
+    focusTarget?.focus({preventScroll:true});
+  }
   return (
-    <div className="entry-grid" onKeyDownCapture={event=>{if(event.key==="Escape"&&!event.defaultPrevented&&!event.nativeEvent.isComposing){event.preventDefault();event.stopPropagation();onCancel()}}}>
+    <div ref={editorRoot} className="entry-grid" onKeyDownCapture={event=>{if(event.key==="Escape"&&!event.defaultPrevented&&!event.nativeEvent.isComposing){event.preventDefault();event.stopPropagation();onCancel()}}}>
       <SheetDragHandle onClose={onCancel}/><div className="editor-content-grid"><section className={`panel expense-editor ${b.mode}`}>
         <div className="editor-form-header"><div className="section-title">
           <h2>{edit ? "Edit expense" : "Add expense"}</h2>
@@ -139,7 +158,7 @@ export default function ExpenseEditor({
             <TabsTrigger value="itemized">Itemized bill</TabsTrigger>
           </TabsList>
         </Tabs>
-        <div className="hero-amount"><Field label={b.mode==='simple'?`Amount (${b.currency})`:`Receipt total (${b.currency})`}><Amount primary value={b.mode==='simple'?b.items[0].amount:b.receipt} currency={b.currency} onChange={amount=>b.mode==='simple'?item(0,{amount:amount||0}):update({receipt:amount})}/></Field></div></div>
+        <div className="hero-amount" data-save-target="receipt"><Field label={b.mode==='simple'?`Amount (${b.currency})`:`Receipt total (${b.currency})`}><Amount primary value={b.mode==='simple'?b.items[0].amount:b.receipt} currency={b.currency} onChange={amount=>b.mode==='simple'?item(0,{amount:amount||0}):update({receipt:amount})}/></Field></div></div>
         {localStatus&&<p className="muted" role="status">{localStatus}</p>}
 
         <details className="editor-quick-picks"><summary>Quick picks</summary>        {quickPicks}
@@ -153,6 +172,7 @@ export default function ExpenseEditor({
 
           <Field label="What was it for?" error={!b.merchant.trim()&&JSON.stringify(b)!==JSON.stringify(initial)?"Enter an expense name.":undefined}>
             <input
+              data-save-target="name"
               value={b.merchant}
               placeholder="Toll, 7-Eleven…"
               onChange={(v) => {
@@ -649,13 +669,15 @@ export default function ExpenseEditor({
         )}
         </details>
         {edit && (
+          <div data-save-target="split">
           <Check
             label="I reviewed the new split; existing repayments will stay unchanged."
             checked={confirmed}
             onChange={setConfirmed}
           />
+          </div>
         )}
-        {duplicates.length>0&&<div className="duplicate-warning" role="status"><b>Possible duplicate · {duplicates.length} similar bill{duplicates.length===1?'':'s'}</b><p>The same description, date, currency and amount already exist in records you can view.</p><Check label="This is a separate expense; save it anyway" checked={duplicateApproved===fingerprint} onChange={v=>setDuplicateApproved(v?fingerprint:'')}/></div>}
+        {duplicates.length>0&&<div className="duplicate-warning" data-save-target="duplicate" role="status"><b>Possible duplicate · {duplicates.length} similar bill{duplicates.length===1?'':'s'}</b><p>The same description, date, currency and amount already exist in records you can view.</p><Check label="This is a separate expense; save it anyway" checked={duplicateApproved===fingerprint} onChange={v=>setDuplicateApproved(v?fingerprint:'')}/></div>}
       </section>
       <aside className="panel preview">
         <p className="eyebrow">3 · REVIEW</p>
@@ -666,7 +688,7 @@ export default function ExpenseEditor({
           {b.treat ? `Treated by ${name(b.treat)}` : `Split between ${b.items[0]?.people.length || 0} ${(b.items[0]?.people.length || 0) === 1 ? "person" : "people"}`}
         </p>
         {error && (
-          <p className="message error" role="alert">
+          <p className="message error" role="alert" tabIndex={-1} data-save-target="calculation">
             <CopyError value={error}/>
           </p>
         )}
@@ -705,7 +727,12 @@ export default function ExpenseEditor({
             <p className="muted">Shares add up exactly. Cent differences are handled automatically.</p>
           </>
         )}
-      </aside></div><div className="expense-save-footer"><p className="save-requirement">{!b.merchant.trim()?'Enter an expense name.':b.mode==='itemized'&&b.receipt===null?'Enter the receipt total.':edit&&!confirmed?'Review and confirm the updated split.':duplicates.length&&duplicateApproved!==fingerprint?'Review the possible duplicate.':error?'Check the highlighted amounts.':''}</p>        <button
+      </aside></div><div className="expense-save-footer">
+        {saveIssue&&<div className="save-requirement">
+          <span role="status">{saveIssue.message}</span>
+          <button className="text-button save-requirement-action" type="button" onClick={goToSaveIssue}>{saveIssue.action}</button>
+        </div>}
+        <button
           className="primary save"
           disabled={saveDisabled}
           onClick={() => onSave(b)}

@@ -112,9 +112,21 @@ test('Trip overview action opens the current day in the trip timezone including 
  assert.match(document.querySelector('.trip-today').textContent,/Nothing planned for today/);
  e.activities=[{id:'qa-plan',name:'Untimed visit',date:today,time:'',status:'Planning'}];
  await act(async()=>root.render(React.createElement(TripToday,{event:e,onOpenDay:date=>{selected=date}})));
- assert.match(document.querySelector('.trip-today').textContent,/See the day’s arrangements/);
+ assert.match(document.querySelector('.trip-today').textContent,/Untimed visit.*Flexible time/);
  await click(document.querySelector('.trip-today button'));
  assert.equal(selected,today);
+});
+
+test('Expense save guidance focuses the missing name without attempting to save',async()=>{
+ const {e,b}=fixture();e.expenses=[];b.merchant='';
+ let saves=0;
+ await mount(React.createElement(Editor,{event:e,initial:b,busy:false,stickyActions:true,onSave:async()=>{saves++;return true},onCancel(){}}));
+ const footer=document.querySelector('.expense-save-footer');
+ assert.match(footer.textContent,/Enter an expense name/);
+ assert.equal(footer.querySelector('.save').disabled,true);
+ await click(footer.querySelector('.save-requirement-action'));
+ assert.equal(document.activeElement,document.querySelector('[data-save-target="name"]'));
+ assert.equal(saves,0);
 });
 
 test('Overview and both itineraries agree on the trip date around midnight and preserve manual day choice',async()=>{

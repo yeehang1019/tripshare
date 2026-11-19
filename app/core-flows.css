@@ -48,3 +48,21 @@
  .itinerary-filter-toggle.secondary{display:inline-flex;min-height:44px;margin-inline-start:auto}
  .itinerary-filters[data-expanded=false]{display:none}
 }
+.save-requirement {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0 8px;
+  min-width: 0;
+}
+.save-requirement-action {
+  min-height: 44px;
+}
+@media (max-height: 550px) {
+  .workspace-editor-sheet .expense-save-footer {
+    padding-block: 4px max(4px, env(safe-area-inset-bottom));
+  }
+  .workspace-editor-sheet .expense-save-footer .save {
+    min-height: 44px;
+  }
+}

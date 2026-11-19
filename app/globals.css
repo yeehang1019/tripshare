@@ -943,15 +943,38 @@ html{scrollbar-gutter:stable}
 .money-nav-shell{--color-bg:var(--background);--color-surface:var(--surface);--color-border:var(--border);--color-text:var(--text);--color-text-muted:var(--text-secondary);--color-primary:var(--primary);--color-primary-soft:color-mix(in srgb,var(--primary) 12%,var(--surface));--color-on-primary:var(--primary-foreground);--text-nav:600 11px/14px Inter,system-ui,sans-serif}
 .money-bottom-nav,.money-mobile-group{display:none}
 .money-more{max-width:700px;border-radius:16px;padding:20px;background:var(--color-surface);border-color:var(--color-border);color:var(--color-text)}
-.money-more h2{font-size:22px;line-height:28px;font-weight:800;margin:0 0 16px}.money-more nav{display:flex;flex-direction:column;gap:8px}
-.money-more nav>button{display:flex;align-items:center;gap:16px;min-height:56px;width:100%;padding:12px 8px;border:0;border-bottom:1px solid var(--color-border);border-radius:12px;background:transparent;color:var(--color-text);text-align:left;font-size:16px;transition:background 150ms ease-out}
-.money-more nav>button:hover,.money-more nav>button:focus-visible{background:var(--color-primary-soft)}.money-more nav>button>span{flex:1}.money-more nav>button>svg:first-child{color:var(--color-primary);flex:none}.money-more small{display:block;margin-top:4px;font-size:13px;line-height:18px;color:var(--color-text-muted)}.money-more h3{font-size:13px;line-height:18px;color:var(--color-text-muted);margin:16px 8px 0}
+.money-more h2{font-size:22px;line-height:28px;font-weight:800;margin:0 0 16px}.money-more nav{display:flex;flex-direction:column;gap:16px}
+.workspace-more-group {
+  min-width: 0;
+}
+.money-more .workspace-more-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  width: 100%;
+  padding: 10px 8px;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  text-align: start;
+  font-size: 15px;
+}
+.workspace-more-row:hover,.workspace-more-row:focus-visible{background:var(--color-primary-soft)}
+.workspace-more-row>span{flex:1;min-width:0;overflow-wrap:anywhere}
+.workspace-more-row>svg{flex:none;color:var(--text-secondary)}
+.money-more small{display:block;margin-top:4px;font-size:13px;line-height:18px;color:var(--text-secondary)}
+.money-more h3{font-size:13px;line-height:18px;color:var(--text-secondary);margin:0 8px 4px}
+.money-more .advanced-app-links h3{margin-block-start:16px}
+.trip-tools-page h2{margin:0 12px 12px}
+.trip-tools-back{display:inline-flex;align-items:center;gap:6px;min-height:44px;margin:4px 12px}
 .money-sidebar-group{display:grid;gap:8px;min-width:0}.money-sidebar-group>span{font-size:13px;color:var(--text-secondary)}.money-sidebar-group select{width:100%;min-height:44px;max-width:100%;font-size:16px;border:1px solid var(--border);border-radius:12px;padding:8px;background:var(--surface);color:var(--text)}
 .money-nav-shell .sidebar-navigation{gap:8px}.money-nav-shell .sidebar-navigation button{min-height:44px;font-size:16px;border-radius:12px}.money-nav-shell .sidebar-navigation .money-nav-divider{margin-top:8px;border-top:1px solid var(--border);padding-top:12px}
 .money-nav-shell .sidebar-section,.money-nav-shell .sidebar-groups{display:none}.money-nav-shell .sidebar-appearance{margin-top:auto}
 @media(min-width:1024px){.money-nav-shell{--chrome-width:240px}.money-nav-shell .workspace-sidebar{display:flex;width:240px}.money-nav-shell>main{margin-left:240px;padding-left:24px;padding-right:24px}.money-nav-shell>header{margin-left:240px;width:calc(100% - 240px - var(--rail-width))}}
 @media(max-width:1023px){.money-nav-shell{--chrome-width:0px;--rail-width:0px}.money-nav-shell .workspace-sidebar,.money-nav-shell .context-rail{display:none}.money-nav-shell>header{margin:0;width:100%}.money-nav-shell>main{margin:0;width:100%;padding-left:16px;padding-right:16px;padding-bottom:calc(64px + env(safe-area-inset-bottom) + 88px)!important;min-width:0}.money-nav-shell .topline>div:first-child h1{display:none}.money-mobile-group{display:block;max-width:100%;margin-bottom:8px}.money-mobile-group select{max-width:100%;width:auto;min-height:44px;font-size:22px;line-height:28px;font-weight:800;color:var(--color-text);background:var(--color-surface);border:1px solid var(--color-border);border-radius:12px;padding:8px 12px}.money-bottom-nav{display:grid;grid-auto-columns:minmax(0,1fr);grid-auto-flow:column;position:fixed;bottom:0;left:0;right:0;z-index:40;height:calc(64px + env(safe-area-inset-bottom));padding:0 8px env(safe-area-inset-bottom);gap:8px;background:var(--color-surface);border-top:1px solid var(--color-border);box-shadow:0 -1px 2px rgb(0 0 0 / .04)}.money-bottom-nav button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-width:0;min-height:44px;padding:4px 0;border:0;border-radius:0;background:transparent;color:var(--color-text-muted);font:var(--text-nav);white-space:nowrap;overflow:visible;transition:color 150ms ease-out}.money-bottom-nav button[aria-current=page]{color:var(--color-primary)}.money-nav-icon{position:relative;display:grid;place-items:center;width:56px;height:32px;border-radius:999px}.money-bottom-nav button[aria-current=page] .money-nav-icon{background:var(--color-primary-soft)}.money-nav-dot{position:absolute;top:2px;right:8px;width:8px;height:8px;border-radius:50%;background:var(--color-primary)}.money-bottom-nav button:active{transform:scale(.98);transition-duration:80ms}.money-nav-shell .mobile-quick-add:not([hidden]){display:grid;bottom:calc(80px + env(safe-area-inset-bottom))}.money-nav-shell .mobile-space-switch{display:block}}
-@media(prefers-reduced-motion:reduce){.money-bottom-nav button,.money-more nav>button{transform:none!important;transition:opacity 150ms ease-out!important}}
+@media(prefers-reduced-motion:reduce){.money-bottom-nav button,.workspace-more-row{transform:none!important;transition:opacity 150ms ease-out!important}}
 @media print{.money-bottom-nav,.money-sidebar-group,.money-mobile-group{display:none!important}}
 
 /* Phase 3b: one responsive add control and one expense form. */

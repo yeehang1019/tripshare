@@ -24,7 +24,7 @@
  -webkit-backdrop-filter:blur(32px) saturate(160%)!important;backdrop-filter:blur(32px) saturate(160%)!important;
  border-radius:28px!important;color:var(--text);
 }
-:root[data-visual][data-theme] .payment-refined .payment-review-amount>.field:first-child input{background:var(--settlement-amount-bed)!important;letter-spacing:-.035em;border-bottom-color:var(--settlement-separator)!important;font-weight:500!important}
+:root[data-visual][data-theme] .payment-refined .payment-amount-comparison>.field input{background:var(--settlement-amount-bed)!important;letter-spacing:-.035em;border-bottom-color:var(--settlement-separator)!important;font-weight:500!important}
 .payment-refined input[type=date],.payout-edit-dialog input{background:var(--surface-glass)!important;border-color:var(--settlement-edge)!important;border-radius:13px!important;box-shadow:inset 0 1px 0 var(--settlement-edge)!important}
 .payment-refined :is(.payment-review-bills,footer,.settlement-source-list>label,.payment-group-nav){border-color:var(--settlement-separator)!important}
 .payment-refined .primary{border-radius:999px!important;padding-inline:24px!important;box-shadow:var(--settlement-button-shadow)!important}
@@ -81,3 +81,45 @@
 .bill-offset-details ul { margin: 0; padding: 0; list-style: none; text-align: start; }
 .bill-offset-details li { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; padding-block: 6px; overflow-wrap: anywhere; }
 .bill-offset-details li b { white-space: nowrap; }
+.settlement-summary-details > summary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  min-height: 44px;
+}
+.settlement-summary-details > summary > span {
+  flex: 1;
+}
+.settlement-summary-details[open] > summary > svg {
+  transform: rotate(180deg);
+}
+.settlement-summary-details > summary small,
+.payment-amount-comparison > div:first-child > span {
+  display: block;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+.settlement-summary-details > summary strong,
+.payment-amount-comparison > div:first-child > strong {
+  font-family: var(--font-numbers);
+  font-variant-numeric: tabular-nums;
+}
+.payment-amount-comparison {
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 16px;
+}
+.payment-amount-comparison > div:first-child {
+  flex: 1 1 105px;
+}
+.payment-amount-comparison > .field {
+  flex: 1 1 140px;
+  min-width: 0;
+  margin: 0 !important;
+}
+.payment-batch .payment-amount-comparison {
+  grid-column: 1 / -1;
+}

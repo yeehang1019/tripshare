@@ -1,0 +1,101 @@
+:root[data-visual] .workspace-app > main {
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none;
+}
+
+:root[data-visual] .workspace-app :is(
+  .money-home > .panel,
+  .home-balance, .trip-today, .trip-departure-card, .trip-budget-card,
+  .planner-next-grid > .panel, .trip-overview-details, .plan-details-only > .panel,
+  .expense-list-panel, .expense-month-summary, .settlement-hero,
+  .settlement-totals, .trip-tools-page, .money-more
+),
+:root[data-visual] .workspace-app .panel .panel,
+:root[data-visual] [data-slot="dialog-content"] :is(.panel, .settlement-source-list),
+:root[data-visual] .workspace-app :is(.home-expense, .stream-line, .plan-entry-body, .trip-tool-launch) {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+
+:root[data-visual] .workspace-app :is(.trip-departure-card, .settlement-hero)::before {
+  display: none;
+}
+
+:root[data-visual] .workspace-app :is(.money-home > .panel, .trip-departure-card, .trip-budget-card, .trip-today, .expense-list-panel, .settlement-hero, .trip-tools-page, .money-more) {
+  padding-inline: 0 !important;
+}
+
+:root[data-visual] .workspace-app :is(.home-expense, .stream-line, .planner-next-row, .trip-tool-launch) {
+  border-block-end: 1px solid var(--border) !important;
+}
+
+:root[data-visual] .workspace-app .expense-stream .swipe-shell {
+  border-radius: 0;
+}
+
+:root[data-visual] .workspace-app .settlement-current,
+:root[data-visual] .workspace-app .settlement-selection-toolbar,
+:root[data-visual] .workspace-app .settlement-summary-details {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  padding-inline: 0 !important;
+}
+
+:root[data-visual] .workspace-app .settlement-selection-toolbar {
+  position: static;
+  border-block-end: 1px solid var(--border) !important;
+}
+
+:root[data-visual] .workspace-app .settlement-recipient .payment-person-heading {
+  background: transparent !important;
+}
+
+:root[data-visual] .workspace-app .stream-line {
+  background: var(--surface-solid) !important;
+}
+
+:root[data-visual] .workspace-app .home-balances {
+  border: 0 !important;
+  border-block: 1px solid var(--border) !important;
+  padding: 0;
+}
+
+:root[data-visual] .workspace-app .home-balances .home-balance {
+  padding-inline: 0 !important;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.trip-budget-values > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  margin-block: 10px;
+}
+
+.trip-budget-values strong {
+  display: block;
+}
+
+:root[data-visual] .workspace-app .trip-tools-page .trip-tools-bar {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+  padding-inline: 0;
+}
+
+:root[data-visual] .workspace-app .trip-tools-page :is(.trip-tools-back, h2) {
+  margin-inline: 0;
+}
+
+:root[data-visual] .workspace-app :is(
+  .workspace-more-row, .trip-tool-launch, .home-expense, .stream-row, .planner-next-row
+):is(:hover, :focus-visible) {
+  background: var(--color-primary-soft) !important;
+}

@@ -48,7 +48,10 @@ export default function MemberPortal({group,person,session,signInHref}:{group:st
   return()=>{disposed=true;controller?.abort();clearInterval(timer);window.removeEventListener('focus',visible);document.removeEventListener('visibilitychange',visible);refresh.current=()=>{}};
  },[group,person,session]);
  return <div className="member-portal"><header><span className="brand">tripshare.</span><button className="text-button" disabled={busy} onClick={()=>refresh.current()}>{busy?'Updating…':'Refresh'}</button></header><main>
-  {error&&<p className="message error" role="alert"><CopyError value={error}/></p>}{status===401&&<a className="secondary" href={signInHref} target="_top">Sign in again</a>}
+  {error&&<section className="panel member-portal-recovery" aria-label="Trip access">
+   <p className="message error" role="alert">{status===401?'Your sign-in expired.':status===403||status===404?'This trip link is unavailable for your account.':<CopyError value={error}/>}</p>
+   {status===401?<a className="secondary" href={signInHref} target="_top">Sign in again</a>:status===403||status===404?<p>Open the latest link from the trip owner, or ask them to check your access.</p>:<button type="button" className="secondary" disabled={busy} onClick={()=>refresh.current()}>{busy?'Trying again…':'Try again'}</button>}
+  </section>}
   {snapshot?<MemberPortalContent snapshot={snapshot} page={page} onPage={setPage}/>:!error&&<p role="status">Loading your trip…</p>}
   {snapshot&&<small className="member-portal-update">Updates automatically while this page is open.</small>}
  </main></div>;

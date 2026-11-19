@@ -255,6 +255,13 @@ test('Trip tools are collapsed with task descriptions and preserve authorization
  assert.doesNotMatch(html,/Today &amp; next stop|Booking references/);
  const limited=renderToStaticMarkup(React.createElement(TripTools,{...props,canPreferences:false,canPlan:false}));assert.doesNotMatch(limited,/Private preferences|Shift plans/);
  const locked=renderToStaticMarkup(React.createElement(TripTools,{...props,disabled:true}));assert.equal((locked.match(/class="trip-tool-launch" disabled=""/g)||[]).length,5);
+ const page=renderToStaticMarkup(React.createElement(TripTools,{...props,onBack(){}}));
+ assert.match(page,/Back to More/);
+ assert.doesNotMatch(page,/<details class="trip-tools-menu"/);
+ assert.match(page,/aria-label="Available trip tools"/);
+ assert.match(page,/Booking files/);
+ assert.match(page,/Trip album/);
+ assert.doesNotMatch(renderToStaticMarkup(React.createElement(TripTools,{...props,canPlan:false,onBack(){}})),/Booking files|Trip album/);
 });
 
 test('New Trip creation is above trip context, separate from plan additions, and guarded against unsaved input',()=>{
