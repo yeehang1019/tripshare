@@ -29,6 +29,32 @@ export function pairSettlement(c:PairCalculation){
  return {rows,offset,forward,reverse,remainingForward,remainingReverse,reconciled};
 }
 
+// Match the already allocated offsets in the same order as the displayed bills.
+export function offsetMatches(rows: BillSettlement[], forwardFrom: string) {
+ const matches = new Map<string, { bill: BillSettlement; amount: number }[]>();
+ function append(target: BillSettlement, bill: BillSettlement, amount: number) {
+  const sources = matches.get(target.key);
+  if (sources) sources.push({ bill, amount });
+  else matches.set(target.key, [{ bill, amount }]);
+ }
+ const forward = rows.filter(row => row.offset > 0 && row.from === forwardFrom);
+ const reverse = rows.filter(row => row.offset > 0 && row.from !== forwardFrom);
+ let index = 0, remaining = reverse[0]?.offset ?? 0;
+ for (const bill of forward) {
+  let left = bill.offset;
+  while (left > 0 && index < reverse.length) {
+   const opposite = reverse[index];
+   const amount = Math.min(left, remaining);
+   append(bill, opposite, amount);
+   append(opposite, bill, amount);
+   left -= amount;
+   remaining -= amount;
+   if (!remaining) remaining = reverse[++index]?.offset ?? 0;
+  }
+ }
+ return matches;
+}
+
 export function finalDueSources(c:PairCalculation,from:string,to:string){
  const model=pairSettlement(c);if(!model.reconciled)throw Error('Settlement details changed. Refresh before recording.');
  return model.rows.filter(r=>r.from===from&&r.to===to&&r.finalDue>0).map(r=>({id:r.id,title:r.title,date:r.date,amount:r.finalDue,share:r.share,applied:r.applied,afterPayment:r.afterPayment,offset:r.offset,status:r.status}));

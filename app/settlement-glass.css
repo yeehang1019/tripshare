@@ -76,3 +76,8 @@
 .settlement-net-balances>summary::-webkit-details-marker{display:none}
 .settlement-net-balances>summary::after{content:"";width:8px;height:8px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(-45deg);margin-inline-start:auto;margin-inline-end:6px}
 .settlement-net-balances[open]>summary::after{transform:rotate(45deg)}
+
+.bill-offset-details > summary { cursor: pointer; min-height: 44px; }
+.bill-offset-details ul { margin: 0; padding: 0; list-style: none; text-align: start; }
+.bill-offset-details li { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; padding-block: 6px; overflow-wrap: anywhere; }
+.bill-offset-details li b { white-space: nowrap; }

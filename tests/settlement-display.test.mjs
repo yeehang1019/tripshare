@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {normalize,blankExpense,ledger,calculate} from '../lib/ledger.ts';
-import {pairSettlement,finalDueSources,selectedFinalDue,finalDueLines} from '../lib/settlement-display.ts';
+import {offsetMatches,pairSettlement,finalDueSources,selectedFinalDue,finalDueLines} from '../lib/settlement-display.ts';
 import {money} from '../lib/ledger.ts';
 import {klHousePair} from './fixtures/kl-house-pair.mjs';
 function group(){return normalize({name:'Offset',people:['A','B'],bills:[],payments:[]})}
@@ -45,4 +45,18 @@ test('Reminders, copied lists and WhatsApp lines use final due, including partia
  const f=group();bill(f,'Food','A',1000);bill(f,'Reverse','B',400);const state=check(f),transfer=state.transfers[0],options=finalDueSources(state.calculations[0],transfer.from,transfer.to);
  assert.equal(selectedFinalDue(transfer,options,'Food'),600);assert.equal(finalDueLines([{...transfer,amount:selectedFinalDue(transfer,options,'Food')}],id=>id,fmt),'A → B: RM 6.00');
  assert.throws(()=>selectedFinalDue(transfer,[{id:'stale',amount:1000}]),/no longer matches/);
+});
+
+test('Offset details match opposite bills oldest first and reconcile each row',()=>{
+ const e=group();
+ bill(e,'dinner','A',10000,'2026-10-20');
+ bill(e,'hotel','A',5000,'2026-10-21');
+ bill(e,'taxi','B',3000,'2026-10-20');
+ bill(e,'tickets','B',8000,'2026-10-21');
+ const c=ledger(e).calculations[0],{rows}=pairSettlement(c);
+ const matches=offsetMatches(rows,c.from);
+ const sources=id=>matches.get(rows.find(row=>row.id===id).key).map(({bill,amount})=>[bill.id,amount]);
+ assert.deepEqual(sources('dinner'),[['taxi',3000],['tickets',7000]]);
+ assert.deepEqual(sources('tickets'),[['dinner',7000],['hotel',1000]]);
+ for(const row of rows)assert.equal(matches.get(row.key).reduce((sum,source)=>sum+source.amount,0),row.offset);
 });
