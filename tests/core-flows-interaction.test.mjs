@@ -150,3 +150,37 @@ test('Overview and both itineraries agree on the trip date around midnight and p
   assert.match(document.querySelector('.plan-day-tabs button[aria-pressed=true]').textContent,/18 Nov/);
  }finally{Date.now=originalNow}
 });
+
+async function typeInto(input,value){await act(async()=>{input.focus();Object.getOwnPropertyDescriptor(win.HTMLInputElement.prototype,'value').set.call(input,value);input.dispatchEvent(new win.Event('input',{bubbles:true}))})}
+async function leave(input){await act(async()=>{input.dispatchEvent(new win.FocusEvent('focusout',{bubbles:true}));input.blur()})}
+test('A decimal comma is explained inline and blocks saving instead of saving 100x',async()=>{
+ const {e,b}=fixture();e.expenses=[];let saved=null;
+ await mount(React.createElement(Editor,{event:e,initial:b,busy:false,stickyActions:true,onSave:async x=>{saved=x;return true},onCancel(){}}));
+ const amount=document.querySelector('[data-primary-amount]');await typeInto(amount,'12,50');await leave(amount);
+ assert.match(document.querySelector('.amount-input-hint')?.textContent||'',/dot for decimals/);
+ assert.equal(amount.getAttribute('aria-invalid'),'true');
+ assert.equal(document.querySelector('button.save').disabled,true);assert.match(document.querySelector('.save-requirement').textContent,/could not be read/);
+ await typeInto(amount,'12.50');await leave(amount);
+ assert.equal(document.querySelector('.amount-input-hint'),null);assert.equal(document.querySelector('button.save').disabled,false);
+ await click(document.querySelector('button.save'));assert.equal(saved.items[0].amount,1250);
+});
+test('A foreign currency without a saved rate must be confirmed and accepts the reverse rate',async()=>{
+ const e=normalize({name:'QA Test',people:['A','B'],bills:[],payments:[]}),b=blankExpense(e,'A');b.merchant='Massage';b.currency='THB';b.rate=1;b.items[0].amount=100000;
+ let saved=null;
+ await mount(React.createElement(Editor,{event:e,initial:b,busy:false,stickyActions:true,onSave:async x=>{saved=x;return true},onCancel(){}}));
+ assert.equal(document.querySelector('button.save').disabled,true);
+ assert.match(document.querySelector('.save-requirement').textContent,/THB → MYR exchange rate/);
+ assert.equal(document.querySelector('.advanced-options').open,true);
+ const reverse=[...document.querySelectorAll('.rate-pair input')][1];assert.equal(reverse.value,'');
+ await typeInto(reverse,'7.5');
+ assert.equal(document.querySelector('button.save').disabled,false);
+ assert.match(document.querySelector('.converted-hint').textContent,/≈ RM 133\.33/);
+ await click(document.querySelector('button.save'));assert.ok(Math.abs(saved.rate-1/7.5)<1e-12);
+});
+test('Custom percentage split shows what is left and can give the rest to the last person',async()=>{
+ const {e,b}=fixture();e.expenses=[];b.items[0].split='percent';b.items[0].weights=[50,30];
+ await mount(React.createElement(Editor,{event:e,initial:b,busy:false,onSave:async()=>false,onCancel(){}}));
+ const balance=document.querySelector('.split-balance');assert.match(balance.textContent,/Assigned 80% of 100% · 20% left/);
+ await click(balance.querySelector('button'));
+ assert.match(document.querySelector('.split-balance').textContent,/Assigned 100% of 100% ✓/);
+});

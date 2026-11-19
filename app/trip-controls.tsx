@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useId, Children, isValidElement, cloneElement } from "react";
+import { useEffect, useState, useId, useContext, createContext, Children, isValidElement, cloneElement } from "react";
 import {
   Select,
   SelectTrigger,
@@ -9,7 +9,9 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { unit, digits, Person, money } from "@/lib/ledger";
-import { evaluateAmount } from "@/lib/amount-expression";
+import { evaluateAmount, toMinorUnits, amountInputHint } from "@/lib/amount-expression";
+/** Lets a form know that an amount field still holds text it could not read. */
+export const AmountIssues = createContext<((key: string, invalid: boolean) => void) | null>(null);
 import {minimalMotion} from '@/lib/ui-interactions';
 import AnimatedAmount from './animated-amount';
 import {MemberAvatar} from './member-avatar';
@@ -87,15 +89,30 @@ export function Amount({
   negative?: boolean;
 }) {
   const show = (n: number | null) =>
-    n === null || n === 0 ? "" : String(n / unit(currency));
+    n === null || n === 0 ? "" : (n / unit(currency)).toFixed(digits(currency));
   const [text, setText] = useState(show(value)),
-    [focused, setFocused] = useState(false);
+    [focused, setFocused] = useState(false),
+    [problem, setProblem] = useState(""),
+    report = useContext(AmountIssues),
+    key = useId(),
+    hintId = key + "-hint";
+  // Only external changes (presets, currency switch, resets) rewrite the text.
   useEffect(() => {
-    if (!focused) setText(show(value));
-  }, [value, currency, focused]);
+    if (!focused) {
+      setText(show(value));
+      setProblem("");
+    }
+  }, [value, currency]);
+  useEffect(() => {
+    report?.(key, !!problem);
+  }, [problem, report, key]);
+  useEffect(() => () => report?.(key, false), [report, key]);
+  const accept = (n: number | null) => n !== null && (negative || n >= 0);
   return (
+    <>
     <input
-      id={id} aria-describedby={errorId} aria-invalid={invalid} autoFocus={autoFocus} data-primary-amount={primary||undefined}
+      id={id} aria-describedby={[errorId, problem ? hintId : ""].filter(Boolean).join(" ") || undefined} aria-invalid={invalid || !!problem || undefined} autoFocus={autoFocus} data-primary-amount={primary||undefined}
+      data-save-target={problem ? "amount-input" : undefined}
       aria-label={`Amount ${currency}`}
       inputMode="decimal"
       type="text"
@@ -106,21 +123,34 @@ export function Amount({
         const next = e.target.value;
         if(primary&&!minimalMotion()){const node=e.currentTarget;node.getAnimations().forEach(a=>a.cancel());node.animate([{scale:1},{scale:1.015},{scale:1}],{duration:210,easing:'linear(0,.18,.48,.73,.9,.98,1.014,1.012,1)'})}
         setText(next);
-        if (!next.trim()) return onChange(null);
+        if (!next.trim()) {
+          setProblem("");
+          return onChange(null);
+        }
         const n = evaluateAmount(next);
-        if (n !== null && (!negative ? n >= 0 : true))
-          onChange(Math.round(n * unit(currency)));
+        if (accept(n)) {
+          setProblem("");
+          onChange(toMinorUnits(n!, unit(currency)));
+        }
       }}
       onBlur={() => {
         setFocused(false);
+        if (!text.trim()) {
+          setProblem("");
+          setText(show(value));
+          return;
+        }
         const n = evaluateAmount(text);
-        if (n !== null && (!negative ? n >= 0 : true)) {
-          const amount = Math.round(n * unit(currency));
+        if (accept(n)) {
+          const amount = toMinorUnits(n!, unit(currency));
           onChange(amount);
+          setProblem("");
           setText(show(amount));
-        } else setText(show(value));
+        } else setProblem(amountInputHint(text, negative));
       }}
     />
+    {problem && <small id={hintId} className="amount-input-hint" role="alert">{problem}</small>}
+    </>
   );
 }
 export function Check({
