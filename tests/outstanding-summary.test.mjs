@@ -70,10 +70,13 @@ test('KL House summary/export only includes food final due and disappears after 
  const html=renderToStaticMarkup(React.createElement(OutstandingSettlementTable,{model:m}));
  const print=outstandingPrintHTML(m),csv=outstandingCSVRows(m),shared=outstandingText(m);
  assert.match(print,/Total still to pay<\/th><td>RM 16.40/);
- assert.deepEqual(csv.at(-1),['Total still to pay','','MYR','',16.4]);
- assert.equal(shared,'ET → YH · Total: RM 16.40\n- food · 20/10/2026  RM 16.40\nTotal still to pay: RM 16.40');
- assert.doesNotMatch(shared,/toll|fee|RM -/);
- for(const text of [html,print,JSON.stringify(csv)]){assert.doesNotMatch(text,/Repayment adjustment|fee|toll|RM -/);assert.match(text,/food/)}
+ assert.deepEqual(csv.at(-1),['Total still to pay','','MYR','',16.4,'']);
+ // Approved wording B: cleared bills appear only inside the one offset note, never as amount lines.
+ const note='Offset RM 329.74 each way: venora, fee +10 more';
+ assert.equal(shared,'ET → YH · Total: RM 16.40\n- food · 20/10/2026  RM 16.40\n  ('+note+')\nTotal still to pay: RM 16.40');
+ assert.deepEqual(csv[0].slice(-2),['Still to pay','Offset already applied (do not subtract again)']);assert.deepEqual(csv[1].slice(-2),[16.4,note]);
+ assert.match(print,new RegExp('<p>ET → YH · '+note.replace('+','\\+')+'</p>'));
+ for(const text of [shared.replace(note,''),html,print.replace(note,''),JSON.stringify(csv).replace(note,'')]){assert.doesNotMatch(text,/Repayment adjustment|fee|toll|RM -/);assert.match(text,/food/)}
  assert.equal(JSON.stringify(e),before);pay(e,'ET','YH',1640);
  const after=outstandingSummary(e,ledger(e).transfers);assert.equal(after.total,0);assert.equal(after.columns.length,0);assert.equal(after.rows.length,0);
 });

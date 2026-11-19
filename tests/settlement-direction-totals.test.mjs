@@ -23,7 +23,7 @@ test('A one-person view shows what they pay and receive separately in copy, CSV 
  const {e,s,transfers}=scenario(),m=O.outstandingSummary(e,transfers,{person:'Ali'},s.calculations);
  const text=O.outstandingText(m);
  assert.match(text,/Ali pays: RM 45\.00\nAli receives: RM 76\.66$/);assert.doesNotMatch(text,/Total still to pay/);assert.doesNotMatch(text,/121\.66/);
- const csv=O.outstandingCSVRows(m);assert.deepEqual(csv.slice(-2).map(r=>[r[0],r.at(-1)]),[['Ali pays',45],['Ali receives',76.66]]);
+ const csv=O.outstandingCSVRows(m),due=csv[0].indexOf('Still to pay');assert.deepEqual(csv.slice(-2).map(r=>[r[0],r[due]]),[['Ali pays',45],['Ali receives',76.66]]);
  const html=O.outstandingPrintHTML(m);assert.match(html,/Ali pays<\/th><td>RM 45\.00/);assert.match(html,/Ali receives<\/th><td>RM 76\.66/);assert.doesNotMatch(html,/121\.66/);
 });
 test('Receive-only and everyone views keep a single correct total',()=>{
@@ -35,9 +35,20 @@ test('Receive-only and everyone views keep a single correct total',()=>{
  assert.equal(everyone.total,s.transfers.reduce((n,t)=>n+t.amount,0));
  for(const row of everyone.rows)assert.equal(Object.values(row.values).reduce((a,b)=>a+b,0),row.amount,`${row.from}>${row.to} bill lines add up`);
 });
-test('Print offset notes name the pair and use singular grammar',()=>{
- const {e,s,transfers}=scenario(),html=O.outstandingPrintHTML(O.outstandingSummary(e,transfers,{},s.calculations));
- assert.match(html,/Ali → Bob: 1 bill cancelled out · RM 30\.00 each way/);assert.doesNotMatch(html,/1 bills/);
+test('Offset wording B is identical in copy text, CSV and print',()=>{
+ const {e,s,transfers}=scenario(),m=O.outstandingSummary(e,transfers,{},s.calculations);
+ const text=O.outstandingText(m),csv=O.outstandingCSVRows(m),html=O.outstandingPrintHTML(m);
+ assert.match(text,/Ali → Bob · Total: RM 45\.00\n- Hotel · 02\/11\/2026  RM 45\.00\n  \(Offset RM 30\.00 each way: Dinner\)\n/);
+ assert.match(text,/Cai → Bob · Total: RM 71\.67\n- Hotel · 02\/11\/2026  RM 71\.67\n  \(Offset RM 3\.33 each way: Snacks\)/);
+ assert.doesNotMatch(text,/Dee → Bob[^\n]*\n[^\n]*\n  \(Offset/);
+ const note=csv[0].length-1;assert.equal(csv[0][note],'Offset already applied (do not subtract again)');
+ assert.equal(csv.find(r=>r[0]==='Ali'&&r[1]==='Bob')[note],'Offset RM 30.00 each way: Dinner');assert.equal(csv.find(r=>r[0]==='Dee'&&r[1]==='Bob')[note],'');
+ assert.match(html,/<p>Ali → Bob · Offset RM 30\.00 each way: Dinner<\/p>/);assert.doesNotMatch(html,/cancelled out/);
+});
+test('Offset notes name at most two bills',async()=>{
+ assert.equal(O.offsetLabel({amount:32974,titles:['venora','fee','LUNCH','tol']},'MYR'),'Offset RM 329.74 each way: venora, fee +2 more');
+ assert.equal(O.offsetLabel({amount:3000,titles:['Dinner','Taxi']},'MYR'),'Offset RM 30.00 each way: Dinner, Taxi');
+ assert.equal(O.offsetLabel({amount:1500,titles:[]},'JPY'),'Offset JPY 1,500 each way');
 });
 test('On-screen summary splits pay and receive for a one-person view',async()=>{
  const React=await import('react'),{renderToStaticMarkup}=await import('react-dom/server'),{default:Payments}=await vite.ssrLoadModule('/app/settlement-payments.tsx');

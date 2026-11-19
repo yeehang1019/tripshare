@@ -756,3 +756,11 @@ Bug fixed: in a one-person view ("Mine" scope or a member), copy/WhatsApp text, 
 Not changed, proposed: copy/WhatsApp text does not explain offsets (e.g. "Hotel RM 45.00" when the share was 75 because Bob's 30 for Dinner cancelled out). Adding a note conflicts with the approved v78 copy format, and on real-shaped data it lists many bills; this needs the user's decision and a short sample.
 
 Tests: new `tests/settlement-direction-totals.test.mjs` (scenario ledger values, pay/receive split in text/CSV/print, receive-only and Everyone totals, per-row reconciliation, print grammar, on-screen summary). One UI assertion updated for the wrapper element (same label and amount). `npm run verify`: build pass, 324/324, types pass, lint gate 0 additional. Synthetic 375/1280 Light/Night summary render: no overflow, text ≥12px.
+
+### Offset wording B in copy, WhatsApp, CSV and print — 2026-11-19
+
+The user selected wording B from four samples, for copy/WhatsApp text, CSV and print. This supersedes the v78 copy format only for the offset note: bill lines still show reconciled final due only. One helper (`offsetLabel`) produces "Offset RM 30.00 each way: Dinner", with at most two bill names then "+N more", so the three outputs cannot drift.
+- Copy/WhatsApp: an indented "(Offset …)" line under the pair when that pair has an offset; no line otherwise; none under a bill filter.
+- CSV: a text-only last column "Offset already applied (do not subtract again)", present only when any offset exists. It is never a number, so it cannot be summed or subtracted.
+- Print: notes read "Ali → Bob · Offset RM 30.00 each way: Dinner" (replaces "N bills cancelled out").
+Amounts, rows and totals unchanged. The KL House test now asserts the exact note ("Offset RM 329.74 each way: venora, fee +10 more") and that cleared bills appear nowhere outside it. `npm run verify`: build pass, 325/325, types pass, lint gate 0 additional.

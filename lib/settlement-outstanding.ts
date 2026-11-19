@@ -37,17 +37,26 @@ export function outstandingTotals(model:Pick<OutstandingSummary,'person'|'person
  if(model.person&&model.receive>0&&!model.pay)return [{label:'Total to receive',amount:model.receive}];
  return [{label:'Total still to pay',amount:model.total}];
 }
+/** Approved wording B: "Offset RM 30.00 each way: Dinner", at most two bill names. */
+export function offsetLabel(o:{amount:number;titles?:string[]},currency:string){
+ const titles=o.titles||[],shown=titles.slice(0,2).join(', ')+(titles.length>2?` +${titles.length-2} more`:'');
+ return `Offset ${money(o.amount,currency)} each way`+(shown?`: ${shown}`:'');
+}
+function rowOffset(model:Pick<OutstandingSummary,'offsets'>,t:{from:string;to:string}){return (model.offsets||[]).find(o=>o.from===t.from&&o.to===t.to)}
 export function outstandingText(model:OutstandingSummary){
  if(!model.rows.length)return '';
- const lines=model.rows.map(t=>`${t.fromName} → ${t.toName} · Total: ${money(t.amount,model.currency)}\n`+(t.values?model.columns.filter(c=>(t.values?.[c.id]||0)>0).map(c=>`- ${c.title} · ${c.date.split('-').reverse().join('/')}  ${money(t.values![c.id],model.currency)}`).join('\n'):'Bill details unavailable'));
+ const lines=model.rows.map(t=>`${t.fromName} → ${t.toName} · Total: ${money(t.amount,model.currency)}\n`+(t.values?model.columns.filter(c=>(t.values?.[c.id]||0)>0).map(c=>`- ${c.title} · ${c.date.split('-').reverse().join('/')}  ${money(t.values![c.id],model.currency)}`).join('\n'):'Bill details unavailable')+(rowOffset(model,t)?`\n  (${offsetLabel(rowOffset(model,t)!,model.currency)})`:''));
  return [...lines,...outstandingTotals(model).map(x=>`${x.label}: ${money(x.amount,model.currency)}`)].join('\n');
 }
 
 export type OutstandingSummary=ReturnType<typeof outstandingSummary>;
 export function outstandingCSVRows(model:OutstandingSummary):(string|number)[][]{
  const value=(n:number|null)=>n===null?'Unavailable':n/unit(model.currency);
- return [['From','To','Currency',...model.columns.map(c=>c.title+' · '+c.date.split('-').reverse().join('/')),...(model.hasPaid?['Repayment adjustment (add to bill columns)']:[]),'Still to pay'],
-  ...(!model.rows.length?[[model.personal?"You're all settled.":'Everyone is settled.']]:[]),...model.rows.map(t=>[t.fromName,t.toName,model.currency,...model.columns.map(c=>value(t.values?t.values[c.id]||0:null)),...(model.hasPaid?[value(t.paid===null?null:-t.paid)]:[]),value(t.amount)]),...outstandingTotals(model).map(x=>[x.label,'',model.currency,...model.columns.map(()=>''),...(model.hasPaid?['']:[]),value(x.amount)])];
+ const notes=(model.offsets||[]).length>0,note=(t:{from:string;to:string})=>notes?[rowOffset(model,t)?offsetLabel(rowOffset(model,t)!,model.currency):'']:[];
+ const rows:(string|number)[][]=[['From','To','Currency',...model.columns.map(c=>c.title+' · '+c.date.split('-').reverse().join('/')),...(model.hasPaid?['Repayment adjustment (add to bill columns)']:[]),'Still to pay'],
+  ...(!model.rows.length?[[model.personal?"You're all settled.":'Everyone is settled.']]:[]),...model.rows.map(t=>[t.fromName,t.toName,model.currency,...model.columns.map(c=>value(t.values?t.values[c.id]||0:null)),...(model.hasPaid?[value(t.paid===null?null:-t.paid)]:[]),value(t.amount),...note(t)]),...outstandingTotals(model).map(x=>[x.label,'',model.currency,...model.columns.map(()=>''),...(model.hasPaid?['']:[]),value(x.amount),...(notes?['']:[])])];
+ if(notes)rows[0].push('Offset already applied (do not subtract again)');
+ return rows;
 }
 export function outstandingPrintHTML(model:OutstandingSummary,reviewAmount=0){
  const fmt=(n:number|null)=>n===null?'Unavailable':esc(money(n,model.currency));
@@ -61,6 +70,6 @@ export function outstandingPrintHTML(model:OutstandingSummary,reviewAmount=0){
   (model.rows.length?tables:'<p>'+(reviewAmount?'No remaining transfers. Recorded repayments still need review.':model.personal?"You're all settled.":'Everyone is settled.')+'</p>')+
   (model.unavailable?'<p>Some bill details are unavailable. Remaining amounts are unchanged; check View Calculation.</p>':'')+
   '<p><small>Only bills with Still to pay greater than zero are included. '+(model.hasPaid?'Bill columns + repayment adjustment = Still to pay. ':'')+'All amounts in '+esc(model.currency)+'.'+(model.columns.length>7?' Continued bill columns: Adjustment and Still to pay repeat; do not add repeated amounts.':'')+'</small></p>'+
-  model.offsets.map(o=>'<p>'+esc(o.from===o.to?'':(model.rows.find(r=>r.from===o.from&&r.to===o.to)?.fromName||o.from)+' → '+(model.rows.find(r=>r.from===o.from&&r.to===o.to)?.toName||o.to))+': '+o.count+(o.count===1?' bill':' bills')+' cancelled out · '+fmt(o.amount)+' each way</p>').join('')+
+  model.offsets.map(o=>{const r=model.rows.find(r=>r.from===o.from&&r.to===o.to);return '<p>'+esc((r?.fromName||o.from)+' → '+(r?.toName||o.to)+' · '+offsetLabel(o,model.currency))+'</p>'}).join('')+
   '<p><small>Snapshot · '+esc(new Date().toLocaleString('en-GB',{timeZone:'Asia/Kuala_Lumpur'}))+' MYT. Printing does not record a payment.</small></p></body></html>';
 }
