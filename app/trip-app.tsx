@@ -1138,7 +1138,7 @@ setPlannerDirty(false);setTemplateDirty(false);
                 <h1>{space==="trip"&&(e?.kind!=="trip"||rec?.personal)?"Your trips":e?.name || (space==="trip"?"Your trips":"Your shared money")}</h1>
                 <p className="muted"><span className="context-desktop">
                   {space==='trip'&&(e?.kind!=='trip'||rec?.personal&&!rec.planning)?"Plan your trip here. View the same expenses in Trip or Money.":e
-                    ? `${e.people.length} people · ${e.kind === "daily" ? "Money" : [e.start, e.end].filter(Boolean).join(" — ") || "Trip"} · Settle in ${e.settlement}`
+                    ? `${e.people.length} people · ${e.settlement}`
                     : "Your Trip plans and Money expenses, together."}
                 </span>{e&&<span className="context-mobile">{e.people.length} people · {e.settlement}</span>}</p>
               </div>
@@ -1452,12 +1452,12 @@ setPlannerDirty(false);setTemplateDirty(false);
                     <div className="settlement-hero">
                       <div>
                         <p className="eyebrow">{settlementScope === "mine" ? "MY SETTLEMENT" : "Payments to settle"}</p>
-                        <h2>{settlementCount ? `${settlementCount} payment${settlementCount > 1 ? "s" : ""} remaining` : settlementBillFilter ? "No payments for this bill" : settlementReviews.length ? "Check recorded payments" : settlementScope === "mine" ? settlementDirection==='owe'?"You have no payments to make.":settlementDirection==='owed'?"No one owes you a payment.":`${name(me)} has nothing left to settle.` : "Everyone is settled."}</h2>
+                        <h2>{settlementCount ? "Settle up" : settlementBillFilter ? "No payments for this bill" : settlementReviews.length ? "Check recorded payments" : settlementScope === "mine" ? settlementDirection==='owe'?"You have no payments to make.":settlementDirection==='owed'?"No one owes you a payment.":`${name(me)} has nothing left to settle.` : "Everyone is settled."}</h2>
                         <div className="settlement-bill-scope">
-                          <span role="status">{settlementBillFilter?`Bill: ${selectedSettlementBill?.merchant||"Selected bill"}`:"All unpaid bills"}</span>
+                          {settlementBillFilter&&<span role="status">{`Bill: ${selectedSettlementBill?.merchant||"Selected bill"}`}</span>}
                           {settlementBillFilter&&<button type="button" className="text-button" onClick={()=>setSettlementBillFilter("")}>Clear bill filter</button>}
                         </div>
-                        <p className={visibleTransfers.length?"settlement-summary-note":""}>{visibleTransfers.length ? "" : settlementReviews.length ? "Check the recorded payments below before paying again." : "Amounts update when expenses change."}</p>
+                        <p className={visibleTransfers.length?"settlement-summary-note":""}>{!visibleTransfers.length&&settlementReviews.length ? "Check the recorded payments below before paying again." : ""}</p>
                       </div>
 
                     </div>
