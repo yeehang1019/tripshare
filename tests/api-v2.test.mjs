@@ -825,3 +825,34 @@ test('Sync rate-limit counters keep only the current minute per account',async()
  assert.equal(keys.filter(k=>k.startsWith('b@example.com:')).length,1);assert.ok(keys.includes('other@example.com:1'));
  h.sqlite.close();
 });
+
+test('Retention: once every old change is pruned, a caught-up receiver keeps polling without a reset',async()=>{
+ const h=await harness(),e=ledger.normalize({name:'Empty log',people:['A','B'],bills:[],payments:[]}),{id}=await h.post({action:'create',data:e});await h.post({action:'grant',id,email:'b@example.com',person:'B',permissions:[]});
+ const b=ledger.blankExpense(e,'A');b.merchant='Lunch';b.items[0].amount=10000;b.items[0].people=['A','B'];b.items[0].weights=[1,1];assert.equal((await h.post({action:'expense',id,revision:0,entity:b})).status,200);
+ let page=await h.syncRead();h.sqlite.prepare("UPDATE sync_changes SET changed_at='2020-01-01T00:00:00.000Z'").run();
+ page=await h.syncRead(page.next_cursor);assert.equal(page.status,200);
+ assert.equal(h.sqlite.prepare('SELECT COUNT(*) n FROM sync_changes').get().n,0);
+ for(let i=0;i<3;i++){page=await h.syncRead(page.next_cursor);assert.equal(page.status,200,'poll '+i)}
+ const fresh=await h.syncRead();let cursor=fresh.next_cursor;const again=await h.syncRead(cursor);assert.equal(again.status,200,'a fresh full sync converges');
+ h.sqlite.close();
+});
+
+test('Rate-limit cleanup never removes a later minute and matches the account exactly',async()=>{
+ const h=await harness(),minute=Math.floor(Date.now()/60000);
+ h.sqlite.prepare('INSERT INTO sync_limits(key,count) VALUES (?,3),(?,3),(?,3)').run('b@example.com:'+(minute-5),'b@example.com:'+(minute+1),'b_example.com:'+(minute-5));
+ assert.equal((await h.syncRead()).status,200);
+ const keys=h.sqlite.prepare('SELECT key FROM sync_limits').all().map(r=>r.key);
+ assert.ok(!keys.includes('b@example.com:'+(minute-5)));assert.ok(keys.includes('b@example.com:'+(minute+1)));assert.ok(keys.includes('b_example.com:'+(minute-5)));
+ h.sqlite.close();
+});
+
+test('History reads archived audit details back, and deleting a space clears its archive',async()=>{
+ const h=await harness(),e=ledger.normalize({name:'Archive read',people:['A','B'],bills:[],payments:[]}),{id}=await h.post({action:'create',data:e});
+ for(let rev=0;rev<155;rev++)assert.equal((await h.post({action:'settings',id,revision:rev,entity:{...e,name:'Archive read '+rev}})).status,200);
+ const history=await h.post({action:'history',id,revision:155});
+ assert.ok(Array.isArray(history.entries),JSON.stringify(history).slice(0,300));assert.equal(history.entries.length,150);assert.ok(history.entries.every(x=>!x.archived&&x.after!==null),'history entries carry full details');
+ assert.ok(h.sqlite.prepare('SELECT COUNT(*) n FROM trip_audit_archive WHERE trip=?').get(id).n>0);
+ assert.equal((await h.post({action:'deleteEvent',id,revision:155,confirmName:'Archive read 154'})).status,200);
+ assert.equal(h.sqlite.prepare('SELECT COUNT(*) n FROM trip_audit_archive WHERE trip=?').get(id).n,0);
+ h.sqlite.close();
+});

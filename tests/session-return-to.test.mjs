@@ -14,6 +14,6 @@ test('return_to stays on the same site',()=>{
 });
 
 test('return_to rejects every off-site form, including backslash tricks',()=>{
- for(const value of ['//evil.example','/\\evil.example','/\\/evil.example','/%5Cevil.example\\x','https://evil.example','evil.example','',null])
+ for(const value of ['/.//evil.example','/x/..//evil.example','//evil.example','/\\evil.example','/\\/evil.example','/%5Cevil.example\\x','https://evil.example','evil.example','',null])
   assert.equal(safeReturnTo(value,base),'/',String(value));
 });

@@ -8,7 +8,8 @@ export function safeReturnTo(value: string | null, base = "https://tripshare.inv
   if (!value?.startsWith("/") || value.startsWith("//") || value.includes("\\")) return "/";
   try {
     const resolved = new URL(value, base);
-    if (resolved.origin !== new URL(base).origin) return "/";
+    // Dot segments can normalise "/.//evil" to "//evil"; reject so the path can't be re-read as a host.
+    if (resolved.origin !== new URL(base).origin || resolved.pathname.startsWith("//")) return "/";
     return resolved.pathname + resolved.search + resolved.hash;
   } catch {
     return "/";

@@ -62,14 +62,19 @@ function paymentEntry(group:Scope,p:any){
     expense_ids:(p.allocations||[]).map((a:any)=>a.expense)};
 }
 export const SYNC_RETENTION_DAYS=90;
-/** Deletes change rows older than the retention window and records the highest pruned seq. */
-export async function pruneSyncChanges(db:any,now=Date.now()){
+/**
+ * Deletes the contiguous prefix of change rows that are past retention AND already delivered
+ * (seq <= deliveredThrough), and records the highest pruned seq. changed_at is set before commit,
+ * so it is not strictly ordered by seq: stop at the first row that is still inside the window.
+ */
+export async function pruneSyncChanges(db:any,deliveredThrough:number,now=Date.now()){
   const cutoff=new Date(now-SYNC_RETENTION_DAYS*86400000).toISOString();
-  const top=await db.prepare('SELECT MAX(seq) AS seq FROM sync_changes WHERE changed_at<?').bind(cutoff).first() as {seq:number|null}|null;
-  if(!top?.seq)return;
+  const firstKept=await db.prepare('SELECT MIN(seq) AS seq FROM sync_changes WHERE changed_at>=?').bind(cutoff).first() as {seq:number|null}|null;
+  const through=Math.min(deliveredThrough,firstKept?.seq!=null?firstKept.seq-1:deliveredThrough);
+  if(through<=0)return;
   await db.batch([
-    db.prepare("UPDATE sync_meta SET value=max(value,?) WHERE key='pruned_through'").bind(top.seq),
-    db.prepare('DELETE FROM sync_changes WHERE seq<=?').bind(top.seq),
+    db.prepare("UPDATE sync_meta SET value=max(value,?) WHERE key='pruned_through'").bind(through),
+    db.prepare('DELETE FROM sync_changes WHERE seq<=?').bind(through),
   ]);
 }
 export async function GET(request:Request){
@@ -86,8 +91,9 @@ export async function GET(request:Request){
     const minute=Math.floor(Date.now()/60000),limitKey=email+':'+minute;
     const limit=await db.prepare('INSERT INTO sync_limits(key,count) VALUES(?,1) ON CONFLICT(key) DO UPDATE SET count=count+1 RETURNING count').bind(limitKey).first() as {count:number}|null;
     if((limit?.count||0)>60)return reply({error:'rate_limited'},429,{'Retry-After':String(60-Math.floor(Date.now()/1000)%60)});
-    // Only the current minute's counter matters; drop this account's older minutes.
-    if((limit?.count||0)===1)await db.prepare("DELETE FROM sync_limits WHERE key LIKE ? AND key<>?").bind(email.replace(/[%_]/g,'')+':%',limitKey).run();
+    // Only the current minute's counter matters; drop this exact account's EARLIER minutes
+    // (never a later minute that a delayed request might otherwise remove).
+    if((limit?.count||0)===1)await db.prepare("DELETE FROM sync_limits WHERE substr(key,1,length(?)+1)=?||':' AND CAST(substr(key,length(?)+2) AS INTEGER)<?").bind(email,email,email,minute).run();
     const url=new URL(request.url),limitRaw=url.searchParams.get('limit')||'50';
     if(!/^\d+$/.test(limitRaw)||Number(limitRaw)<1||Number(limitRaw)>100)return reply({error:'invalid_limit'},400);
     const size=Number(limitRaw);
@@ -95,7 +101,9 @@ export async function GET(request:Request){
     // rows commit in one batch, so every change with seq<=max is already in the snapshot.
     // Changes committed after this point are left for the next request instead of being
     // skipped with stale data.
-    const max=await db.prepare('SELECT COALESCE(MAX(seq),0) AS seq FROM sync_changes').first() as {seq:number};
+    // High-water mark never moves backwards: once old rows are pruned (possibly all of them),
+    // MAX(seq) alone could fall to 0 and hand a caught-up receiver a cursor behind pruned_through.
+    const max=await db.prepare("SELECT max(COALESCE((SELECT MAX(seq) FROM sync_changes),0),COALESCE((SELECT value FROM sync_meta WHERE key='pruned_through'),0)) AS seq").first() as {seq:number};
     const rows=await db.prepare(`SELECT t.id,t.data,t.owner_email,g.person,(SELECT json_group_array(person) FROM grants WHERE trip=t.id AND email<>?) AS other_people,(SELECT data FROM personal_workspace WHERE email=?) AS preferences FROM trips t LEFT JOIN grants g ON g.trip=t.id AND g.email=? WHERE t.owner_email=? OR g.person<>'' ORDER BY t.id`).bind(email,email,email,email).all();
     const scopes=(rows.results as any[]).flatMap(row=>{
       const data=normalize(JSON.parse(row.data));
@@ -157,8 +165,11 @@ export async function GET(request:Request){
       return [{...(entry||tombstone),change_seq:change.seq,updated_at:change.changed_at}];
     });
     const more=results.results.length>size;
-    // Prune only once the receiver has caught up; its next cursor (max.seq) is past anything pruned.
-    if(!more)await pruneSyncChanges(db);
+    // A concurrent request may have pruned rows this page skipped over; re-check after reading.
+    const prunedAfterRead=await db.prepare("SELECT value FROM sync_meta WHERE key='pruned_through'").first() as {value:number}|null;
+    if(after<(prunedAfterRead?.value||0))return reply({error:'cursor_expired',reset_required:true},409);
+    // Prune only what this receiver has now been given (everything up to max.seq when caught up).
+    if(!more)await pruneSyncChanges(db,max.seq);
     const next:Cursor={...cursor,after:String(more?slice.at(-1)!.seq:max.seq)};
     return reply({schema_version:1,mode:'incremental',entries:entries.map(checkedEntry),next_cursor:await makeCursor(next,config.POCKET_SYNC_TOKEN),has_more:more});
   }catch(error){

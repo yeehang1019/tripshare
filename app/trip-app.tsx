@@ -213,6 +213,10 @@ export default function TripApp({ shared = false, authenticatedEmail = "", authe
   const [allGroupsLoaded,setAllGroupsLoaded]=useState(false),[allGroupsBusy,setAllGroupsBusy]=useState(false);
   const responseCache=useRef<{etag:string;snapshot:any;session:string}|null>(null);
   const loading=useRef<Promise<any>|null>(null);
+  // Request ordering: each load/loadAcross bumps the epoch; revokedAt records the epoch at which a
+  // space was found inaccessible, so an older in-flight response can't bring it back.
+  const requestEpoch=useRef(0),revokedAt=useRef(new Map<string,number>());
+  const transport=<T,>(work:Promise<T>)=>work.catch(error=>{throw Object.assign(error instanceof Error?error:Error(String(error)),{transport:true})});
   const [problemId,setProblemId]=useState("");
   const [syncState,setSyncState]=useState("loaded"),[lastSync,setLastSync]=useState("");
   const [space,setSpace]=useState<Space>("money");
@@ -283,6 +287,7 @@ export default function TripApp({ shared = false, authenticatedEmail = "", authe
   pinRef.current = pin;
   function load(force=false,groupOverride?:string):Promise<any>{if(loading.current)return force?loading.current.then(()=>load(true,groupOverride)):loading.current;const work=performLoad(groupOverride);loading.current=work;return work.finally(()=>{if(loading.current===work)loading.current=null})}
   async function performLoad(groupOverride?:string) {
+    const epoch=++requestEpoch.current;
     try {
       let r,selectedGroup=groupOverride||id||(typeof window!=='undefined'?new URLSearchParams(window.location.search).get('group')||'':'');
       if(!shared&&!diskCache.current&&authenticatedAccount){try{diskCache.current=groupCache(localStorage,authenticatedAccount+':'+authenticatedEmail.toLowerCase())}catch{}}
@@ -291,9 +296,9 @@ export default function TripApp({ shared = false, authenticatedEmail = "", authe
         if(saved){groupMemory.current.set(selectedGroup,saved);cachePending.current=true;setRecords([saved.record]);setLoaded(true);setLastSync(new Date(saved.savedAt).toISOString());setSyncState('refreshing')}
       }
       const initialGroup=selectedGroup;
-      const readGroup=(group:string)=>{const saved=groupMemory.current.get(group);return fetch('/api/trips?group='+encodeURIComponent(group),{signal:AbortSignal.timeout(20000),headers:{...(authenticatedSession?{'X-TripShare-Session':authenticatedSession}:{}),...(saved?.etag?{'If-None-Match':saved.etag}:{})}})};
+      const readGroup=(group:string)=>{const saved=groupMemory.current.get(group);return transport(fetch('/api/trips?group='+encodeURIComponent(group),{signal:AbortSignal.timeout(20000),headers:{...(authenticatedSession?{'X-TripShare-Session':authenticatedSession}:{}),...(saved?.etag?{'If-None-Match':saved.etag}:{})}}))};
       const primed=!shared&&!groupDirectory.current.length?primeGroupRequest(selectedGroup,readGroup):null;
-      if(!shared&&!groupDirectory.current.length){const d=await fetch('/api/trips?directory=1',{signal:AbortSignal.timeout(20000),headers:authenticatedSession?{'X-TripShare-Session':authenticatedSession}:{}});const j:any=await d.json();if(!d.ok){if(d.status===401||d.status===403){diskCache.current?.clear();groupMemory.current.clear();setRecords([])}throw Error(j.error||'Could not load groups')}groupDirectory.current=j.groups.map((g:any)=>({id:g.id,revision:g.revision,owner:g.owner,permissions:g.permissions,person:g.person,directoryOnly:true,data:directoryEvent(g.name,g.kind),...(g.kind==='trip'&&!g.owner?{planning:directoryEvent(g.name,'trip')}:{})}));if(!selectedGroup||!groupDirectory.current.some(g=>g.id===selectedGroup)){const requested=new URLSearchParams(window.location.search).get('space');selectedGroup=(requested==='trip'?groupDirectory.current.find(g=>g.data.kind==='trip'):groupDirectory.current[0])?.id||''}for(const key of [...groupMemory.current.keys()])if(!groupDirectory.current.some(g=>g.id===key)){groupMemory.current.delete(key);diskCache.current?.remove(key);setRecords(old=>old.filter(g=>g.id!==key))}setCanCreateEvents(Boolean(j.canCreate));if(!selectedGroup){cachePending.current=false;setRecords([]);setLoaded(true);return {trips:[],user:j.user,canCreate:j.canCreate}}}
+      if(!shared&&!groupDirectory.current.length){const d=await transport(fetch('/api/trips?directory=1',{signal:AbortSignal.timeout(20000),headers:authenticatedSession?{'X-TripShare-Session':authenticatedSession}:{}}));if(d.status===401||d.status===403){diskCache.current?.clear();groupMemory.current.clear();setRecords([])}const j:any=await transport(d.json());if(!d.ok){if(d.status===401||d.status===403){diskCache.current?.clear();groupMemory.current.clear();setRecords([])}throw Error(j.error||'Could not load groups')}groupDirectory.current=j.groups.map((g:any)=>({id:g.id,revision:g.revision,owner:g.owner,permissions:g.permissions,person:g.person,directoryOnly:true,data:directoryEvent(g.name,g.kind),...(g.kind==='trip'&&!g.owner?{planning:directoryEvent(g.name,'trip')}:{})}));if(!selectedGroup||!groupDirectory.current.some(g=>g.id===selectedGroup)){const requested=new URLSearchParams(window.location.search).get('space');selectedGroup=(requested==='trip'?groupDirectory.current.find(g=>g.data.kind==='trip'):groupDirectory.current[0])?.id||''}for(const key of [...groupMemory.current.keys()])if(!groupDirectory.current.some(g=>g.id===key)){revokedAt.current.set(key,epoch);groupMemory.current.delete(key);diskCache.current?.remove(key);setRecords(old=>old.filter(g=>g.id!==key))}setCanCreateEvents(Boolean(j.canCreate));if(!selectedGroup){cachePending.current=false;setRecords([]);setLoaded(true);return {trips:[],user:j.user,canCreate:j.canCreate}}}
       const cached=groupMemory.current.get(selectedGroup);
       if (shared) {
         token.current =
@@ -306,7 +311,8 @@ export default function TripApp({ shared = false, authenticatedEmail = "", authe
         });
       } else if(primed&&initialGroup===selectedGroup){const result=await primed;if(result.error)throw result.error;r=result.response!}else r=await readGroup(selectedGroup);
       if(r.status===304&&cached){cachePending.current=false;diskCache.current?.write(selectedGroup,cached.record,cached.etag);setRecords(groupDirectory.current.map(d=>groupMemory.current.get(d.id)?.record||d));setLoaded(true);setLastSync(new Date().toISOString());setSyncState("loaded");setError("");return {trips:[cached.record]}}
-      const j:any = await r.json();
+      if(!shared&&(r.status===401||r.status===403||r.status===404)){diskCache.current?.remove(selectedGroup);groupMemory.current.delete(selectedGroup);revokedAt.current.set(selectedGroup,epoch);cachePending.current=false}
+      const j:any = await transport(r.json());
       if(!r.ok&&j.requestId)setProblemId(j.requestId);
       if (j.needsPin) {
         setNeedsPin(true);
@@ -336,7 +342,7 @@ export default function TripApp({ shared = false, authenticatedEmail = "", authe
       // A cached snapshot was shown before access was re-checked. Keep it only while offline
       // (network error or timeout); any other failure means we could not confirm access, so
       // stop showing financial data that may no longer be ours to see.
-      const offline=err instanceof TypeError||(err as Error)?.name==='TimeoutError'||(err as Error)?.name==='AbortError'||(typeof navigator!=='undefined'&&navigator.onLine===false);
+      const offline=!!(err as any)?.transport||(typeof navigator!=='undefined'&&navigator.onLine===false);
       if(!shared&&cachePending.current&&!offline){const group=groupOverride||id||new URLSearchParams(window.location.search).get('group')||'';cachePending.current=false;if(group){groupMemory.current.delete(group);diskCache.current?.remove(group)}setRecords([])}
       setError((err as Error).message);
       setLoaded(true);
@@ -1046,11 +1052,15 @@ setPlannerDirty(false);setTemplateDirty(false);
   const quickNavigator=<QuickNavigator open={quickOpen} onOpenChange={setQuickOpen} records={records} destinations={destinations} onOpenRecord={openSearchRecord} onGroup={choose} onNavigate={navigate} onAdd={undefined} onAppearance={()=>setAppearanceOpen(true)}/>;
   const syncStatusUI=!shared&&loaded&&rec&&localScope?<SaveStatus reference={problemId} state={syncState} last={lastSync} retry={()=>{if(!busy){setSyncState('refreshing');load()}}}/ >:null;
   const recoveryUI=!shared&&loaded&&rec&&localScope?<>{activity&&planDraftStatus&&<p className="muted" role="status">{planDraftStatus}</p>}<DraftRecovery event={rec.entryContext||rec.planning||rec.data} key={localScope} scope={localScope} expenses={rec.personal?rec.ownEntries||[]:rec.data.expenses} plans={(rec.planning||rec.data).activities} disabled={editing.current} canRestore={d=>d.kind==='plan'?can('plan'):allowed(rec.permissions,'expense',user,(rec.personal?rec.ownEntries||[]:rec.data.expenses).find(b=>b.id===d.entity.id))} onRestore={d=>{setDraftRevision(rec.revision);setError('');if(d.kind==='expense'){const current=(rec.personal?rec.ownEntries||[]:rec.data.expenses).find(b=>b.id===d.entity.id);baselineBill.current=current?structuredClone(current):null;selectSpace('money');setTab(rec.personal?'My spending':'Expenses');setBill(structuredClone(d.entity as Expense));setEditorEpoch(v=>v+1)}else{selectSpace('trip');setTab('Itinerary');setActivity(structuredClone(d.entity as Activity));setPlannerSelection({day:d.entity.date,type:'All'})}}}/ >{space==='money'&&(canViewGroup||!!rec.ownEntries?.length)&&<MoneyTools key={rec.id+':money:'+toolsEpoch} controlledOpen={tab==='Tools'} hideLauncher onOpenChange={open=>{if(!open)setTab('More')}} event={rec.personal?{...(rec.entryContext||rec.planning||rec.data),expenses:rec.ownEntries||[]}:rec.data} canBatch={can('editAll')} busy={busy} revision={rec.revision} canBudget={rec.owner} onBudget={(entity,revision)=>send('categoryBudgets',{entity,revision}).then(Boolean)} onRefresh={()=>load(true).then(Boolean)} disabled={editing.current} onDirty={setToolsDirty} saveError={error} onEdit={b=>{if(allowed(rec.permissions,'expense',user,b))edit(b);else{setTab("Expenses");setFocusExpense(b.id);setJumpEpoch(v=>v+1);setStart("");setEnd("");setCat("All");setMerchant("")}}} onApply={(entity,revision)=>send('expenseBatch',{entity,revision:revision??rec.revision}).then(Boolean)}/ >}</>:null;
-  async function loadAcrossGroups(){if(allGroupsBusy)return;setAllGroupsBusy(true);try{const r=await fetch('/api/trips',{signal:AbortSignal.timeout(20000),headers:authenticatedSession?{'X-TripShare-Session':authenticatedSession}:{}});const j:any=await r.json();if(!r.ok)throw Error(j.error||'Could not load across groups');
-      // This response can arrive after a newer current-space refresh. Keep whichever copy has the
-      // higher revision, and keep that copy's ETag so conditional refreshes still work.
-      for(const record of j.trips as RecordT[]){const existing=groupMemory.current.get(record.id);if(existing&&existing.record.revision>=record.revision)continue;groupMemory.current.set(record.id,{record,etag:''})}
-      groupDirectory.current=j.trips.map((r:RecordT)=>({...r,directoryOnly:true,data:directoryEvent(r.data.name,r.data.kind)}));setRecords(groupDirectory.current.map(d=>groupMemory.current.get(d.id)?.record||d));setAllGroupsLoaded(true)}catch(e){setError((e as Error).message)}finally{setAllGroupsBusy(false)}}
+  async function loadAcrossGroups(){if(allGroupsBusy)return;setAllGroupsBusy(true);requestEpoch.current++;try{const r=await fetch('/api/trips',{signal:AbortSignal.timeout(20000),headers:authenticatedSession?{'X-TripShare-Session':authenticatedSession}:{}});const j:any=await r.json();if(!r.ok)throw Error(j.error||'Could not load across groups');
+      // This response can arrive after a newer current-space refresh. A strictly newer copy in
+      // memory wins (its ETag stays valid); an equal revision is replaced, because permissions can
+      // change without a revision bump and this response carries the current projection. Spaces a
+      // later refresh found inaccessible are never put back.
+      const startedAt=requestEpoch.current;
+      const visible=(j.trips as RecordT[]).filter(r=>!(revokedAt.current.get(r.id)! >= startedAt));
+      for(const record of visible){const existing=groupMemory.current.get(record.id);if(existing&&existing.record.revision>record.revision)continue;groupMemory.current.set(record.id,{record,etag:''})}
+      groupDirectory.current=visible.map((r:RecordT)=>({...r,directoryOnly:true,data:directoryEvent(r.data.name,r.data.kind)}));setRecords(groupDirectory.current.map(d=>groupMemory.current.get(d.id)?.record||d));setAllGroupsLoaded(true)}catch(e){setError((e as Error).message)}finally{setAllGroupsBusy(false)}}
   useEffect(()=>{if(quickOpen&&!shared&&!allGroupsLoaded)loadAcrossGroups()},[quickOpen]);
   useEffect(()=>{if(loaded&&!shared&&tab==='Dashboard'&&canViewGroup&&!allGroupsLoaded&&!allGroupsBusy){const timer=setTimeout(()=>{if(!editing.current)loadAcrossGroups()},250);return()=>clearTimeout(timer)}},[loaded,tab,space,allGroupsLoaded]);
   function spendingOverview() { return !shared ? allGroupsLoaded?<PersonalHub records={records} workspace={workspace} onGroup={choose} viewerKey={me}/>:<section className="panel"><h2>Across all spaces</h2><p>Load your spending across all spaces.</p><button className="primary" disabled={allGroupsBusy} onClick={loadAcrossGroups}>{allGroupsBusy?'Loading…':'Load my overview'}</button></section> : null; }
