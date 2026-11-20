@@ -664,3 +664,127 @@ test('B0 confirmed self selection is server-owned, revision-checked and cannot g
 });
 
 test('Delivery status and retry are restricted to the application owner and same-origin actions',async()=>{const h=await harness();await h.post({action:'create',data:ledger.normalize({name:'QA Test',people:['A','B'],bills:[],payments:[]})});assert.equal(await h.deliveryStatus(),200);assert.equal(await h.deliveryStatus('other@example.com'),403);assert.equal(await h.deliveryStatus('owner@example.com',true,'https://other.invalid'),403);h.sqlite.close()});
+
+test('Incremental sync tombstones unresolvable expense/payment changes instead of blocking the cursor',async()=>{
+ const h=await harness(),e=ledger.normalize({name:'Stuck cursor',people:['A','B'],bills:[],payments:[]}),{id}=await h.post({action:'create',data:e});await h.post({action:'grant',id,email:'b@example.com',person:'B',permissions:[]});
+ const b=ledger.blankExpense(e,'A');b.merchant='Dinner';b.date='2026-12-20';b.items[0].amount=10000;b.items[0].people=['A','B'];b.items[0].weights=[1,1];assert.equal((await h.post({action:'expense',id,revision:0,entity:b})).status,200);
+ const full=await h.syncRead();assert.equal(full.status,200);
+ // Changes whose records cannot be resolved: an unknown payment and an expense with no data or audit date.
+ h.sqlite.prepare('INSERT INTO sync_changes(trip,kind,record_id,members,changed_at) VALUES (?,?,?,?,?)').run(id,'payment','ghost-payment','["A","B"]','2026-11-20T08:00:00.000Z');
+ h.sqlite.prepare('INSERT INTO sync_changes(trip,kind,record_id,members,changed_at) VALUES (?,?,?,?,?)').run(id,'expense','ghost-expense','["A","B"]','2026-11-20T08:00:00.000Z');
+ const delta=await h.syncRead(full.next_cursor);assert.equal(delta.status,200,JSON.stringify(delta));assert.equal(delta.entries.length,2);
+ const pay=delta.entries.find(x=>x.payment_id==='ghost-payment');assert.equal(pay.deleted,true);assert.equal(pay.amount_minor,0);assert.equal(pay.date,'2026-11-20');assert.equal(pay.member_id,'B');
+ const exp=delta.entries.find(x=>x.expense_id==='ghost-expense');assert.equal(exp.deleted,true);assert.equal(exp.consumed_minor,0);assert.equal(exp.date,'2026-11-20');
+ // Later real changes still flow through the advanced cursor.
+ b.merchant='Dinner edited';assert.equal((await h.post({action:'expense',id,revision:1,entity:b})).status,200);const next=await h.syncRead(delta.next_cursor);assert.equal(next.entries.length,1);assert.equal(next.entries[0].title,'Dinner edited');h.sqlite.close();
+});
+
+test('A write committed between the snapshot read and the watermark read is not skipped',async()=>{
+ const h=await harness(),e=ledger.normalize({name:'Race window',people:['A','B'],bills:[],payments:[]}),{id}=await h.post({action:'create',data:e});await h.post({action:'grant',id,email:'b@example.com',person:'B',permissions:[]});
+ const b=ledger.blankExpense(e,'A');b.merchant='Before';b.date='2026-12-20';b.items[0].amount=10000;b.items[0].people=['A','B'];b.items[0].weights=[1,1];assert.equal((await h.post({action:'expense',id,revision:0,entity:b})).status,200);
+ const full=await h.syncRead();assert.equal(full.entries[0].title,'Before');
+ // Simulate another request committing (trip data + its sync_changes row, atomically) exactly when the
+ // integration reads the change watermark.
+ const original=h.sqlite.prepare.bind(h.sqlite);let armed=true;
+ h.sqlite.prepare=sql=>{if(armed&&sql.includes('MAX(seq)')){armed=false;const row=original('SELECT data FROM trips WHERE id=?').get(id);const data=JSON.parse(row.data);data.expenses[0].merchant='After';h.sqlite.exec('BEGIN');original('UPDATE trips SET data=? WHERE id=?').run(JSON.stringify(data),id);original('INSERT INTO sync_changes(trip,kind,record_id,members,changed_at) VALUES (?,?,?,?,?)').run(id,'expense',b.id,'["A","B"]',new Date().toISOString());h.sqlite.exec('COMMIT');}return original(sql)};
+ let page=await h.syncRead(full.next_cursor),seen=[...page.entries];while(page.has_more){page=await h.syncRead(page.next_cursor);seen.push(...page.entries)}
+ page=await h.syncRead(page.next_cursor);seen.push(...page.entries);
+ h.sqlite.prepare=original;
+ assert.ok(seen.length>0,'the concurrent edit must be delivered');assert.equal(seen.at(-1).title,'After');h.sqlite.close();
+});
+
+test('Delta reads stop at the request watermark so a write committed after the snapshot is delivered next time',async()=>{
+ const h=await harness(),e=ledger.normalize({name:'Watermark bound',people:['A','B'],bills:[],payments:[]}),{id}=await h.post({action:'create',data:e});await h.post({action:'grant',id,email:'b@example.com',person:'B',permissions:[]});
+ const b=ledger.blankExpense(e,'A');b.merchant='Before';b.date='2026-12-20';b.items[0].amount=10000;b.items[0].people=['A','B'];b.items[0].weights=[1,1];assert.equal((await h.post({action:'expense',id,revision:0,entity:b})).status,200);
+ const full=await h.syncRead();
+ // Commit after the watermark and the trip snapshot were read, just before the change scan.
+ const original=h.sqlite.prepare.bind(h.sqlite);let armed=true;
+ h.sqlite.prepare=sql=>{if(armed&&sql.includes('FROM sync_changes WHERE seq>')){armed=false;const data=JSON.parse(original('SELECT data FROM trips WHERE id=?').get(id).data);data.expenses[0].merchant='After';h.sqlite.exec('BEGIN');original('UPDATE trips SET data=? WHERE id=?').run(JSON.stringify(data),id);original('INSERT INTO sync_changes(trip,kind,record_id,members,changed_at) VALUES (?,?,?,?,?)').run(id,'expense',b.id,'["A","B"]',new Date().toISOString());h.sqlite.exec('COMMIT');}return original(sql)};
+ const first=await h.syncRead(full.next_cursor);h.sqlite.prepare=original;
+ assert.equal(first.entries.length,0,'a change beyond this request watermark must wait for the next request');
+ const second=await h.syncRead(first.next_cursor);assert.equal(second.entries.length,1);assert.equal(second.entries[0].title,'After');h.sqlite.close();
+});
+
+test('Tombstone date fallback skips impossible audit dates',async()=>{
+ const h=await harness(),e=ledger.normalize({name:'Bad audit date',people:['A','B'],bills:[],payments:[]}),{id}=await h.post({action:'create',data:e});await h.post({action:'grant',id,email:'b@example.com',person:'B',permissions:[]});
+ const full=await h.syncRead();
+ const audit=['2026-02-30','2026-13-01'].map((date,index)=>{
+  const entity=`gone-${index}`;
+  return {entity,after:{id:entity,date}};
+ });
+ h.sqlite.prepare("UPDATE trips SET data=json_set(data,'$.audit',json(?)) WHERE id=?").run(JSON.stringify(audit),id);
+ const insert=h.sqlite.prepare('INSERT INTO sync_changes(trip,kind,record_id,members,changed_at) VALUES (?,?,?,?,?)');
+ for(const {entity} of audit)insert.run(id,'expense',entity,'["A","B"]','2026-11-20T08:00:00.000Z');
+ const delta=await h.syncRead(full.next_cursor);
+ assert.equal(delta.status,200,JSON.stringify(delta));
+ assert.deepEqual(delta.entries.map(entry=>[entry.expense_id,entry.deleted,entry.date]),audit.map(({entity})=>[entity,true,'2026-11-20']));
+ h.sqlite.close();
+});
+
+test('Edits to already-paged records during a full sync are delivered by the following delta',async()=>{
+ const h=await harness(),e=ledger.normalize({name:'Full paging',people:['A','B'],bills:[],payments:[]}),{id}=await h.post({action:'create',data:e});await h.post({action:'grant',id,email:'b@example.com',person:'B',permissions:[]});
+ const bills=[];for(let i=0;i<3;i++){const b=ledger.blankExpense(e,'A');b.merchant='Bill '+i;b.date='2026-12-20';b.items[0].amount=10000;b.items[0].people=['A','B'];b.items[0].weights=[1,1];assert.equal((await h.post({action:'expense',id,revision:i,entity:b})).status,200);bills.push(b)}
+ let page=await h.syncRead('',undefined,1);const firstId=page.entries[0].expense_id,edited=bills.find(b=>b.id===firstId);
+ edited.merchant='Edited mid-sync';assert.equal((await h.post({action:'expense',id,revision:3,entity:edited})).status,200);
+ while(page.has_more)page=await h.syncRead(page.next_cursor,undefined,1);
+ const delta=await h.syncRead(page.next_cursor);const hit=delta.entries.find(x=>x.expense_id===firstId);assert.ok(hit,'edit made after the page was read must arrive in delta');assert.equal(hit.title,'Edited mid-sync');h.sqlite.close();
+});
+
+test('Checkpoint restore syncs tombstones for removed members and live records for current members',async(t)=>{
+ const h=await harness();
+ t.after(()=>h.sqlite.close());
+ const e=ledger.normalize({name:'Checkpoint member changes',people:['A','B','C'],bills:[],payments:[]});
+ const {id,status}=await h.post({action:'create',data:e});
+ assert.equal(status,200);
+ for(const person of ['A','B','C']){
+  assert.equal((await h.post({action:'grant',id,email:person.toLowerCase()+'@example.com',person,permissions:[]})).status,200);
+ }
+
+ const bill=ledger.blankExpense(e,'A');
+ bill.merchant='Dinner';
+ bill.date='2026-10-18';
+ bill.items[0].amount=10000;
+ bill.items[0].people=['B'];
+ bill.items[0].weights=[1];
+ assert.equal((await h.post({action:'expense',id,revision:0,entity:bill})).status,200);
+ const payment={id:'P',from:'B',to:'A',amount:1000,date:'2026-10-19',note:''};
+ assert.equal((await h.post({action:'payment',id,revision:1,entity:payment})).status,200);
+ const checkpoint=await h.checkpointCall('POST',{group:id,revision:2});
+ assert.equal(checkpoint.status,200);
+
+ const readAs=(person,cursor)=>{
+  h.integrationEnv.POCKET_SYNC_EMAIL=person.toLowerCase()+'@example.com';
+  return h.syncRead(cursor);
+ };
+ const full={};
+ for(const person of ['A','B','C']){
+  full[person]=await readAs(person);
+  assert.equal(full[person].status,200);
+ }
+ assert.equal(full.B.entries.find(x=>x.payment_id===payment.id)?.deleted,false);
+ assert.equal(full.C.entries.some(x=>x.payment_id===payment.id),false);
+
+ const saved=h.sqlite.prepare('SELECT data FROM trip_checkpoints WHERE id=?').get(checkpoint.id);
+ const snapshot=JSON.parse(saved.data);
+ snapshot.expenses[0].items[0].people=['C'];
+ snapshot.payments[0].from='C';
+ for(const allocation of snapshot.payments[0].allocations)allocation.from='C';
+ const payload=JSON.stringify(snapshot);
+ const checksum=Buffer.from(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(payload))).toString('hex');
+ h.sqlite.prepare('UPDATE trip_checkpoints SET data=?,checksum=? WHERE id=?').run(payload,checksum,checkpoint.id);
+ const restored=await h.post({action:'restoreCheckpoint',id,checkpointId:checkpoint.id,operationId:'restore-member-changes',revision:2,confirmName:e.name});
+ assert.equal(restored.status,200,JSON.stringify(restored));
+
+ for(const person of ['B','A','C']){
+  const delta=await readAs(person,full[person].next_cursor);
+  assert.equal(delta.status,200,JSON.stringify(delta));
+  assert.equal(delta.mode,'incremental');
+  const entry=delta.entries.find(x=>x.payment_id===payment.id);
+  assert.equal(entry?.deleted,person==='B','payment status for '+person);
+  if(person!=='B'){
+   assert.equal(entry.from_member_id,'C');
+   assert.equal(entry.to_member_id,'A');
+  }
+  assert.equal(delta.entries.find(x=>x.expense_id===bill.id)?.deleted,person==='B','expense status for '+person);
+ }
+});
