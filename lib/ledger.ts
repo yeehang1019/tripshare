@@ -111,6 +111,8 @@ export type Audit = {
   entity: string;
   before: unknown;
   after: unknown;
+  /** before/after moved to trip_audit_archive; the entry keeps its identity for idempotency checks. */
+  archived?: boolean;
 };
 export type Event = {
   categoryBudgets?:{scope:string;limits:Record<string,number>}[];

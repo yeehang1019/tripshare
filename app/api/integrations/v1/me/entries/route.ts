@@ -61,6 +61,17 @@ function paymentEntry(group:Scope,p:any){
     amount_minor:p.amount,currency:group.data.settlement,date:p.date,deleted:!!p.deleted,
     expense_ids:(p.allocations||[]).map((a:any)=>a.expense)};
 }
+export const SYNC_RETENTION_DAYS=90;
+/** Deletes change rows older than the retention window and records the highest pruned seq. */
+export async function pruneSyncChanges(db:any,now=Date.now()){
+  const cutoff=new Date(now-SYNC_RETENTION_DAYS*86400000).toISOString();
+  const top=await db.prepare('SELECT MAX(seq) AS seq FROM sync_changes WHERE changed_at<?').bind(cutoff).first() as {seq:number|null}|null;
+  if(!top?.seq)return;
+  await db.batch([
+    db.prepare("UPDATE sync_meta SET value=max(value,?) WHERE key='pruned_through'").bind(top.seq),
+    db.prepare('DELETE FROM sync_changes WHERE seq<=?').bind(top.seq),
+  ]);
+}
 export async function GET(request:Request){
   const config=env as unknown as {POCKET_SYNC_TOKEN?:string;POCKET_SYNC_EMAIL?:string};
   if(!config.POCKET_SYNC_TOKEN||!config.POCKET_SYNC_EMAIL)
@@ -75,6 +86,8 @@ export async function GET(request:Request){
     const minute=Math.floor(Date.now()/60000),limitKey=email+':'+minute;
     const limit=await db.prepare('INSERT INTO sync_limits(key,count) VALUES(?,1) ON CONFLICT(key) DO UPDATE SET count=count+1 RETURNING count').bind(limitKey).first() as {count:number}|null;
     if((limit?.count||0)>60)return reply({error:'rate_limited'},429,{'Retry-After':String(60-Math.floor(Date.now()/1000)%60)});
+    // Only the current minute's counter matters; drop this account's older minutes.
+    if((limit?.count||0)===1)await db.prepare("DELETE FROM sync_limits WHERE key LIKE ? AND key<>?").bind(email.replace(/[%_]/g,'')+':%',limitKey).run();
     const url=new URL(request.url),limitRaw=url.searchParams.get('limit')||'50';
     if(!/^\d+$/.test(limitRaw)||Number(limitRaw)<1||Number(limitRaw)>100)return reply({error:'invalid_limit'},400);
     const size=Number(limitRaw);
@@ -107,6 +120,10 @@ export async function GET(request:Request){
     }
     const after=Number(cursor.after);
     if(!Number.isSafeInteger(after)||after<0)return reply({error:'invalid_cursor'},400);
+    // Changes older than SYNC_RETENTION_DAYS are pruned. A cursor that falls behind the pruned
+    // point can no longer be replayed safely, so the receiver must run a full resync.
+    const pruned=await db.prepare("SELECT value FROM sync_meta WHERE key='pruned_through'").first() as {value:number}|null;
+    if(after<(pruned?.value||0))return reply({error:'cursor_expired',reset_required:true},409);
     const results=await db.prepare('SELECT seq,trip,kind,record_id,members,changed_at FROM sync_changes WHERE seq>? AND seq<=? ORDER BY seq LIMIT ?').bind(after,max.seq,size+1).all();
     // A tombstone still needs a valid date. Fall back to the change date when neither the
     // record nor its audit history has one, instead of failing the page forever.
@@ -140,6 +157,8 @@ export async function GET(request:Request){
       return [{...(entry||tombstone),change_seq:change.seq,updated_at:change.changed_at}];
     });
     const more=results.results.length>size;
+    // Prune only once the receiver has caught up; its next cursor (max.seq) is past anything pruned.
+    if(!more)await pruneSyncChanges(db);
     const next:Cursor={...cursor,after:String(more?slice.at(-1)!.seq:max.seq)};
     return reply({schema_version:1,mode:'incremental',entries:entries.map(checkedEntry),next_cursor:await makeCursor(next,config.POCKET_SYNC_TOKEN),has_more:more});
   }catch(error){

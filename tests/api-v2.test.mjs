@@ -788,3 +788,40 @@ test('Checkpoint restore syncs tombstones for removed members and live records f
   assert.equal(delta.entries.find(x=>x.expense_id===bill.id)?.deleted,person==='B','expense status for '+person);
  }
 });
+
+test('Audit history keeps the newest entries whole and archives older before/after copies atomically',async()=>{
+ const h=await harness(),e=ledger.normalize({name:'Audit growth',people:['A','B'],bills:[],payments:[]}),{id}=await h.post({action:'create',data:e});
+ for(let rev=0;rev<160;rev++)assert.equal((await h.post({action:'settings',id,revision:rev,entity:{...e,name:'Audit growth '+rev}})).status,200);
+ const data=(await h.get('owner@example.com')).trips[0].data;
+ assert.equal(data.audit.length,161);
+ const archived=data.audit.filter(x=>x.archived);assert.equal(archived.length,11);
+ assert.ok(archived.every(x=>x.before===null&&x.after===null&&x.id&&x.action&&x.date));
+ assert.ok(data.audit.slice(-150).every(x=>!x.archived));
+ const rows=h.sqlite.prepare('SELECT id,entry FROM trip_audit_archive WHERE trip=?').all(id);assert.equal(rows.length,11);
+ assert.deepEqual(new Set(rows.map(r=>r.id)),new Set(archived.map(x=>x.id)));
+ assert.ok(rows.every(r=>JSON.parse(r.entry).after!==null),'archive keeps the full entry');
+ h.sqlite.close();
+});
+
+test('Sync change log is pruned after the retention window and stale cursors must resync',async()=>{
+ const h=await harness(),e=ledger.normalize({name:'Retention',people:['A','B'],bills:[],payments:[]}),{id}=await h.post({action:'create',data:e});await h.post({action:'grant',id,email:'b@example.com',person:'B',permissions:[]});
+ // A cursor taken before any change: after the old change is pruned it can no longer be replayed.
+ const full=await h.syncRead();
+ const b=ledger.blankExpense(e,'A');b.merchant='Old';b.items[0].amount=10000;b.items[0].people=['A','B'];b.items[0].weights=[1,1];assert.equal((await h.post({action:'expense',id,revision:0,entity:b})).status,200);
+ h.sqlite.prepare("UPDATE sync_changes SET changed_at='2020-01-01T00:00:00.000Z'").run();
+ b.merchant='New';assert.equal((await h.post({action:'expense',id,revision:1,entity:b})).status,200);
+ const delta=await h.syncRead(full.next_cursor);assert.equal(delta.status,200);assert.equal(delta.entries.at(-1).title,'New');
+ assert.equal(h.sqlite.prepare("SELECT COUNT(*) n FROM sync_changes WHERE changed_at<'2021-01-01'").get().n,0);
+ assert.ok(h.sqlite.prepare("SELECT value FROM sync_meta WHERE key='pruned_through'").get().value>0);
+ const stale=await h.syncRead(full.next_cursor);assert.equal(stale.status,409);assert.equal(stale.reset_required,true);
+ const caughtUp=await h.syncRead(delta.next_cursor);assert.equal(caughtUp.status,200);
+ h.sqlite.close();
+});
+
+test('Sync rate-limit counters keep only the current minute per account',async()=>{
+ const h=await harness();h.sqlite.prepare("INSERT INTO sync_limits(key,count) VALUES ('b@example.com:1',5),('b@example.com:2',5),('other@example.com:1',5)").run();
+ assert.equal((await h.syncRead()).status,200);
+ const keys=h.sqlite.prepare('SELECT key FROM sync_limits ORDER BY key').all().map(r=>r.key);
+ assert.equal(keys.filter(k=>k.startsWith('b@example.com:')).length,1);assert.ok(keys.includes('other@example.com:1'));
+ h.sqlite.close();
+});
