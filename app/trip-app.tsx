@@ -1442,7 +1442,7 @@ setPlannerDirty(false);setTemplateDirty(false);
                       </div>
 
                     </div>
-                    {!isMember&&<div className="settlement-scope-row"><p className="settlement-everyone-label">{settlementScope==="everyone"?"Everyone":settlementDirection==="owe"?"You owe":"You're owed"}</p>{settlementScope==="mine"&&<button className="text-button" onClick={()=>navigate("Settlement")}>View everyone</button>}</div>}
+                    {!isMember&&settlementScope!=="everyone"&&<div className="settlement-scope-row"><p className="settlement-everyone-label">{settlementScope==="everyone"?"Everyone":settlementDirection==="owe"?"You owe":"You're owed"}</p>{settlementScope==="mine"&&<button className="text-button" onClick={()=>navigate("Settlement")}>View everyone</button>}</div>}
                     {sum!.calculations.some(c=>(settlementScope==='everyone'||c.from===me||c.to===me)&&(c.unappliedForward||c.unappliedReverse))&&<section className="panel"><h3>Payments to check</h3><p>A recorded payment no longer matches its original bill. It hasn't reduced a newer bill. Check it before paying again.</p>{sum!.calculations.filter(c=>(settlementScope==='everyone'||c.from===me||c.to===me)&&(c.unappliedForward||c.unappliedReverse)).map(c=><SettlementCalculation key={JSON.stringify([c.from,c.to])} calculation={c} currency={e.settlement}/>)}</section>}
 <div className="settlement-layout">
                     <div className="settlement-current">

@@ -77,10 +77,30 @@
 .settlement-net-balances>summary::after{content:"";width:8px;height:8px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(-45deg);margin-inline-start:auto;margin-inline-end:6px}
 .settlement-net-balances[open]>summary::after{transform:rotate(45deg)}
 
-.bill-offset-details > summary { cursor: pointer; min-height: 44px; }
-.bill-offset-details ul { margin: 0; padding: 0; list-style: none; text-align: start; }
-.bill-offset-details li { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; padding-block: 6px; overflow-wrap: anywhere; }
-.bill-offset-details li b { white-space: nowrap; }
+/* Cancelled-out amount: same baseline as the other amount cells, never wraps.
+   The 44px hit area extends upward/downward without moving the visible amount. */
+.bill-offset-toggle { display: inline-flex; flex-wrap: wrap; align-items: flex-start; align-content: flex-start; justify-content: flex-end; gap: 2px 4px; min-height: 44px; min-width: 44px; padding: 0; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; max-width: 100%; }
+.bill-offset-toggle > b { white-space: nowrap; }
+.bill-offset-toggle > svg { margin-top: 2px; }
+.bill-settlement-table .bill-offset-sources[hidden] { display: none; }
+.bill-offset-toggle > b { font-weight: 500; font-variant-numeric: tabular-nums; }
+.bill-offset-toggle > svg { flex: none; color: var(--muted-foreground); transition: transform .2s ease; }
+.bill-offset-toggle[aria-expanded="true"] > svg { transform: rotate(180deg); }
+@media (prefers-reduced-motion: reduce) { .bill-offset-toggle > svg { transition: none; } }
+/* Sources open as a full-width row under the bill instead of inside the narrow column. */
+.bill-settlement-table .bill-offset-sources > td { text-align: start; padding-top: 0; }
+.bill-settlement-table .bill-offset-sources > td > span { display: block; font-size: 11px; color: var(--muted-foreground); margin-bottom: 2px; }
+.bill-offset-sources ul { margin: 0; padding: 0; list-style: none; }
+.bill-offset-sources li { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding-block: 4px; }
+.bill-offset-sources li > span { min-width: 0; overflow-wrap: break-word; }
+.bill-offset-sources li > b { white-space: nowrap; font-weight: 500; font-variant-numeric: tabular-nums; }
+.settlement-bill-row:has(+ .bill-offset-sources:not([hidden])) > * { border-bottom-color: transparent; }
+@media (max-width: 600px) {
+  .bill-settlement-table .bill-offset-sources { grid-template-columns: 1fr; padding-top: 0; }
+  .bill-settlement-table .bill-offset-sources > td { grid-column: 1 / -1; display: block; padding: 0; }
+  .bill-settlement-table td:nth-child(4) > .bill-offset-toggle { justify-content: flex-start; }
+  .bill-settlement-table .settlement-bill-row:has(+ .bill-offset-sources:not([hidden])) { border-bottom-color: transparent; }
+}
 .settlement-summary-details > summary {
   display: flex;
   align-items: center;
