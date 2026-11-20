@@ -12,16 +12,18 @@ const currencies=new Set('MYR SGD USD CNY EUR GBP JPY THB IDR HKD TWD AUD KRW'.s
 class SourceContractError extends Error {
   constructor(public field:string){super('Invalid source field: '+field);}
 }
+function contractDate(date:unknown):date is string {
+  if(typeof date!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(date)||date<'2000-01-01'||date>'2100-12-31')return false;
+  const parsed=new Date(date+'T00:00:00Z');
+  return Number.isFinite(parsed.getTime())&&parsed.toISOString().slice(0,10)===date;
+}
 function checkedEntry(entry:any){
   if(!['expense','payment'].includes(entry.record_type))throw new SourceContractError('record_type');
   for(const field of ['group_id','member_id',entry.record_type==='expense'?'expense_id':'payment_id']){
     if(typeof entry[field]!=='string'||!entry[field].trim()||entry[field].length>150)throw new SourceContractError(field);
   }
   if(typeof entry.currency!=='string'||!currencies.has(entry.currency))throw new SourceContractError('currency');
-  const date=entry.date;
-  if(typeof date!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(date)||date<'2000-01-01'||date>'2100-12-31')throw new SourceContractError('date');
-  const parsed=new Date(date+'T00:00:00Z');
-  if(!Number.isFinite(parsed.getTime())||parsed.toISOString().slice(0,10)!==date)throw new SourceContractError('date');
+  if(!contractDate(entry.date))throw new SourceContractError('date');
   if(typeof entry.deleted!=='boolean')throw new SourceContractError('deleted');
   return entry;
 }
@@ -109,7 +111,6 @@ export async function GET(request:Request){
     // A tombstone still needs a valid date. Fall back to the change date when neither the
     // record nor its audit history has one, instead of failing the page forever.
     // Candidates are checked with the same rules as checkedEntry so a fallback can never fail it.
-    const contractDate=(d:unknown)=>typeof d==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(d)&&d>='2000-01-01'&&d<='2100-12-31'&&new Date(d+'T00:00:00Z').toISOString().slice(0,10)===d;
     const tombstoneDate=(change:any,...candidates:unknown[])=>[...candidates,String(change.changed_at||'').slice(0,10),new Date().toISOString().slice(0,10)].find(contractDate) as string;
     const slice=(results.results as any[]).slice(0,size),byId=new Map(scopes.map(s=>[s.id,s]));
     const entries=slice.flatMap((change):any[]=>{

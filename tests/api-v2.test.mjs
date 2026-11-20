@@ -708,9 +708,17 @@ test('Delta reads stop at the request watermark so a write committed after the s
 test('Tombstone date fallback skips impossible audit dates',async()=>{
  const h=await harness(),e=ledger.normalize({name:'Bad audit date',people:['A','B'],bills:[],payments:[]}),{id}=await h.post({action:'create',data:e});await h.post({action:'grant',id,email:'b@example.com',person:'B',permissions:[]});
  const full=await h.syncRead();
- h.sqlite.exec(`UPDATE trips SET data=json_set(data,'$.audit',json('[{"entity":"gone","after":{"id":"gone","date":"2026-02-30"}}]'))`);
- h.sqlite.prepare('INSERT INTO sync_changes(trip,kind,record_id,members,changed_at) VALUES (?,?,?,?,?)').run(id,'expense','gone','["A","B"]','2026-11-20T08:00:00.000Z');
- const delta=await h.syncRead(full.next_cursor);assert.equal(delta.status,200,JSON.stringify(delta));assert.equal(delta.entries[0].deleted,true);assert.equal(delta.entries[0].date,'2026-11-20');h.sqlite.close();
+ const audit=['2026-02-30','2026-13-01'].map((date,index)=>{
+  const entity=`gone-${index}`;
+  return {entity,after:{id:entity,date}};
+ });
+ h.sqlite.prepare("UPDATE trips SET data=json_set(data,'$.audit',json(?)) WHERE id=?").run(JSON.stringify(audit),id);
+ const insert=h.sqlite.prepare('INSERT INTO sync_changes(trip,kind,record_id,members,changed_at) VALUES (?,?,?,?,?)');
+ for(const {entity} of audit)insert.run(id,'expense',entity,'["A","B"]','2026-11-20T08:00:00.000Z');
+ const delta=await h.syncRead(full.next_cursor);
+ assert.equal(delta.status,200,JSON.stringify(delta));
+ assert.deepEqual(delta.entries.map(entry=>[entry.expense_id,entry.deleted,entry.date]),audit.map(({entity})=>[entity,true,'2026-11-20']));
+ h.sqlite.close();
 });
 
 test('Edits to already-paged records during a full sync are delivered by the following delta',async()=>{
