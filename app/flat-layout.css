@@ -122,3 +122,42 @@
 .checklist-import-actions button {
   min-height: 44px;
 }
+
+/* Settle up layout corrections (presentation only). */
+/* 2,4: one custom chevron for the in-list Settlement options and Past payments disclosures */
+[data-space="money"].settlement-view .settlement-current .ios-settlement-options > summary,
+[data-space="money"].settlement-view .payment-history > summary {
+  display: flex; align-items: center; list-style: none; min-height: 44px; cursor: pointer;
+}
+[data-space="money"].settlement-view .settlement-current .ios-settlement-options > summary {
+  font-size: 14px !important; padding: 10px 0 !important;
+}
+[data-space="money"].settlement-view .settlement-current .ios-settlement-options > summary::-webkit-details-marker,
+[data-space="money"].settlement-view .payment-history > summary::-webkit-details-marker { display: none; }
+[data-space="money"].settlement-view .settlement-current .ios-settlement-options > summary::after,
+[data-space="money"].settlement-view .payment-history > summary::after {
+  content: ""; flex: none; width: 8px; height: 8px; margin-inline: auto 6px;
+  border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(-45deg);
+}
+[data-space="money"].settlement-view .settlement-current .ios-settlement-options[open] > summary::after,
+[data-space="money"].settlement-view .payment-history[open] > summary::after { transform: rotate(45deg); }
+/* 3: the global details rule drew an empty divider above Space net balances */
+[data-space="money"].settlement-view .settlement-side > .settlement-net-balances { border-top: 0; margin-top: 0; padding-top: 0; }
+/* 5: desktop sync status sits under the title; mobile metadata clears the sticky header */
+@media (min-width: 1024px) {
+  [data-space="money"].settlement-view .topline { display: grid; grid-template-columns: minmax(0, 1fr) auto; row-gap: 4px; }
+  [data-space="money"].settlement-view .topline > :first-child { grid-area: 1 / 1; }
+  [data-space="money"].settlement-view .topline > .topline-sync { grid-area: 2 / 1; justify-self: start; }
+  [data-space="money"].settlement-view .topline > .top-actions { grid-area: 1 / 2 / span 2; align-self: center; }
+}
+@media (max-width: 1023px) {
+  [data-space="money"].settlement-view .topline { padding-block-start: 8px !important; }
+}
+/* 6: align the count and bill scope with the space metadata */
+[data-space="money"].settlement-view .settlement-hero h2,
+[data-space="money"].settlement-view .settlement-hero .settlement-bill-scope { padding-inline: 0; }
+/* 7: currency prefix matches its amount */
+[data-space="money"].settlement-view .payment-person-trigger .animated-amount > span,
+[data-space="money"].settlement-view .payment-person-trigger .animated-amount > span > .amount-currency { font-size: inherit !important; }
+/* 1: with the orphan Everyone row gone, drop its leftover spacing above Still to pay */
+[data-space="money"].settlement-view .settlement-compact-list > .settlement-summary-details:first-child { margin-top: 0 !important; }
