@@ -161,3 +161,11 @@
 [data-space="money"].settlement-view .payment-person-trigger .animated-amount > span > .amount-currency { font-size: inherit !important; }
 /* 1: with the orphan Everyone row gone, drop its leftover spacing above Still to pay */
 [data-space="money"].settlement-view .settlement-compact-list > .settlement-summary-details:first-child { margin-top: 0 !important; }
+
+/* Expenses at 1024-1279px: the context rail is hidden there, so don't keep its 328px gutter. */
+@media (min-width: 1024px) and (max-width: 1279px) {
+  :root[data-visual] .workspace-app.expenses-wide:not(.simple-member-app) > main {
+    width: calc(100% - 256px) !important;
+    margin-right: 8px !important;
+  }
+}

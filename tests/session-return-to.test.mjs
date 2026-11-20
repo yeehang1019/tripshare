@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import ts from 'typescript';
 import {readFileSync} from 'node:fs';
 
-const source=readFileSync(new URL('../app/api/session/route.ts',import.meta.url),'utf8').replace(/^import .*;\n/gm,'');
+const source=readFileSync(new URL('../app/api/session/route.ts',import.meta.url),'utf8').replace(/^import .*;\r?\n/gm,'');
 const js=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022}}).outputText;
 const {safeReturnTo}=await import('data:text/javascript;base64,'+Buffer.from(js).toString('base64'));
 const base='https://trip.example/api/session';
