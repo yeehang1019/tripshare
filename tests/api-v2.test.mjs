@@ -721,3 +721,62 @@ test('Edits to already-paged records during a full sync are delivered by the fol
  while(page.has_more)page=await h.syncRead(page.next_cursor,undefined,1);
  const delta=await h.syncRead(page.next_cursor);const hit=delta.entries.find(x=>x.expense_id===firstId);assert.ok(hit,'edit made after the page was read must arrive in delta');assert.equal(hit.title,'Edited mid-sync');h.sqlite.close();
 });
+
+test('Checkpoint restore syncs tombstones for removed members and live records for current members',async(t)=>{
+ const h=await harness();
+ t.after(()=>h.sqlite.close());
+ const e=ledger.normalize({name:'Checkpoint member changes',people:['A','B','C'],bills:[],payments:[]});
+ const {id,status}=await h.post({action:'create',data:e});
+ assert.equal(status,200);
+ for(const person of ['A','B','C']){
+  assert.equal((await h.post({action:'grant',id,email:person.toLowerCase()+'@example.com',person,permissions:[]})).status,200);
+ }
+
+ const bill=ledger.blankExpense(e,'A');
+ bill.merchant='Dinner';
+ bill.date='2026-10-18';
+ bill.items[0].amount=10000;
+ bill.items[0].people=['B'];
+ bill.items[0].weights=[1];
+ assert.equal((await h.post({action:'expense',id,revision:0,entity:bill})).status,200);
+ const payment={id:'P',from:'B',to:'A',amount:1000,date:'2026-10-19',note:''};
+ assert.equal((await h.post({action:'payment',id,revision:1,entity:payment})).status,200);
+ const checkpoint=await h.checkpointCall('POST',{group:id,revision:2});
+ assert.equal(checkpoint.status,200);
+
+ const readAs=(person,cursor)=>{
+  h.integrationEnv.POCKET_SYNC_EMAIL=person.toLowerCase()+'@example.com';
+  return h.syncRead(cursor);
+ };
+ const full={};
+ for(const person of ['A','B','C']){
+  full[person]=await readAs(person);
+  assert.equal(full[person].status,200);
+ }
+ assert.equal(full.B.entries.find(x=>x.payment_id===payment.id)?.deleted,false);
+ assert.equal(full.C.entries.some(x=>x.payment_id===payment.id),false);
+
+ const saved=h.sqlite.prepare('SELECT data FROM trip_checkpoints WHERE id=?').get(checkpoint.id);
+ const snapshot=JSON.parse(saved.data);
+ snapshot.expenses[0].items[0].people=['C'];
+ snapshot.payments[0].from='C';
+ for(const allocation of snapshot.payments[0].allocations)allocation.from='C';
+ const payload=JSON.stringify(snapshot);
+ const checksum=Buffer.from(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(payload))).toString('hex');
+ h.sqlite.prepare('UPDATE trip_checkpoints SET data=?,checksum=? WHERE id=?').run(payload,checksum,checkpoint.id);
+ const restored=await h.post({action:'restoreCheckpoint',id,checkpointId:checkpoint.id,operationId:'restore-member-changes',revision:2,confirmName:e.name});
+ assert.equal(restored.status,200,JSON.stringify(restored));
+
+ for(const person of ['B','A','C']){
+  const delta=await readAs(person,full[person].next_cursor);
+  assert.equal(delta.status,200,JSON.stringify(delta));
+  assert.equal(delta.mode,'incremental');
+  const entry=delta.entries.find(x=>x.payment_id===payment.id);
+  assert.equal(entry?.deleted,person==='B','payment status for '+person);
+  if(person!=='B'){
+   assert.equal(entry.from_member_id,'C');
+   assert.equal(entry.to_member_id,'A');
+  }
+  assert.equal(delta.entries.find(x=>x.expense_id===bill.id)?.deleted,person==='B','expense status for '+person);
+ }
+});

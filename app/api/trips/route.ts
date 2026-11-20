@@ -587,22 +587,35 @@ async function postTrip(r: Request,context:RequestContext) {
     const changes: {kind:string;recordId:string;members:string}[] = [];
     if(['paymentBatch','undoPaymentBatch'].includes(b.action))for(const p of after as import('@/lib/ledger').Payment[])changes.push({kind:'payment',recordId:p.id,members:JSON.stringify([p.from,p.to])});
     if(b.action==='expenseBatch')for(const x of after as Expense[])changes.push({kind:'expense',recordId:x.id,members:JSON.stringify([...new Set([...(x.payLater?.feePeople||[]),...x.items.flatMap(i=>i.people),...x.payers.map(p=>p.person),...(x.supplierPayments||[]).map(p=>p.person),...(x.treat?[x.treat]:[]),...(x.voucherOwner?[x.voucherOwner]:[])])])});
+    const expenseParticipants = (x?: Expense) => x ? [
+      ...(x.payLater?.feePeople||[]),...x.items.flatMap(item => item.people), ...x.payers.map(p => p.person), ...(x.supplierPayments||[]).map(p=>p.person),
+      ...(x.treat ? [x.treat] : []), ...(x.voucherOwner ? [x.voucherOwner] : []),
+    ] : [];
     if (['expense','deleteExpense','restoreExpense'].includes(b.action)) {
       const current = data.expenses.find(x => x.id === entity);
-      const participants = (x?: Expense) => x ? [
-        ...(x.payLater?.feePeople||[]),...x.items.flatMap(item => item.people), ...x.payers.map(p => p.person), ...(x.supplierPayments||[]).map(p=>p.person),
-        ...(x.treat ? [x.treat] : []), ...(x.voucherOwner ? [x.voucherOwner] : []),
-      ] : [];
-      changes.push({kind:'expense',recordId:entity,members:JSON.stringify([...new Set([...participants(old),...participants(current)])])});
+      changes.push({kind:'expense',recordId:entity,members:JSON.stringify([...new Set([...expenseParticipants(old),...expenseParticipants(current)])])});
     }
     if (['payment','undoPayment'].includes(b.action)) {
       const p = data.payments.find(x => x.id === entity);
       if (p) changes.push({kind:'payment',recordId:entity,members:JSON.stringify([p.from,p.to])});
     }
     if(b.action==='restoreCheckpoint'){
-      const previous:Event=JSON.parse(row.data),previousBills=new Map(previous.expenses.map(p=>[p.id,p])),participants=(x?:Expense)=>x?[...(x.payLater?.feePeople||[]),...x.items.flatMap(i=>i.people),...x.payers.map(p=>p.person),...(x.supplierPayments||[]).map(p=>p.person),...(x.treat?[x.treat]:[]),...(x.voucherOwner?[x.voucherOwner]:[])]:[];
-      for(const x of data.expenses)changes.push({kind:'expense',recordId:x.id,members:JSON.stringify([...new Set([...participants(x),...participants(previousBills.get(x.id))])])});
-      for(const x of data.payments)changes.push({kind:'payment',recordId:x.id,members:JSON.stringify([x.from,x.to])});
+      const previous: Event = JSON.parse(row.data);
+      const previousBills = new Map(previous.expenses.map(x => [x.id, x]));
+      const previousPayments = new Map((previous.payments ?? []).map(x => [x.id, x]));
+      for (const x of data.expenses) {
+        const members = new Set([...expenseParticipants(x), ...expenseParticipants(previousBills.get(x.id))]);
+        changes.push({kind:'expense',recordId:x.id,members:JSON.stringify([...members])});
+      }
+      for (const x of data.payments) {
+        const prior = previousPayments.get(x.id);
+        const members = new Set([x.from, x.to]);
+        if (prior) {
+          members.add(prior.from);
+          members.add(prior.to);
+        }
+        changes.push({kind:'payment',recordId:x.id,members:JSON.stringify([...members])});
+      }
     }
     if(new TextEncoder().encode(JSON.stringify(changes)).byteLength>1900000)throw new InputError('Recovery change history is too large. Download the backup and use the separate import workflow.');
     const now = new Date().toISOString(),mutation=crypto.randomUUID();
