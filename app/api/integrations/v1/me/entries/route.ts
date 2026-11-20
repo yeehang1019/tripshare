@@ -139,7 +139,7 @@ export async function GET(request:Request){
         amount_minor:0,currency:group.data.settlement,date:tombstoneDate(change,p?.date),deleted:true,expense_ids:[]};
       return [{...(entry||tombstone),change_seq:change.seq,updated_at:change.changed_at}];
     });
-    const more=(results.results as any[]).length>size;
+    const more=results.results.length>size;
     const next:Cursor={...cursor,after:String(more?slice.at(-1)!.seq:max.seq)};
     return reply({schema_version:1,mode:'incremental',entries:entries.map(checkedEntry),next_cursor:await makeCursor(next,config.POCKET_SYNC_TOKEN),has_more:more});
   }catch(error){
