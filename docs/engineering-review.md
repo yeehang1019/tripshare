@@ -779,3 +779,18 @@ Fixed:
 Checked, no change needed: personal item lines are labelled in the bill currency with a conversion note; the trip countdown uses the trip-local date; budget bars guard zero budgets; business deposits block overpayment and require full payment for "paid".
 
 Tests: `chartSlices`, display-date search, rate formatting. `npm run verify`: build pass, 328/328, types pass, lint gate 0 additional. The Home chart source change and the monthBounds zone change are type-checked; monthBounds was spot-checked in Node (KL Dec vs London Nov at 2026-11-30T17:00Z). Neither was rendered in the full app shell.
+
+## Server hardening, client data safety and design cleanup (2026-11-21)
+
+Scope (branches fix/server-hardening, design/cleanup-pass):
+- Audit growth bounded: newest 150 entries whole; older before/after moved to trip_audit_archive in the same CAS batch (migration 0014). History, restoreAudit and checkpoint idempotency read the archive back; deleteEvent clears it.
+- sync_changes pruned after 90 days once delivered; cursors behind pruned_through get 409 reset_required; high-water mark never moves backwards. sync_limits keeps only the current minute per account.
+- /api/session return_to rejects backslash, off-origin and "//"-normalised targets.
+- Client: all-spaces load never overwrites a newer revision or restores a revoked space; cached money data is cleared when the access re-check fails for any reason other than being offline; TripApp keyed by account.
+- Design (user-selected 1, 2, 3A, 4A, 5A): repeated copy removed; one button system; aligned list rows and tiles; one dialog material with phone bottom sheets for generic dialogs; two columns from 768px; right rail only for a selected expense on desktop Expenses, settlement options inline.
+
+Tests: api-v2 and new return_to tests; full unit suite 338/342 on Windows (the 4 failures are environment-only: Vite C:\C:\ path in payable-projection, missing python3, two tests needing a built dist). Each new regression test fails on the previous code.
+
+Verification limits: CSS previewed on the live site by injection at 375/768/1280; markup changes (rail condition, inline settlement options, removed copy, buttons) not visible until published. No real device, screen reader or production D1 test. payable-projection must be re-run on Linux before publishing.
+
+Verdict: KEEP (all). IMPROVE LATER: audit placeholders still grow ~150 B each; Excel Audit Log shows details only for the newest 150 entries; 0013/0014 lack Drizzle snapshots (pre-existing pattern).
