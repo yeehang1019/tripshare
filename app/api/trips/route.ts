@@ -191,12 +191,13 @@ async function postTrip(r: Request,context:RequestContext) {
         before: null,
         after: { name: data.name },
       });
-      await db
-        .prepare(
-          "INSERT INTO trips(id,owner,owner_email,invite,data,revision) VALUES(?,?,?,?,?,0)",
-        )
-        .bind(id, who.user, actor, crypto.randomUUID(), JSON.stringify(data))
-        .run();
+      // Imported history over the limit is archived in the same batch as the new space.
+      const archived = compactAudit(data);
+      await db.batch([
+        db.prepare("INSERT INTO trips(id,owner,owner_email,invite,data,revision) VALUES(?,?,?,?,?,0)")
+          .bind(id, who.user, actor, crypto.randomUUID(), JSON.stringify(data)),
+        ...(archived.length ? [db.prepare("INSERT OR IGNORE INTO trip_audit_archive(trip,id,entry) SELECT ?,json_extract(value,'$.id'),value FROM json_each(?)").bind(id, JSON.stringify(archived))] : []),
+      ]);
       return response({ id });
     }
     if(b.action==='acceptInvite'){
@@ -355,7 +356,8 @@ async function postTrip(r: Request,context:RequestContext) {
     if(b.action==='restoreCheckpoint'){
       if(!a.owner)return response({error:'Only the owner can restore a checkpoint'},403);
       if(typeof b.operationId!=='string'||!b.operationId||b.operationId.length>150)throw new InputError('Check the recovery operation identity');
-      const applied=data.audit.find(x=>x.action==='restoreCheckpoint'&&x.entity===b.operationId);
+      let applied=data.audit.find(x=>x.action==='restoreCheckpoint'&&x.entity===b.operationId);
+      if(applied?.archived)applied=await withArchivedAudit(db,row.id,[applied]).then(x=>x[0]);
       if(applied){if((applied.after as any)?.checkpoint!==b.checkpointId)throw new InputError('Recovery operation identity is already used');return response({ok:true,alreadyApplied:true})}
     }
     if(b.action==='planAlternative'){
@@ -377,16 +379,19 @@ async function postTrip(r: Request,context:RequestContext) {
         db.prepare('DELETE FROM shares WHERE trip=? AND EXISTS (SELECT 1 FROM trips WHERE id=? AND revision=?)').bind(row.id,row.id,b.revision),
         db.prepare('DELETE FROM grants WHERE trip=? AND EXISTS (SELECT 1 FROM trips WHERE id=? AND revision=?)').bind(row.id,row.id,b.revision),
         db.prepare('DELETE FROM members WHERE trip=? AND EXISTS (SELECT 1 FROM trips WHERE id=? AND revision=?)').bind(row.id,row.id,b.revision),
+        db.prepare('DELETE FROM trip_audit_archive WHERE trip=? AND EXISTS (SELECT 1 FROM trips WHERE id=? AND revision=?)').bind(row.id,row.id,b.revision),
         db.prepare('DELETE FROM trips WHERE id=? AND revision=?').bind(row.id,b.revision),
         db.prepare("UPDATE payable_delivery SET revision=revision+1,next_attempt=0 WHERE id='payables'"),
       ]);
-      if(!results[3].meta.changes)return response({error:'This event changed. Refresh and review before deleting.'},409);
+      if(!results[4].meta.changes)return response({error:'This event changed. Refresh and review before deleting.'},409);
       return response({ok:true});
     }
     if(['person','group','deleteGroup'].includes(b.action)&&!a.owner)return response({error:'Only the owner manages members'},403);
     if(b.action==='history'){
       if(!a.owner&&!a.permissions.length&&!a.person)return response({error:'Group access required'},403);
       const full=a.owner||a.permissions.includes('viewAll')||a.permissions.includes('editAll');
+      // History needs before/after to decide visibility and show details: read archived copies back.
+      data.audit=await withArchivedAudit(db,row.id,data.audit);
       return response({entries:data.audit.filter(x=>(a.owner||a.permissions.includes('plan')||!['activity','deleteActivity','planBasics','planChecklist','planOrder','travelKit','planBulk','planBatch','planAlternative'].includes(x.restoredAction||x.action))&&auditVisible(data,x,a.person,actor,full)).slice(-150).reverse().map(x=>{
         if(a.owner)return x;
         if(!full&&x.actor!==actor)return {id:x.id,date:x.date,action:x.action,entity:x.entity,actor:'Group collaborator',before:personalAuditValue(data,x.before,a.person,x.restoredAction||x.action),after:personalAuditValue(data,x.after,a.person,x.restoredAction||x.action)};
@@ -396,7 +401,8 @@ async function postTrip(r: Request,context:RequestContext) {
     }
     const originalAction=b.action;
     if(b.action==='restoreAudit'){
-      const log=data.audit.find(x=>x.id===b.auditId);
+      let log=data.audit.find(x=>x.id===b.auditId);
+      if(log?.archived){const stored:any=await db.prepare('SELECT entry FROM trip_audit_archive WHERE trip=? AND id=?').bind(row.id,log.id).first();log=stored?{...log,...JSON.parse(stored.entry),archived:false}:undefined;}
       if(!log||!log.before)return response({error:'This change cannot be restored from history'},400);
       const kind=log.restoredAction||log.action;
       if(kind==='deleteExpense'){b.action='restoreExpense';b.entityId=(log.before as any).id;}else if(kind==='restoreExpense'){b.action='deleteExpense';b.entityId=(log.before as any).id;}else if(['expense','restoreAudit'].includes(kind)&&typeof (log.before as any)?.items!=='undefined'){
@@ -582,6 +588,10 @@ async function postTrip(r: Request,context:RequestContext) {
       before,
       after,
     });
+    // Keep the newest AUDIT_KEEP entries whole. Older entries keep id/actor/date/action/entity
+    // (used for idempotency and history lists) and move their before/after copies to
+    // trip_audit_archive in the same batch, so the space row stops growing with every edit.
+    const archivedAudit = compactAudit(data);
     if (new TextEncoder().encode(JSON.stringify(data)).byteLength > 1900000)
       throw new InputError("Event is full. Export a backup and create a new event.");
     const changes: {kind:string;recordId:string;members:string}[] = [];
@@ -625,6 +635,7 @@ async function postTrip(r: Request,context:RequestContext) {
       db.prepare("UPDATE payable_delivery SET revision=revision+1,next_attempt=0 WHERE id='payables' AND EXISTS(SELECT 1 FROM trips WHERE id=? AND revision=? AND mutation_id=?)").bind(row.id,b.revision+1,mutation),
       ...(recoverySnapshot?[db.prepare('INSERT OR IGNORE INTO trip_checkpoints(id,trip,revision,data,checksum,created_at) SELECT ?,?,?,?,?,? WHERE EXISTS(SELECT 1 FROM trips WHERE id=? AND revision=? AND mutation_id=?)').bind(recoverySnapshot.id,row.id,row.revision,row.data,recoverySnapshot.checksum,now,row.id,b.revision+1,mutation),db.prepare('DELETE FROM trip_checkpoints WHERE trip=? AND id NOT IN (SELECT id FROM trip_checkpoints WHERE trip=? ORDER BY revision DESC LIMIT 5) AND EXISTS(SELECT 1 FROM trips WHERE id=? AND revision=? AND mutation_id=?)').bind(row.id,row.id,row.id,b.revision+1,mutation)]:[]),
       db.prepare("INSERT INTO sync_changes(trip,kind,record_id,members,changed_at) SELECT ?,json_extract(value,'$.kind'),json_extract(value,'$.recordId'),json_extract(value,'$.members'),? FROM json_each(?) WHERE EXISTS (SELECT 1 FROM trips WHERE id=? AND revision=? AND mutation_id=?)").bind(row.id,now,JSON.stringify(changes),row.id,b.revision+1,mutation),
+      ...(archivedAudit.length?[db.prepare("INSERT OR IGNORE INTO trip_audit_archive(trip,id,entry) SELECT ?,json_extract(value,'$.id'),value FROM json_each(?) WHERE EXISTS (SELECT 1 FROM trips WHERE id=? AND revision=? AND mutation_id=?)").bind(row.id,JSON.stringify(archivedAudit),row.id,b.revision+1,mutation)]:[]),
     ]);
     const result = results[0];
     if (!result.meta.changes)
@@ -642,6 +653,26 @@ async function postTrip(r: Request,context:RequestContext) {
     if(e instanceof RequestTooLarge)return response({error:'Request too large'},413);
     throw e;
   }
+}
+/** Replaces archived placeholders with their full entries from trip_audit_archive. */
+export async function withArchivedAudit(db: any, trip: string, entries: Event["audit"]) {
+  if (!entries.some((x) => x.archived)) return entries;
+  const rows: any = await db.prepare("SELECT id,entry FROM trip_audit_archive WHERE trip=?").bind(trip).all();
+  const full = new Map<string, any>((rows.results || []).map((r: any) => [r.id, JSON.parse(r.entry)]));
+  return entries.map((x) => (x.archived && full.has(x.id) ? { ...full.get(x.id), archived: false } : x));
+}
+export const AUDIT_KEEP = 150;
+/** Strips before/after from audit entries older than the newest AUDIT_KEEP and returns the full originals to archive. */
+export function compactAudit(data: Event) {
+  const cut = data.audit.length - AUDIT_KEEP;
+  if (cut <= 0) return [] as Event["audit"];
+  const moved: Event["audit"] = [];
+  data.audit = data.audit.map((entry, index) => {
+    if (index >= cut || entry.archived) return entry;
+    moved.push(entry);
+    return { id: entry.id, actor: entry.actor, date: entry.date, action: entry.action, entity: entry.entity, ...(entry.restoredAction ? { restoredAction: entry.restoredAction } : {}), before: null, after: null, archived: true };
+  });
+  return moved;
 }
 export async function hashPin(pin: string, salt: string) {
   const key = await crypto.subtle.importKey(

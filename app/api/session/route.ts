@@ -3,9 +3,17 @@ import { createTripShareSession } from "@/app/session";
 
 export const dynamic = "force-dynamic";
 
-function safeReturnTo(value: string | null) {
-  if (!value?.startsWith("/") || value.startsWith("//")) return "/";
-  return value;
+export function safeReturnTo(value: string | null, base = "https://tripshare.invalid") {
+  // Browsers treat "\" like "/", so "/\evil.example" would leave the site. Resolve and require same origin.
+  if (!value?.startsWith("/") || value.startsWith("//") || value.includes("\\")) return "/";
+  try {
+    const resolved = new URL(value, base);
+    // Dot segments can normalise "/.//evil" to "//evil"; reject so the path can't be re-read as a host.
+    if (resolved.origin !== new URL(base).origin || resolved.pathname.startsWith("//")) return "/";
+    return resolved.pathname + resolved.search + resolved.hash;
+  } catch {
+    return "/";
+  }
 }
 
 export async function GET(request: Request) {
@@ -17,7 +25,7 @@ export async function GET(request: Request) {
 
   const token = await createTripShareSession(user, email);
 
-  const destination = new URL(safeReturnTo(new URL(request.url).searchParams.get("return_to")), request.url);
+  const destination = new URL(safeReturnTo(new URL(request.url).searchParams.get("return_to"), request.url), request.url);
   return new Response(null, {
     status: 303,
     headers: {

@@ -10,5 +10,6 @@ export default async function Page({searchParams}:{searchParams:Promise<Record<s
   const user=await getChatGPTUser();
   if(!user)return <PublicLanding returnTo={returnTo}/>;
   const session=await createTripShareSession(user.id,user.email);
-  return <ExpenseApp authenticatedEmail={user.email} authenticatedAccount={user.id} authenticatedSession={session}/>;
+  // Keyed by account so a different sign-in remounts with empty in-memory caches.
+  return <ExpenseApp key={user.id} authenticatedEmail={user.email} authenticatedAccount={user.id} authenticatedSession={session}/>;
 }
