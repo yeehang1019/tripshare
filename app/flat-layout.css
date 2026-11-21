@@ -169,3 +169,89 @@
     margin-right: 8px !important;
   }
 }
+
+/* Visually hidden, still read by screen readers. */
+.sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+.save-status-idle{position:absolute!important;width:1px!important;height:1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important;padding:0!important;margin:0!important}
+
+/* Design point 2: one button system.
+   Primary (filled), secondary (glass), text links and icon buttons keep one line; a row of
+   buttons wraps as a group instead of a label breaking inside a button. */
+.workspace-app :is(button.primary, button.secondary, a.primary, a.secondary) { white-space: nowrap; }
+.workspace-app :is(.top-actions, .checks, .member-row-actions, .hero-actions, .plan-actions, .btn-row) { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.desktop-add-expense { flex: none; }
+/* Confirm dialogs use the same order as every other dialog: secondary then primary, side by side. */
+[data-slot="alert-dialog-footer"] { flex-direction: row !important; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+[data-slot="alert-dialog-footer"] > * { flex: 0 0 auto; }
+/* The editor's close is the same icon button as other dialogs. */
+.editor-close { width: 44px; height: 44px; padding: 0; display: inline-grid; place-items: center; flex: none; }
+/* Phone: keep the footer clear of the fixed bottom navigation and add button. */
+@media (max-width: 1023.98px) {
+  .workspace-app main > footer { padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px)); }
+}
+
+/* ===== Design point 4A: one dialog look =====
+   Same glass material, radius, header and close button for every dialog.
+   Desktop/tablet: centred card. Phone: bottom sheet. */
+:root [data-slot="dialog-content"],
+:root [data-slot="alert-dialog-content"] {
+  background: var(--surface-glass) !important;
+  border: 1px solid var(--glass-border) !important;
+  backdrop-filter: var(--glass-filter) !important;
+  -webkit-backdrop-filter: var(--glass-filter) !important;
+  box-shadow: var(--surface-shadow) !important;
+  border-radius: 28px !important;
+}
+:root [data-slot="dialog-title"], :root [data-slot="alert-dialog-title"] { padding-right: 52px; font-size: 18px; line-height: 1.3; }
+:root [data-slot="dialog-close"] {
+  top: 12px !important; right: 12px !important; width: 44px; height: 44px; display: grid; place-items: center;
+  border-radius: 999px !important; opacity: 1 !important; background: var(--surface-glass) !important;
+  border: 1px solid var(--glass-border); color: var(--text);
+}
+:root [data-slot="dialog-close"] svg { width: 18px; height: 18px; }
+:root [data-slot="dialog-footer"], :root [data-slot="alert-dialog-footer"] { display: flex; flex-direction: row !important; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+/* Phone bottom sheet for generic dialogs only. Dialogs with their own geometry, scroll areas and fixed
+   footers (payment, summary, notifications, editors, tools) keep managing position and scrolling. */
+@media (max-width: 767.98px) {
+  :root [data-slot="dialog-content"]:not(.settlement-record-dialog):not(.settlement-summary-dialog):not(.notifications-dialog):not(.workspace-editor-sheet):not(.payout-edit-dialog):not(.money-review-sheet):not(.trip-tools-sheet), :root [data-slot="alert-dialog-content"] {
+    top: auto !important; bottom: 0 !important; left: 0 !important; right: 0 !important;
+    translate: none !important; transform: none !important;
+    width: 100% !important; max-width: none !important; max-height: 92dvh !important; overflow-y: auto;
+    border-radius: 24px 24px 0 0 !important; border-bottom: 0 !important;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+}
+
+/* ===== Design point 5A: two columns from tablet up, rail only when it has content ===== */
+@media (min-width: 768px) {
+  .money-home { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 16px !important; align-items: start; }
+  .money-home > * { grid-column: 1 / -1; min-width: 0; }
+  /* Money Home: "next trip" and "this month" are adjacent in the DOM, so they can share a row. */
+  .money-home > .next-trip + .home-snapshot { grid-column: auto; }
+  /* Separate rule: an unsupported :has() must not invalidate the one above. */
+  @supports selector(:has(a)) { .money-home > .next-trip:has(+ .home-snapshot) { grid-column: auto; } }
+  .home-balances { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  .planner-next-grid:not(.planner-next-solo) { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  .planner-next-grid > * { min-width: 0; }
+}
+@media (min-width: 1024px) {
+  :root[data-visual] .workspace-app[data-rail="off"]:not(.simple-member-app) > main,
+  :root[data-visual] .workspace-app.expenses-wide[data-rail="off"]:not(.simple-member-app) > main {
+    width: calc(100% - 272px) !important; margin-right: 24px !important;
+  }
+  :root[data-visual] .workspace-app[data-rail="off"] > header.shell-header { margin-right: 0 !important; }
+  /* With a selected expense the rail is the detail panel: show it at every desktop width with its close button. */
+  :root[data-visual] .workspace-app[data-rail="on"] > .context-rail { display: block !important; }
+  :root[data-visual] .workspace-app[data-rail="on"]:not(.simple-member-app) > main { width: calc(100% - 576px) !important; margin-right: 328px !important; }
+}
+
+/* ===== Design point 3A: one list-row pattern =====
+   Leading identity (name + one meta line) left-aligned, trailing amount/actions in a shared right column. */
+.member-access-row { gap: 12px; align-items: center; }
+.member-access-row > span:first-child { flex: 1 1 auto; min-width: 0; align-items: flex-start !important; text-align: left !important; }
+.member-access-row > span:first-child > * { align-self: flex-start !important; margin-left: 0 !important; text-align: left !important; }
+.member-row-actions { flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+/* Summary tiles: as many columns as fit at a readable width, never squeezed labels. */
+.personal-stats { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)) !important; }
+/* Amounts in rows line up: tabular digits, one line, right edge. */
+.workspace-app :is(.split-row, .person-access-row, .payment-person-trigger) :is(strong, .amount) { font-variant-numeric: tabular-nums; white-space: nowrap; }

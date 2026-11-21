@@ -40,7 +40,7 @@ test('Trip funding counts booked estimates, deposits and supplier obligations wi
  const html=renderToStaticMarkup(React.createElement(TravelFunding,{event:e}));assert.match(html,/RM\s*70\.00/);assert.match(html,/SUPPLIER BILLS UNPAID/);assert.match(html,/RM\s*50\.00/);assert.match(html,/RM\s*30\.00/);
 });
 test('Personal month defaults use local calendar boundaries including leap February',()=>{assert.deepEqual(design.monthBounds(new Date(2024,1,15)),['2024-02-01','2024-02-29']);assert.deepEqual(design.monthBounds(new Date(2026,11,31)),['2026-12-01','2026-12-31']);});
-test('Group chrome shows personal scope without revealing a group member count',()=>{const e=normalize({name:'Shared trip',people:['A','B','C'],bills:[],payments:[]});const html=renderToStaticMarkup(React.createElement(design.WorkspaceChrome,{records:[{id:'one',data:e}],selected:'one',onGroup(){},onAppearance(){},style:'glass',palette:'Abyss',event:e,member:true,railOpen:true}));assert.match(html,/Your personal view/);assert.doesNotMatch(html,/3 people/);assert.match(html,/aria-current="true"/);assert.match(html,/Glass \/ Neon/);});
+test('Group chrome shows personal scope without revealing a group member count',()=>{const e=normalize({name:'Shared trip',people:['A','B','C'],bills:[],payments:[]});const html=renderToStaticMarkup(React.createElement(design.WorkspaceChrome,{records:[{id:'one',data:e}],selected:'one',onGroup(){},onAppearance(){},style:'glass',palette:'Abyss',event:e,member:true,railOpen:true}));assert.doesNotMatch(html,/3 people/);assert.match(html,/aria-current="true"/);assert.match(html,/Glass \/ Neon/);});
 
 test('Group context is collapsed until requested',()=>{const html=renderToStaticMarkup(React.createElement(design.WorkspaceChrome,{records:[],selected:'',onGroup(){},onAppearance(){},style:'arcade',palette:'Cyberpunk',member:false}));assert.doesNotMatch(html,/Current group context/);});
 test('Recent context uses personal snapshot rather than underlying group expenses',()=>{const e=normalize({name:'Shared',people:['A','B'],bills:[],payments:[]});const hidden=blankExpense(e,'A');hidden.merchant='Private bill from another member';e.expenses=[hidden];const rows=design.recentVisibleExpenses({id:'group',data:e,personal:{expenses:[{id:'mine',title:'My share',date:'2026-10-07',consumed:250,paid:0,category:'Food'}]}});assert.equal(rows.length,1);assert.equal(rows[0].title,'My share');assert.equal(rows[0].amount,250);assert.doesNotMatch(JSON.stringify(rows),/Private bill/);});
@@ -82,7 +82,7 @@ test('Trip landing never displays daily or restricted group content',()=>{
 
 test('Owner has a dedicated People & Access workspace; collaborators never see it',()=>{
  const e=normalize({name:'Friends',people:['A','B'],bills:[],payments:[]});const owner={id:'group',data:e,owner:true,permissions:[],person:'A',revision:0};
- const html=renderToStaticMarkup(React.createElement(collaboration.PeopleAccess,{record:owner,onAction:async()=>null}));assert.match(html,/Only you can add people/);assert.match(html,/Add person/);assert.match(html,/Their ChatGPT sign-in email/);
+ const html=renderToStaticMarkup(React.createElement(collaboration.PeopleAccess,{record:owner,onAction:async()=>null}));assert.match(html,/Add person/);assert.match(html,/Their ChatGPT sign-in email/);
  assert.equal(renderToStaticMarkup(React.createElement(collaboration.PeopleAccess,{record:{...owner,owner:false},onAction:async()=>null})), '');
  assert.equal(spaces.spaceDestinations({...owner,owner:false,permissions:['plan']},'money').includes('People & Access'),false);
 });

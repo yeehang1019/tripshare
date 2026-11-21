@@ -26,7 +26,7 @@ import {RefundFields} from "./refund-fields";
 import {PayLaterFields} from "./paylater-fields";
 import {SupplierInstallments} from "./supplier-installments";
 import { Pick, Field, Amount, Check, People, AmountIssues, RateInput } from "./trip-controls";
-import { UsersRound, Sparkles, ArrowRight, Utensils, Car, Ticket, ShoppingBag, ShoppingBasket, BedDouble, Receipt } from "lucide-react";
+import { X, UsersRound, Sparkles, ArrowRight, Utensils, Car, Ticket, ShoppingBag, ShoppingBasket, BedDouble, Receipt } from "lucide-react";
 export default function ExpenseEditor({
   event: e,
   initial,
@@ -166,9 +166,7 @@ export default function ExpenseEditor({
       <SheetDragHandle onClose={onCancel}/><div className="editor-content-grid"><section className={`panel expense-editor ${b.mode}`}>
         <div className="editor-form-header"><div className="section-title">
           <h2>{edit ? "Edit expense" : "Add expense"}</h2>
-          <button className="text-button" onClick={onCancel}>
-            Close
-          </button>
+          <button className="icon-button editor-close" aria-label="Close" onClick={onCancel}><X size={18}/></button>
         </div>
         <Tabs className="editor-entry-mode"
           value={b.mode}
