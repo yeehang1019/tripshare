@@ -172,7 +172,7 @@
 
 /* Visually hidden, still read by screen readers. */
 .sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
-.save-status-idle{display:contents}
+.save-status-idle{position:absolute!important;width:1px!important;height:1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important;padding:0!important;margin:0!important}
 
 /* Design point 2: one button system.
    Primary (filled), secondary (glass), text links and icon buttons keep one line; a row of
@@ -187,7 +187,7 @@
 .editor-close { width: 44px; height: 44px; padding: 0; display: inline-grid; place-items: center; flex: none; }
 /* Phone: keep the footer clear of the fixed bottom navigation and add button. */
 @media (max-width: 1023.98px) {
-  .workspace-app > footer { padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px)); }
+  .workspace-app main > footer { padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px)); }
 }
 
 /* ===== Design point 4A: one dialog look =====
@@ -210,8 +210,10 @@
 }
 :root [data-slot="dialog-close"] svg { width: 18px; height: 18px; }
 :root [data-slot="dialog-footer"], :root [data-slot="alert-dialog-footer"] { display: flex; flex-direction: row !important; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+/* Phone bottom sheet for generic dialogs only. Dialogs with their own geometry, scroll areas and fixed
+   footers (payment, summary, notifications, editors, tools) keep managing position and scrolling. */
 @media (max-width: 767.98px) {
-  :root [data-slot="dialog-content"], :root [data-slot="alert-dialog-content"] {
+  :root [data-slot="dialog-content"]:not(.settlement-record-dialog):not(.settlement-summary-dialog):not(.notifications-dialog):not(.workspace-editor-sheet):not(.payout-edit-dialog):not(.money-review-sheet):not(.trip-tools-sheet), :root [data-slot="alert-dialog-content"] {
     top: auto !important; bottom: 0 !important; left: 0 !important; right: 0 !important;
     translate: none !important; transform: none !important;
     width: 100% !important; max-width: none !important; max-height: 92dvh !important; overflow-y: auto;
@@ -224,18 +226,23 @@
 @media (min-width: 768px) {
   .money-home { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 16px !important; align-items: start; }
   .money-home > * { grid-column: 1 / -1; min-width: 0; }
-  .money-home > :is(.trip-departure-card, .trip-budget-card, .next-trip, .home-snapshot) { grid-column: auto; }
-  .money-home > .trip-departure-card { order: 1; } .money-home > .trip-budget-card { order: 2; }
-  .money-home > .home-balances { order: 3; } .money-home > .plan-hero { order: 4; }
-  .money-home > .planner-next-grid { order: 5; } .money-home > .home-recent { order: 6; } .money-home > .home-charts { order: 7; }
+  /* Money Home: "next trip" and "this month" are adjacent in the DOM, so they can share a row. */
+  .money-home > .next-trip + .home-snapshot { grid-column: auto; }
+  /* Separate rule: an unsupported :has() must not invalidate the one above. */
+  @supports selector(:has(a)) { .money-home > .next-trip:has(+ .home-snapshot) { grid-column: auto; } }
   .home-balances { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
-  .planner-next-grid { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  .planner-next-grid:not(.planner-next-solo) { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
   .planner-next-grid > * { min-width: 0; }
 }
 @media (min-width: 1024px) {
-  :root[data-visual] .workspace-app:not(.simple-member-app):not(:has(> .context-rail)) > main {
+  :root[data-visual] .workspace-app[data-rail="off"]:not(.simple-member-app) > main,
+  :root[data-visual] .workspace-app.expenses-wide[data-rail="off"]:not(.simple-member-app) > main {
     width: calc(100% - 272px) !important; margin-right: 24px !important;
   }
+  :root[data-visual] .workspace-app[data-rail="off"] > header.shell-header { margin-right: 0 !important; }
+  /* With a selected expense the rail is the detail panel: show it at every desktop width with its close button. */
+  :root[data-visual] .workspace-app[data-rail="on"] > .context-rail { display: block !important; }
+  :root[data-visual] .workspace-app[data-rail="on"]:not(.simple-member-app) > main { width: calc(100% - 576px) !important; margin-right: 328px !important; }
 }
 
 /* ===== Design point 3A: one list-row pattern =====
