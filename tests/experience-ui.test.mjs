@@ -103,9 +103,9 @@ test('Trip sidebar opens dedicated planner sections without duplicating internal
  const e=normalize({name:'Thailand',kind:'trip',people:['A'],bills:[],payments:[]});
  const props={event:e,busy:false,canPlan:true,canExpense:false,draft:null,setDraft(){},onBegin(){},onSave:async()=>true,onAction:async()=>true,onDelete(){},onExpense(){},onShare(){},onDirty(){}};
  const bookings=renderToStaticMarkup(React.createElement(TripPlanner,{...props,section:'Bookings'}));
- assert.match(bookings,/Bookings &amp; reservations/);assert.doesNotMatch(bookings,/Trip essentials|Before you go|planner-tabs/);
+ assert.match(bookings,/Bookings &amp; reservations/);assert.doesNotMatch(bookings,/Trip essentials|Preparation tasks|planner-tabs/);
  const checklist=renderToStaticMarkup(React.createElement(TripPlanner,{...props,section:'Checklist'}));
- assert.match(checklist,/Before you go/);assert.doesNotMatch(checklist,/Bookings &amp; reservations|Trip essentials/);
+ assert.match(checklist,/aria-label="Preparation tasks"/);assert.doesNotMatch(checklist,/Bookings &amp; reservations|Trip essentials/);
  for(const section of spaces.tripSections)assert.equal(spaces.isTripSection(section),true);
  assert.equal(spaces.isTripSection('Settings'),false);
 });

@@ -161,3 +161,23 @@
 [data-space="money"].settlement-view .payment-person-trigger .animated-amount > span > .amount-currency { font-size: inherit !important; }
 /* 1: with the orphan Everyone row gone, drop its leftover spacing above Still to pay */
 [data-space="money"].settlement-view .settlement-compact-list > .settlement-summary-details:first-child { margin-top: 0 !important; }
+.grouped-checklist { min-inline-size: 0; }
+.grouped-checklist > .section-title { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1rem; }
+.grouped-checklist > .section-title p { margin: 0; }
+.grouped-checklist > .section-title .plan-actions { display: flex; flex-wrap: wrap; gap: .375rem; margin: 0; }
+.grouped-checklist > .section-title button { padding: .35rem .625rem; }
+.grouped-checklist .checklist-group { padding: 0; border: 0; border-block-start: 1px solid var(--border); border-radius: 0; background: transparent; box-shadow: none; }
+.checklist-group > summary { display: flex; align-items: center; gap: .65rem; padding: .4rem 0; cursor: pointer; list-style: none; }
+.checklist-group > summary::-webkit-details-marker { display: none; }
+.checklist-group > summary > span { margin-inline-start: auto; white-space: nowrap; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.checklist-group > summary > svg { flex: none; }
+.checklist-group[open] > summary > svg { transform: rotate(180deg); }
+.checklist-group > ul { list-style: none; margin: 0 0 .5rem; padding: 0; }
+.grouped-task { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: .25rem; }
+.grouped-task-label { display: flex; align-items: center; gap: .625rem; min-block-size: 2.75rem; overflow-wrap: anywhere; }
+.grouped-task-label:has(input:not(:disabled)) { cursor: pointer; }
+.grouped-checklist .grouped-task-label > input[type=checkbox] { flex: none; appearance: auto; inline-size: 1rem; block-size: 1rem; min-width: 0 !important; min-height: 0 !important; margin: 0; accent-color: var(--primary); }
+.grouped-task-label > input:checked + span { color: var(--text-secondary); text-decoration: line-through; }
+.grouped-task small { display: block; margin: -.15rem 0 .375rem 1.625rem; color: var(--text-secondary); overflow-wrap: anywhere; }
+.grouped-task > button { display: grid; place-items: center; padding: .25rem; }
+.grouped-checklist > .secondary:last-child { margin-block-start: .75rem; }
