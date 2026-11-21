@@ -173,3 +173,19 @@
 /* Visually hidden, still read by screen readers. */
 .sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
 .save-status-idle{display:contents}
+
+/* Design point 2: one button system.
+   Primary (filled), secondary (glass), text links and icon buttons keep one line; a row of
+   buttons wraps as a group instead of a label breaking inside a button. */
+.workspace-app :is(button.primary, button.secondary, a.primary, a.secondary) { white-space: nowrap; }
+.workspace-app :is(.top-actions, .checks, .member-row-actions, .hero-actions, .plan-actions, .btn-row) { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.desktop-add-expense { flex: none; }
+/* Confirm dialogs use the same order as every other dialog: secondary then primary, side by side. */
+[data-slot="alert-dialog-footer"] { flex-direction: row !important; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+[data-slot="alert-dialog-footer"] > * { flex: 0 0 auto; }
+/* The editor's close is the same icon button as other dialogs. */
+.editor-close { width: 44px; height: 44px; padding: 0; display: inline-grid; place-items: center; flex: none; }
+/* Phone: keep the footer clear of the fixed bottom navigation and add button. */
+@media (max-width: 1023.98px) {
+  .workspace-app > footer { padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px)); }
+}

@@ -1559,7 +1559,7 @@ setPlannerDirty(false);setTemplateDirty(false);
                             </span>
                             {can("members") && <span className="member-row-actions">
                               <button
-                                className="text-button"
+                                className="secondary compact"
                                 onClick={() => {
                                   setTarget(account?.email || "");
                                   setTargetPerson(p.id);
@@ -1572,7 +1572,7 @@ setPlannerDirty(false);setTemplateDirty(false);
                                 {account ? "Edit access" : "Link email"}
                               </button>
                               <button
-                                className="text-button"
+                                className="secondary compact"
                                 disabled={busy}
                                 onClick={() => send("person", { entity: { ...p, active: !p.active } })}
                               >
