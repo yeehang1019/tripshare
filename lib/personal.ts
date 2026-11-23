@@ -24,7 +24,7 @@ export function personalView(event: Event, person: string) {
       if (!c.consumed[person] && !c.paid[person] && !c.unpaid[person] && !c.prepaid[person] && !claimExpenses.has(b.id)) return [];
       return [{ id:b.id, date:b.date, title:b.merchant, category:b.category, activity:b.activity||'',
         activityName:activityNames.get(b.activity)||'',currency:b.currency,
-        paidBy:Object.entries(c.paid).filter(([,amount])=>amount>0).map(([id])=>names.get(id)||'Unknown member'),
+        paidBy:b.agong?['Agong']:Object.entries(c.paid).filter(([,amount])=>amount>0).map(([id])=>names.get(id)||'Unknown member'),
         consumed:c.consumed[person] || 0, paid:c.paid[person] || 0, unpaid:c.unpaid[person]||0, prepaid:c.prepaid[person]||0, paymentStatus:c.effectivePaymentStatus,
         items:b.items.flatMap((item,i) => item.people.includes(person) ? [{name:item.name, amount:c.lines[i].values[item.people.indexOf(person)]}] : []) }];
     }),
@@ -47,7 +47,7 @@ export function memberRecord(id: string, revision: number, event: Event, person:
 
 // Travel context contains the shared roster and itinerary, never the shared ledger.
 export function entryContext(event:Event):Event{
-  return {...event,people:event.people.map(p=>({id:p.id,name:p.name,active:p.active})),expenses:[],payments:[],audit:[],groups:[],budget:0,categoryBudgets:undefined};
+  return {...event,agong:undefined,people:event.people.map(p=>({id:p.id,name:p.name,active:p.active})),expenses:[],payments:[],audit:[],groups:[],budget:0,categoryBudgets:undefined};
 }
 export function travellerContext(event:Event):Event{
  return {schema:2,kind:event.kind,name:event.name,settlement:event.settlement,currency:event.currency,

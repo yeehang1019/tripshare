@@ -13,6 +13,7 @@ import {
   blankItem,
   blankExpense,
   calculate,
+  agongBalance,
   duplicateFingerprint,
   categories,
   currencies,
@@ -80,6 +81,8 @@ export default function ExpenseEditor({
     update({
       items: b.items.map((x, i) => (i === index ? { ...x, ...patch } : x)),
     });
+  const selectPayer=(person:string)=>update({agong:undefined,payers:b.payers.length?b.payers.map((payer,index)=>index===0?{...payer,person}:payer):[{person,amount:-1}]});
+  const fund=e.agong?agongBalance(e,b.id):null;
   let c: ReturnType<typeof calculate> | null = null,
     error = "";
   try {
@@ -94,6 +97,11 @@ export default function ExpenseEditor({
         error += `. ${(previewError as Error).message}`;
       }
     }
+  }
+  if(b.agong&&c&&!error){
+    if(!fund)error='Set up Agong before using it to pay.';
+    else if(b.currency!==fund.currency)error=`Set the expense currency to ${fund.currency} to pay with Agong.`;
+    else if(c.cashTotal>fund.balance)error='Agong has insufficient funds for this expense.';
   }
   // Preview only: the canonical ledger replays this single bill with no payments.
   let billShares: { from: string; to: string; amount: number }[] | null = null;
@@ -188,6 +196,9 @@ export default function ExpenseEditor({
           </TabsList>
         </Tabs>
         <div className="hero-amount" data-save-target="receipt"><Field label={b.mode==='simple'?`Amount (${b.currency})`:`Receipt total (${b.currency})`}><Amount primary value={b.mode==='simple'?b.items[0].amount:b.receipt} currency={b.currency} onChange={amount=>b.mode==='simple'?item(0,{amount:amount||0}):update({receipt:amount})}/></Field>{b.currency!==e.settlement&&<p className="converted-hint" role="status">{rateNeedsConfirm?<>Enter the exchange rate under More options to see the {e.settlement} value.</>:c?<>≈ {money(c.total,e.settlement)} · 1 {b.currency} = {formatRate(b.rate)} {e.settlement}</>:null}</p>}</div></div>
+        <Field label="Currency">
+          <Pick label="Currency" value={b.currency} options={currencies} onChange={currency=>update({currency,rate:currency===e.settlement?1:e.rates[currency]||1,actual:null})}/>
+        </Field>
         {localStatus&&<p className="muted" role="status">{localStatus}</p>}
 
         <details className="editor-quick-picks"><summary>Quick picks</summary>        {quickPicks}
@@ -234,19 +245,15 @@ export default function ExpenseEditor({
             />
           </Field>
           <Field label={b.supplierPayments?"Default payer for new business payments":b.paymentStatus === 'postpaid' ? "Will be paid by" : "Paid by"}>
-            <div className="payer-avatar-row" aria-label="Who paid?">{e.people.map(p=><button type="button" className="payer-chip secondary" key={p.id} aria-pressed={b.payers[0]?.person===p.id} onClick={()=>update({payers:b.payers.map((payer,i)=>i===0?{...payer,person:p.id}:payer)})}><MemberAvatar id={p.id} name={p.name}/><span>{p.name}</span></button>)}</div>
+            <div className="payer-avatar-row" aria-label="Who paid?">{e.people.map(p=><button type="button" className="payer-chip secondary" key={p.id} aria-pressed={b.payers[0]?.person===p.id} onClick={()=>selectPayer(p.id)}><MemberAvatar id={p.id} name={p.name}/><span>{p.name}</span></button>)}</div>
             <span className="payer-select-alternative"><Pick
               label={b.paymentStatus === 'postpaid' ? "Planned business payer" : "Paid by"}
               value={b.payers[0]?.person || ""}
               options={e.people}
-              onChange={(person) =>
-                update({
-                  payers: b.payers.map((p, i) =>
-                    i === 0 ? { ...p, person } : p,
-                  ),
-                })
-              }
+              onChange={selectPayer}
             /></span>
+            {fund&&<button type="button" className="secondary agong-payer" aria-pressed={!!b.agong} disabled={!b.agong&&((b.paymentStatus||'paid')!=='paid'||!!b.supplierPayments||!!b.payLater||!!b.refunds?.length||!!b.cancellation||b.voucherContribution)} onClick={()=>update({agong:true,payers:[]})}>Agong（阿公钱） · {fund.currency}</button>}
+            {b.agong&&fund&&c&&b.currency===fund.currency&&c.cashTotal<=fund.balance&&<small>Agong balance {money(fund.balance,fund.currency)} → {money(fund.balance-c.cashTotal,fund.currency)}</small>}
           </Field>
         </div>
         {b.items.map((it, i) => (
@@ -421,21 +428,8 @@ export default function ExpenseEditor({
         )}
         <section className="editor-category-section"><h3>Category</h3><div className="editor-category-chips" role="group" aria-label="Expense category">{categories.map(category=>{const Icon=({Food:Utensils,Transport:Car,Activity:Ticket,Shopping:ShoppingBag,Grocery:ShoppingBasket,Accommodation:BedDouble} as Record<string,typeof Receipt>)[category]||Receipt;return <button type="button" className="secondary" key={category} aria-pressed={b.category===category} onClick={()=>update({category})}><Icon size={20}/><span>{category}</span></button>})}</div></section>
         <details className="advanced-options" open={(b.paymentStatus || 'paid') !== 'paid' || rateNeedsConfirm || undefined}>
-          <summary>More options <small>Currency, advance payments and refunds</small></summary><div className="fields">          <Field label="Currency">
-            <Pick
-              label="Currency"
-              value={b.currency}
-              options={currencies}
-              onChange={(currency) =>
-                update({
-                  currency,
-                  rate: currency === e.settlement ? 1 : e.rates[currency] || 1,
-                  actual: null,
-                })
-              }
-            />
-          </Field>
-</div>        {b.currency !== e.settlement && (
+          <summary>More options <small>Exchange rate, advance payments and refunds</small></summary>
+          {b.currency !== e.settlement && (
           <div className="fields">
             <div data-save-target="rate" className="rate-pair">
             <Field label={`1 ${b.currency} = how many ${e.settlement}?`}>
@@ -458,7 +452,7 @@ export default function ExpenseEditor({
         )}
         <div className="fields">
           {b.paidOn!==undefined&&<Field label="Date you paid the business"><input type="date" min={b.date} value={b.paidOn} onChange={v=>update({paidOn:v.target.value})}/><small>Expense date stays the date the cost was incurred.</small></Field>}
-          <details className="business-payment-timing" open={(b.paymentStatus || 'paid') !== 'paid' || undefined}>
+          {!b.agong&&<><details className="business-payment-timing" open={(b.paymentStatus || 'paid') !== 'paid' || undefined}>
           <summary>Business payment timing · advanced</summary>
           <Field label="Payment to the business">
             {b.payLater?<p className="muted">The merchant is covered by PayLater. Confirm platform repayments in Pocket Ledger; friends still repay through Settlement.</p>:b.cancellation?<p className="muted">Cancelled booking: the final fee is incurred; actual business payments determine the remaining balance and refund due.</p>:<Pick label="Payment to the business" value={b.paymentStatus || 'paid'} options={[
@@ -470,12 +464,12 @@ export default function ExpenseEditor({
           </Field>
           </details>
           <PayLaterFields bill={b} event={e} update={update}/>
-          {!b.payLater&&<SupplierInstallments bill={b} event={e} update={update}/>}<RefundFields bill={b} event={e} update={update}/>
+          {!b.payLater&&<SupplierInstallments bill={b} event={e} update={update}/>}<RefundFields bill={b} event={e} update={update}/></>}
           <div className="treat-toggle">
             <Check
               label="This expense is a treat"
               checked={!!b.treat}
-              onChange={(checked) => update({ treat: checked ? b.payers[0].person : "" })}
+              onChange={(checked) => update({ treat: checked ? b.payers[0]?.person||e.people[0]?.id||"" : "" })}
             />
             <small>Leave off to share the cost.</small>
           </div>
@@ -582,13 +576,13 @@ export default function ExpenseEditor({
                   onChange={(voucherOwner) => update({ voucherOwner })}
                 />
               </Field>
-              <Check
+              {!b.agong&&<Check
                 label="Treat voucher as a reimbursable contribution"
                 checked={b.voucherContribution}
                 onChange={(voucherContribution) =>
                   update({ voucherContribution })
                 }
-              />
+              />}
               {!b.voucherContribution && (
                 <>
                   <p>Choose who gets the voucher discount. Leave this blank to share it with everyone on the bill.</p>
@@ -613,7 +607,7 @@ export default function ExpenseEditor({
             </>
           )}
         </details>
-        <details>
+        {!b.agong&&<details>
           <summary>Paid by more than one person</summary>
           <p className="muted">
             Amounts below are in {b.currency}. Without installment tracking, one payer automatically pays the
@@ -688,7 +682,7 @@ export default function ExpenseEditor({
               Reset to one payer
             </button>
           </div>
-        </details>
+        </details>}
         {e.kind === "trip" && (
           <div className="fields advanced-link">
             <Field label="Link to itinerary · optional">

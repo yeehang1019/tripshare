@@ -6,6 +6,50 @@ import {readFileSync,readdirSync} from 'node:fs';
 import ts from 'typescript';
 import * as ledger from '../lib/ledger.ts';
 
+test('Agong tracks original-currency contributions and costs without creating duplicate repayment claims',async()=>{
+ const h=await harness();
+ try{
+  const trip=ledger.normalize({name:'Agong QA',people:['A','B','C'],bills:[],payments:[]});
+  const {id}=await h.post({action:'create',data:trip});
+  await h.post({action:'grant',id,email:'helper@example.com',person:'A',permissions:['addExpense','plan']});
+  const date='2026-11-23';
+  const contribution=(id,person,amount)=>({id,person,amount,date});
+  const initial={action:'agongContribution',id,revision:0,entity:{currency:'THB',contributions:[contribution('equal-a','A',150000),contribution('equal-b','B',150000),contribution('equal-c','C',150000)]}};
+  assert.equal((await h.post(initial,'helper@example.com')).status,403);
+  assert.equal((await h.post(initial)).revision,1);
+  const retry=await h.post(initial);
+  assert.equal(retry.alreadyApplied,true);
+  const topUp={...initial,revision:1,entity:{currency:'THB',contributions:[contribution('extra-a','A',50000)]}};
+  assert.equal((await h.post(topUp)).revision,2);
+  const bill=ledger.blankExpense(trip,'A');
+  Object.assign(bill,{merchant:'Dinner',date,currency:'THB',rate:.2,agong:true,payers:[]});
+  bill.items[0].amount=167700;
+  bill.items[0].people=['A','B'];
+  const expense={action:'expense',id,revision:2,entity:bill};
+  assert.equal((await h.post(expense,'helper@example.com')).status,403);
+  assert.equal((await h.post(expense)).revision,3);
+  const saved=(await h.get('owner@example.com')).trips[0].data;
+  const pooled=ledger.agongBalance(saved);
+  assert.equal(pooled.balance,332300);
+  assert.equal(pooled.contributed,500000);
+  assert.deepEqual(pooled.people.map(row=>row.contributed-row.share),[116150,66150,150000]);
+  const result=ledger.ledger(saved);
+  assert.equal(result.total,33540);
+  assert.equal(result.people.A.consumed,16770);
+  assert.deepEqual(result.transfers,[]);
+  const restricted=(await h.get('helper@example.com')).trips[0];
+  assert.equal(restricted.planning.agong,undefined);
+  assert.equal(restricted.entryContext.agong,undefined);
+  assert.deepEqual(restricted.personal.expenses[0].paidBy,['Agong']);
+  const overdraw={...bill,items:[{...bill.items[0],amount:600000}]};
+  assert.equal((await h.post({...expense,revision:3,entity:overdraw})).status,400);
+  assert.equal((await h.post({action:'deleteExpense',id,revision:3,entityId:bill.id})).status,200);
+  assert.equal(ledger.agongBalance((await h.get('owner@example.com')).trips[0].data).balance,500000);
+  assert.equal((await h.post({action:'restoreExpense',id,revision:4,entityId:bill.id})).status,200);
+  assert.equal(ledger.agongBalance((await h.get('owner@example.com')).trips[0].data).balance,332300);
+ }finally{h.sqlite.close()}
+});
+
 test('Only owner can delete event; stale deletion preserves shares; successful deletion removes access',async()=>{
  const h=await harness(),e=ledger.normalize({name:'Delete Test',people:['YH','ET'],bills:[],payments:[]}),{id}=await h.post({action:'create',data:e});
  await h.post({action:'grant',id,email:'admin@example.com',permissions:[...ledger.permissionKeys]});

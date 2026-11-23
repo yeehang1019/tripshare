@@ -5,6 +5,7 @@ export function restoredGroup(current:Event,snapshot:Event):Event{
  const currentIds=new Set(current.people.map(p=>p.id));if(snapshot.people.length!==currentIds.size||snapshot.people.some(p=>!currentIds.has(p.id)))throw Error('The member roster changed. Use the downloaded backup for a separate import and review');
  const merge=<T extends {id:string;deleted:boolean}>(saved:T[],now:T[])=>{const ids=new Set(saved.map(s=>s.id));return [...structuredClone(saved),...now.filter(x=>!ids.has(x.id)).map(x=>({...structuredClone(x),deleted:true}))]};
  const result:Event={...structuredClone(snapshot),people:structuredClone(current.people),groups:structuredClone(current.groups),audit:structuredClone(current.audit),expenses:merge(snapshot.expenses,current.expenses),payments:merge(snapshot.payments,current.payments)};
+ if(current.agong)result.agong=structuredClone(current.agong);
  const adjusted=new Set(current.expenses.filter(b=>b.adjustmentLedger).map(b=>b.id));result.expenses=result.expenses.map(b=>adjusted.has(b.id)?{...b,adjustmentLedger:true}:b);
  validateEvent(result);return result;
 }

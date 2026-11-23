@@ -363,6 +363,16 @@ async function postTrip(r: Request,context:RequestContext) {
       const existing=data.activities.find(p=>p.id===b.entity?.newId);
       if(existing){if(existing.alternativeOf===b.entity.sourceId&&existing.alternativeKey===b.entity.alternativeId&&data.activities.find(p=>p.id===b.entity.sourceId)?.status==='Cancelled')return response({ok:true,alreadyApplied:true});throw new InputError('That plan identity is already used')}
     }
+    if(b.action==='agongContribution'&&a.owner&&data.agong&&Array.isArray(b.entity?.contributions)&&b.entity.contributions.length>0&&b.entity.contributions.length<=50){
+      const prior=data.agong.contributions;
+      const incoming=b.entity.contributions as NonNullable<Event['agong']>['contributions'];
+      const byId=new Map(prior.map(entry=>[entry.id,entry]));
+      if(incoming.every(entry=>{
+        const old=byId.get(entry?.id);
+        return old&&old.person===entry.person&&old.amount===entry.amount&&old.date===entry.date;
+      })&&b.entity.currency===data.agong.currency&&new Set(incoming.map(entry=>entry.id)).size===incoming.length)
+        return response({ok:true,alreadyApplied:true,revision:row.revision});
+    }
     if (row.revision !== b.revision)
       return response(
         {
@@ -416,6 +426,15 @@ async function postTrip(r: Request,context:RequestContext) {
       if(!saved||saved.checksum!==await checksum(saved.data))throw new InputError('Checkpoint is missing or failed its integrity check');
       if(b.confirmName!==data.name)throw new InputError('Type the current group name to confirm recovery');
       const restored=validateInput(()=>restoredGroup(data,JSON.parse(saved.data)));before={checkpoint:saved.id,revision:row.revision};after={checkpoint:saved.id,summary:checkpointDiff(data,restored)};recoverySnapshot={id:await checksum(row.id+':'+row.revision),checksum:await checksum(row.data)};data=restored;
+    }else if(b.action==='agongContribution'){
+      if(!a.owner)return response({error:'Only the trip owner can record Agong contributions'},403);
+      const input=b.entity as {currency?:Event['currency'];contributions?:NonNullable<Event['agong']>['contributions']};
+      if(!input?.currency||!Array.isArray(input.contributions)||!input.contributions.length||input.contributions.length>50)throw new InputError('Enter 1–50 Agong contributions');
+      if(data.agong&&data.agong.currency!==input.currency)throw new InputError('Agong currency is locked after the first contribution');
+      if(input.contributions.some(item=>!item||!data.people.some(person=>person.id===item.person&&person.active)))throw new InputError('Select active trip members');
+      const entries=input.contributions.map(({id,person,amount,date})=>({id,person,amount,date}));
+      data.agong={currency:input.currency,contributions:[...(data.agong?.contributions||[]),...entries]};
+      after=entries;
     }else if(b.action==='categoryBudgets'){
       if(!a.owner)return response({error:'Only the owner can change budget targets'},403);
       const budget=b.entity;if(!budget||typeof budget.scope!=='string'||!budget.limits)throw new InputError('Check budget targets');
@@ -474,6 +493,10 @@ async function postTrip(r: Request,context:RequestContext) {
         before=data.expenses.filter(x=>ids.includes(x.id));
         data.expenses=data.expenses.map(x=>ids.includes(x.id)?{...x,...(category!==undefined?{category}:{}),...(activity!==undefined?{activity}:{})}:x);after=data.expenses.filter(x=>ids.includes(x.id));
       }else if (b.action === "expense") {
+        if((old?.agong||b.entity.agong)&&!a.owner&&!a.permissions.some(permission=>permission==='viewAll'||permission==='editAll'))
+          return response({error:'Full workspace access is required to use Agong'},403);
+        if(old&&!!old.agong!==!!b.entity.agong&&data.payments.some(p=>!p.deleted&&(!p.allocations||p.allocations.some(allocation=>allocation.expense===entity))))
+          throw new InputError('Undo repayments linked to this expense before changing the payer to or from Agong');
         if(old?.supplierPayments&&JSON.stringify(old.supplierPayments)!==JSON.stringify(b.entity.supplierPayments)&&data.payments.some(p=>!p.deleted&&(!p.allocations||p.allocations.some(a=>a.expense===entity))))throw new InputError('Undo repayments linked to this bill before changing its supplier payments');
         if (old && (b.entity.paymentStatus || 'paid') !== 'paid' && (old.paymentStatus || 'paid') === 'paid' && data.payments.some(p => !p.deleted && (!p.allocations || p.allocations.some(a => a.expense === entity))))
           throw new InputError("Undo repayments linked to this expense before changing it to unpaid or prepaid");

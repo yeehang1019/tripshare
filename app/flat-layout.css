@@ -181,3 +181,16 @@
 .grouped-task small { display: block; margin: -.15rem 0 .375rem 1.625rem; color: var(--text-secondary); overflow-wrap: anywhere; }
 .grouped-task > button { display: grid; place-items: center; padding: .25rem; }
 .grouped-checklist > .secondary:last-child { margin-block-start: .75rem; }
+.agong-fund { margin-block: .75rem 1rem; padding-block: .5rem; border-block: 1px solid var(--border); }
+.agong-fund > summary, .agong-fund li { display: flex; align-items: center; justify-content: space-between; gap: .5rem 1rem; }
+.agong-fund summary { cursor: pointer; }
+.agong-fund ul { list-style: none; margin: 0; padding: 0; }
+.agong-fund li { padding-block: .4rem; border-block-end: 1px solid var(--border); overflow-wrap: anywhere; }
+.agong-fund li small { display: block; color: var(--text-secondary); }
+.agong-fund li > span:last-child { text-align: end; font-variant-numeric: tabular-nums; }
+.agong-contributions { margin-block-start: .75rem; }
+.agong-contributions fieldset { border: 0; min-inline-size: 0; margin: 0; padding: 0; }
+.agong-contribution-rows { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,12rem),1fr)); gap: .375rem 1rem; margin-block: .75rem; }
+.agong-contribution-rows > label:has(input[type=checkbox]) { display: flex; align-items: center; gap: .5rem; min-block-size: 2.75rem; }
+.agong-contribution-rows input[type=checkbox] { appearance: auto; inline-size: 1rem; block-size: 1rem; min-width: 0 !important; min-height: 0 !important; }
+.agong-payer { align-self: start; margin-block-start: .25rem; }
