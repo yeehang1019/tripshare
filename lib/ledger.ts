@@ -12,6 +12,7 @@ export type Item = {
   service: boolean;
 };
 export type Expense = {
+  agong?: true;
   payLater?:{provider:"spaylater"|"grabpaylater"|"other";months:number;firstDue:string;fee:number;feePeople:string[]};
   paymentStatus?: "paid" | "postpaid" | "prepaid";
   paidOn?:string;
@@ -113,6 +114,7 @@ export type Audit = {
   after: unknown;
 };
 export type Event = {
+  agong?: {currency:string; contributions:{id:string;person:string;amount:number;date:string}[]};
   categoryBudgets?:{scope:string;limits:Record<string,number>}[];
   timeZone?:string;
   destination?: string;
@@ -468,9 +470,11 @@ export function calculate(b: Expense, settlement: string) {
   const contribution = b.voucherContribution
     ? Math.round(b.voucher * conversion)
     : 0;
-  check(b.payers.length>0&&new Set(b.payers.map(p=>p.person)).size===b.payers.length,'Select unique payers');
+  check(b.agong===undefined||b.agong===true,'Invalid Agong payer');
+  if(b.agong)check(b.payers.length===0&&(b.paymentStatus||'paid')==='paid'&&!b.supplierPayments&&!b.payLater&&!b.refunds?.length&&!b.cancellation&&!b.voucherContribution,'Agong supports fully paid expenses without financing, supplier refunds or contributed vouchers');
+  else check(b.payers.length>0&&new Set(b.payers.map(p=>p.person)).size===b.payers.length,'Select unique payers');
   const paidSource=b.supplierPayments?b.payers.map(()=>0):b.payers.map(p=>p.amount===-1&&b.payers.length===1?cashTotal:cents(p.amount,'Payment'));
-  check(!!b.supplierPayments||paidSource.reduce((a,v)=>a+v,0)===cashTotal,'Payments must equal final receipt total');
+  check(b.agong||!!b.supplierPayments||paidSource.reduce((a,v)=>a+v,0)===cashTotal,'Payments must equal final receipt total');
   const installments=b.supplierPayments;
   if(installments!==undefined){
     check(Array.isArray(installments)&&installments.length<=100&&new Set(installments.map(p=>p.id)).size===installments.length,'Check supplier payments');
@@ -500,7 +504,7 @@ export function calculate(b: Expense, settlement: string) {
   const total=targetSettle+(!b.cancellation?contribution:0);
   const consumed=Object.fromEntries(ids.map((p,i)=>[p,allocate(total,ids.map(id=>shares[id]))[i]]));
   const responsible=b.treat?{[b.treat]:total}:consumed;
-  const payerIds=Object.keys(netByPerson),paidValues=allocate(paidSettle,payerIds.map(p=>netByPerson[p]));
+  const payerIds=Object.keys(netByPerson),paidValues=b.agong?[]:allocate(paidSettle,payerIds.map(p=>netByPerson[p]));
   const paid=Object.fromEntries(payerIds.map((p,i)=>[p,paidValues[i]]));
   // A pending supplier refund is an asset of its payer, not a debt owed by friends.
   const fundedAmount=b.cancellation?Math.min(paidSettle,targetSettle):paidSettle;
@@ -534,6 +538,46 @@ export function calculate(b: Expense, settlement: string) {
   };
 }
 export type DebtClaim = { expense:string; from:string; to:string; amount:number };
+export function agongBalance(event:Event, excludeExpenseId?:string){
+  const fund=event.agong;
+  if(!fund)return null;
+  const rows=new Map(event.people.map(person=>[person.id,{person:person.id,contributed:0,share:0}]));
+  let contributed=0,spent=0;
+  for(const entry of fund.contributions){
+    const row=rows.get(entry.person);
+    check(row,'Unknown Agong contributor');
+    row.contributed=safeAdd(row.contributed,entry.amount);
+    contributed=safeAdd(contributed,entry.amount);
+  }
+  for(const expense of event.expenses){
+    if(!expense.agong||expense.deleted||expense.id===excludeExpenseId)continue;
+    check(expense.currency===fund.currency,'Agong expenses must use the fund currency');
+    const cost=calculate(expense,event.settlement);
+    spent=safeAdd(spent,cost.cashTotal);
+    const shares=expense.treat?{[expense.treat]:cost.cashTotal}:cost.shares;
+    for(const [person,amount] of Object.entries(shares)){
+      const row=rows.get(person);
+      check(row,'Unknown Agong participant');
+      row.share=safeAdd(row.share,amount);
+    }
+  }
+  return {currency:fund.currency,contributed,spent,balance:contributed-spent,people:[...rows.values()]};
+}
+
+function validateAgong(event:Event){
+  const fund=event.agong;
+  if(!fund){
+    check(!event.expenses.some(expense=>expense.agong&&!expense.deleted),'Set up Agong before using it to pay');
+    return;
+  }
+  check(event.kind==='trip'&&currencies.includes(fund.currency)&&Array.isArray(fund.contributions)&&fund.contributions.length<=1000,'Invalid Agong fund');
+  const unique=new Set<string>();
+  for(const entry of fund.contributions){
+    check(typeof entry.id==='string'&&!!entry.id&&entry.id.length<=150&&!unique.has(entry.id)&&typeof entry.person==='string'&&validDate(entry.date)&&cents(entry.amount,'Contribution')>0,'Invalid Agong contribution');
+    unique.add(entry.id);
+  }
+  check(agongBalance(event)!.balance>=0,'Agong has insufficient funds');
+}
 type PaymentTrace={id:string;date:string;expense:string;from:string;to:string;amount:number;applied:number;unapplied:number};
 export type PairCalculation={
  from:string;to:string;fromName:string;toName:string;
@@ -558,6 +602,7 @@ function netClaims(raw:DebtClaim[]){
 function claimsBeforePayments(e:Event){
  const claims:DebtClaim[]=[];
  for(const b of e.expenses.filter(b=>!b.deleted)){
+  if(b.agong)continue;
   const c=calculate(b,e.settlement);if(!c.settlementReady)continue;
   const owing={...c.responsible},funding={...c.funding};
   for(const p of Object.keys(owing)){const self=Math.min(owing[p]||0,funding[p]||0);owing[p]-=self;funding[p]=(funding[p]||0)-self;}
@@ -742,6 +787,7 @@ export function validateEvent(e: Event) {
     if(b.payLater)check(b.payLater.feePeople.every(p=>ids.includes(p)),"Unknown PayLater fee member");
     calculate(b, e.settlement);
   }
+  validateAgong(e);
   for (const p of e.payments) {
     cents(p.amount);
     check(p.batchId===undefined||typeof p.batchId==='string'&&p.batchId.length>0&&p.batchId.length<=150,'Invalid repayment batch');

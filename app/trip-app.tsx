@@ -100,6 +100,7 @@ import {SupplierPayment,ExpenseConflict,PaymentConflict} from "./money-actions";
 import {repaymentReview} from "@/lib/money-operations";
 import type {SearchHit} from "@/lib/workspace-search";
 import TripPlanner from "./trip-planner";
+import AgongFund from "./agong-fund";
 import {TripTools} from "./trip-tools";
 import {DetailWorkbench,FocusSections} from "./focus-workspace";
 import {Dialog,DialogContent,DialogTitle,DialogDescription} from "@/components/ui/dialog";
@@ -841,7 +842,7 @@ setPlannerDirty(false);setTemplateDirty(false);
                 <b>{b.merchant}</b>
                 <span className="expense-meta">
                   <span className="category-chip">{b.category}</span>
-                  <span>{b.cancellation?`Cancelled · refund pending ${money(c.refundDue,b.currency)}`:c.effectivePaymentStatus === "postpaid" ? `Supplier balance ${money(c.supplierRemaining,b.currency)}` : c.effectivePaymentStatus === "prepaid" ? "Paid in advance · not used yet" : b.treat ? `Treat by ${name(b.treat)}` : `Paid by ${[...new Set((b.supplierPayments||b.payers).map((p) => name(p.person)))].join(", ")}`}</span>
+                  <span>{b.cancellation?`Cancelled · refund pending ${money(c.refundDue,b.currency)}`:c.effectivePaymentStatus === "postpaid" ? `Supplier balance ${money(c.supplierRemaining,b.currency)}` : c.effectivePaymentStatus === "prepaid" ? "Paid in advance · not used yet" : b.agong ? "Paid by Agong" : b.treat ? `Treat by ${name(b.treat)}` : `Paid by ${[...new Set((b.supplierPayments||b.payers).map((p) => name(p.person)))].join(", ")}`}</span>
                   <span><Users size={14} /> {consumers.length} {consumers.length === 1 ? "person" : "people"}</span>
                 </span>
               </span>
@@ -1382,6 +1383,7 @@ setPlannerDirty(false);setTemplateDirty(false);
                 {tab === "Dashboard" && canViewGroup && <MoneyHome key={rec.id} onSettle={direction=>navigate('Settlement',direction)} trips={records.filter(r=>!r.directoryOnly&&r.data.kind==='trip').map(r=>({id:r.id,name:r.data.name,start:r.data.start}))} onTrip={id=>{selectSpace('trip');choose(id)}} event={e} person={hasPersonalAccess?me:undefined} onNavigate={navigate} onExpense={expense=>{setFocusExpense(expense);navigate('Expenses')}} charts={homeCharts()}/>}
                 {tab==='Dashboard'&&canViewGroup&&e.kind==='trip'&&<SpaceBridge event={e} space="money" onOpen={()=>switchSpace('trip')}/>}
                 {tab==='Dashboard'&&canViewGroup&&e.kind==='trip'&&<details className="money-funding-summary"><summary>Trip funding · linked plan estimates</summary><TravelFunding event={e}/></details>}
+                {!shared&&canViewGroup&&e.kind==='trip'&&['Trip Plan','Expenses','Dashboard','Settlement'].includes(tab)&&<AgongFund key={rec.id} event={e} canRecord={!!rec.owner} busy={busy} onRecord={async entity=>!!(await send('agongContribution',{entity}))}/>}
                 {bill && (
                   <Dialog open onOpenChange={v=>{if(!v)requestCloseBill()}}><DialogContent className="workspace-editor-sheet" showCloseButton={false} onCloseAutoFocus={event=>{event.preventDefault();requestAnimationFrame(()=>{const control=[...document.querySelectorAll<HTMLButtonElement>('.mobile-quick-add,.desktop-add-expense')].find(node=>node.getClientRects().length>0);control?.focus()})}} onEscapeKeyDown={event=>{event.preventDefault();requestCloseBill()}} onOpenAutoFocus={event=>{event.preventDefault();requestAnimationFrame(()=>document.querySelector<HTMLInputElement>('.expense-editor [data-primary-amount]')?.focus())}} onInteractOutside={v=>v.preventDefault()}><DialogTitle className="sr-only">Expense editor</DialogTitle><DialogDescription className="sr-only">Record or edit one expense, then return to your selected record.</DialogDescription>{error&&<p role="alert" className="message error"><CopyError value={error} owner={!!rec?.owner}/></p>}{bill.activity&&<div className="space-link-note editor-origin"><MapPinned size={18}/><div><b>{space==='trip'?"Record trip expense":"Money · linked to your trip"}</b><p>{e.activities.find(a=>a.id===bill.activity)?.name||'Trip plan'} · {bill.date}. {e.expenses.some(b=>b.id===bill.id)?"Update this bill; it will not create a second expense.":"Saved once and shared with Money."}</p></div>{space==='money'&&<button className="text-button" onClick={()=>switchSpace('trip',bill.activity)}>Return to Trip</button>}</div>}<ExpenseEditor selfPerson={rec.person} onDirty={dirty=>{billDirty.current=dirty}} stickyActions draftScope={localScope} draftRevision={draftRevision}
                     key={bill.id+editorEpoch}
